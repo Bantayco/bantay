@@ -1,6 +1,6 @@
 {
   "name": "@bantay/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Write down the rules your system must never break. We enforce them on every PR.",
   "type": "module",
   "bin": {
