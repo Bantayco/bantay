@@ -1,0 +1,70 @@
+/**
+ * Export to AGENTS.md with section markers
+ * Works for Codex, Copilot, and any agent that reads AGENTS.md
+ */
+
+import { readFile, writeFile, access } from "fs/promises";
+import { join } from "path";
+import { read as readAide } from "../aide";
+import {
+  extractConstraints,
+  extractFoundations,
+  extractInvariants,
+} from "./aide-reader";
+import { generateClaudeSection, insertSection } from "./claude";
+import type { ExportOptions, ExportResult } from "./types";
+
+/**
+ * Check if a file exists
+ */
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Export to AGENTS.md
+ */
+export async function exportCodex(
+  projectPath: string,
+  options: ExportOptions = {}
+): Promise<ExportResult> {
+  const aidePath = options.aidePath || join(projectPath, "bantay.aide");
+  const outputPath = options.outputPath || join(projectPath, "AGENTS.md");
+
+  // Read the aide tree
+  const tree = await readAide(aidePath);
+
+  // Extract entities
+  const constraints = extractConstraints(tree);
+  const foundations = extractFoundations(tree);
+  const invariants = extractInvariants(tree);
+
+  // Generate section content (same format as claude)
+  const section = generateClaudeSection(constraints, foundations, invariants);
+
+  // Read existing file if it exists
+  let existingContent = "";
+  if (await fileExists(outputPath)) {
+    existingContent = await readFile(outputPath, "utf-8");
+  }
+
+  // Insert or replace section
+  const content = insertSection(existingContent, section);
+
+  // Write unless dry run
+  if (!options.dryRun) {
+    await writeFile(outputPath, content, "utf-8");
+  }
+
+  return {
+    target: "codex",
+    outputPath,
+    content,
+    bytesWritten: Buffer.byteLength(content, "utf-8"),
+  };
+}

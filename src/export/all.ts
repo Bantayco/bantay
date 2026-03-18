@@ -5,10 +5,11 @@
 import { exportInvariants } from "./invariants";
 import { exportClaude } from "./claude";
 import { exportCursor } from "./cursor";
+import { exportCodex } from "./codex";
 import type { ExportOptions, ExportResult } from "./types";
 
 /**
- * Export all targets: invariants.md, CLAUDE.md, .cursorrules
+ * Export all targets: invariants.md, CLAUDE.md, .cursorrules, AGENTS.md
  */
 export async function exportAll(
   projectPath: string,
@@ -24,6 +25,9 @@ export async function exportAll(
 
   // Export .cursorrules
   results.push(await exportCursor(projectPath, options));
+
+  // Export AGENTS.md
+  results.push(await exportCodex(projectPath, options));
 
   return results;
 }

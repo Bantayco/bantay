@@ -4,6 +4,8 @@
  * Run bantay check with --json flag. Parse stdout as JSON.
  * Assert it contains timestamp, commit (or null), and results
  * array with id, status, checker for each invariant.
+ *
+ * @scenario sc_ci_audit_output
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";

@@ -12,7 +12,9 @@ import {
   handleAideLock,
   printAideHelp,
 } from "./commands/aide";
-import { exportInvariants, exportClaude, exportCursor, exportAll } from "./export";
+import { exportInvariants, exportClaude, exportCursor, exportCodex, exportAll } from "./export";
+import { runStatus, formatStatus } from "./commands/status";
+import { runCi, type CiOptions } from "./commands/ci";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -33,10 +35,11 @@ async function main() {
   } else if (command === "aide") {
     await handleAide(args.slice(1));
   } else if (command === "ci") {
-    console.error("bantay ci: Not yet implemented");
-    process.exit(1);
+    await handleCi(args.slice(1));
   } else if (command === "export") {
     await handleExport(args.slice(1));
+  } else if (command === "status") {
+    await handleStatus(args.slice(1));
   } else {
     console.error(`Unknown command: ${command}`);
     console.error('Run "bantay help" for usage information.');
@@ -72,6 +75,7 @@ Commands:
   aide      Manage the aide entity tree (add, remove, link, show, validate, lock)
   ci        Generate CI workflow configuration
   export    Export invariants to agent context files
+  status    Show scenario implementation status
 
 Options:
   -h, --help    Show this help message
@@ -83,10 +87,12 @@ Examples:
   bantay aide show           Show the aide entity tree
   bantay aide add inv_test --parent invariants --prop "statement=Test"
   bantay ci --github-actions Generate GitHub Actions workflow
-  bantay export all              Export all targets
-  bantay export invariants       Generate invariants.md from bantay.aide
-  bantay export claude           Export to CLAUDE.md
-  bantay export cursor           Export to .cursorrules
+  bantay export all          Export all targets
+  bantay export invariants   Generate invariants.md from bantay.aide
+  bantay export claude       Export to CLAUDE.md
+  bantay export cursor       Export to .cursorrules
+  bantay status              Show scenario implementation status
+  bantay status --json       Output as JSON
 
 Run "bantay aide help" for aide subcommand details.
 `);
@@ -229,14 +235,16 @@ async function handleExport(args: string[]) {
     console.error("Usage: bantay export <target>");
     console.error("");
     console.error("Targets:");
-    console.error("  all         Export all targets (invariants, claude, cursor)");
+    console.error("  all         Export all targets (invariants, claude, cursor, codex)");
     console.error("  invariants  Generate invariants.md from bantay.aide");
     console.error("  claude      Export to CLAUDE.md with section markers");
     console.error("  cursor      Export to .cursorrules with section markers");
+    console.error("  codex       Export to AGENTS.md with section markers");
     console.error("");
     console.error("Examples:");
     console.error("  bantay export invariants");
     console.error("  bantay export claude");
+    console.error("  bantay export codex");
     console.error("  bantay export --target cursor");
     process.exit(1);
   }
@@ -262,9 +270,13 @@ async function handleExport(args: string[]) {
       const result = await exportCursor(projectPath, { dryRun });
       console.log(`Exported to ${result.outputPath}`);
       console.log(`  ${result.bytesWritten} bytes written`);
+    } else if (target === "codex") {
+      const result = await exportCodex(projectPath, { dryRun });
+      console.log(`Exported to ${result.outputPath}`);
+      console.log(`  ${result.bytesWritten} bytes written`);
     } else {
       console.error(`Unknown export target: ${target}`);
-      console.error('Valid targets: all, invariants, claude, cursor');
+      console.error('Valid targets: all, invariants, claude, cursor, codex');
       process.exit(1);
     }
 
@@ -278,6 +290,74 @@ async function handleExport(args: string[]) {
       console.error(`Error: ${error.message}`);
     } else {
       console.error("Error running export:", error);
+    }
+    process.exit(1);
+  }
+}
+
+async function handleCi(args: string[]) {
+  const projectPath = process.cwd();
+
+  // Parse provider from args
+  const hasGitHub = args.includes("--github-actions") || args.includes("--github");
+  const hasGitLab = args.includes("--gitlab");
+  const force = args.includes("--force");
+
+  let provider: "github-actions" | "gitlab" | "generic";
+
+  if (hasGitHub) {
+    provider = "github-actions";
+  } else if (hasGitLab) {
+    provider = "gitlab";
+  } else {
+    provider = "generic";
+  }
+
+  try {
+    const result = await runCi(projectPath, { provider, force });
+
+    if (result.alreadyExists) {
+      console.error(`${result.outputPath} already exists.`);
+      console.error("Use --force to overwrite.");
+      process.exit(1);
+    }
+
+    if (provider === "generic") {
+      console.log(result.content);
+    } else {
+      console.log(`Generated ${result.outputPath}`);
+    }
+
+    process.exit(0);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error running ci:", error);
+    }
+    process.exit(1);
+  }
+}
+
+async function handleStatus(args: string[]) {
+  const projectPath = process.cwd();
+  const jsonOutput = args.includes("--json");
+
+  try {
+    const result = await runStatus(projectPath, { json: jsonOutput });
+
+    if (jsonOutput) {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      console.log(formatStatus(result));
+    }
+
+    process.exit(0);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error running status:", error);
     }
     process.exit(1);
   }

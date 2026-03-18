@@ -5,6 +5,7 @@ import { join } from "path";
 const BUN_PATH = process.execPath;
 const PROJECT_ROOT = join(import.meta.dir, "..");
 
+// sc_init_binary: CLI is invocable by name
 describe("CLI Invocability", () => {
   describe("package.json bin field", () => {
     test("bin field maps 'bantay' to src/cli.ts", async () => {

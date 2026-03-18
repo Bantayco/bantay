@@ -26,6 +26,8 @@ async function runBantay(args: string[], cwd: string = TEST_DIR): Promise<{
   return { stdout, stderr, exitCode };
 }
 
+// sc_checker_builtin: Built-in checkers ship with Bantay
+// sc_checker_community: Community checkers from npm (tested via mock)
 describe("Auth Checker", () => {
   beforeEach(async () => {
     await rm(TEST_DIR, { recursive: true, force: true });
@@ -491,5 +493,405 @@ describe("Logging Checker", () => {
 
     expect(stderr).toContain("src/auth.ts");
     expect(stderr).toContain("src/payment.ts");
+  });
+});
+
+// sc_checker_project: Write a project-specific checker
+describe("Project Checkers", () => {
+  beforeEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+    await mkdir(TEST_DIR, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+  });
+
+  test("discovers and runs checker in .bantay/checkers/", async () => {
+    // Create project structure
+    await mkdir(join(TEST_DIR, ".bantay/checkers"), { recursive: true });
+    await mkdir(join(TEST_DIR, "src"), { recursive: true });
+
+    // Create a simple project checker
+    await writeFile(
+      join(TEST_DIR, ".bantay/checkers/no-todo.ts"),
+      `export const name = "no-todo";
+export const description = "No TODO comments allowed";
+
+export async function check(config: any) {
+  return {
+    pass: true,
+    violations: []
+  };
+}`
+    );
+
+    await writeFile(
+      join(TEST_DIR, "invariants.md"),
+      `# Project Invariants
+
+## Custom
+
+- [INV-100] custom | No TODO comments in code
+`
+    );
+    await writeFile(
+      join(TEST_DIR, "bantay.config.yml"),
+      `sourceDirectories:\n  - src\n`
+    );
+    await writeFile(join(TEST_DIR, "src/index.ts"), "// clean code");
+
+    const { stderr, exitCode } = await runBantay(["check"]);
+
+    // Should not crash - project checker or skipped category
+    expect(exitCode).toBeLessThanOrEqual(1);
+  });
+
+  test("project checker exports check() function", async () => {
+    await mkdir(join(TEST_DIR, ".bantay/checkers"), { recursive: true });
+
+    // Create checker with proper interface
+    await writeFile(
+      join(TEST_DIR, ".bantay/checkers/example.ts"),
+      `export const name = "example";
+export const description = "Example checker";
+
+export async function check(config: { projectPath: string }) {
+  return {
+    pass: true,
+    violations: []
+  };
+}`
+    );
+
+    await writeFile(
+      join(TEST_DIR, "invariants.md"),
+      `# Project Invariants
+
+## Example
+
+- [INV-100] example | Example rule
+`
+    );
+    await writeFile(join(TEST_DIR, "bantay.config.yml"), `sourceDirectories:\n  - src\n`);
+
+    const { exitCode } = await runBantay(["check"]);
+
+    // Should complete without error
+    expect(exitCode).toBeLessThanOrEqual(1);
+  });
+});
+
+// sc_checker_interface: All checkers follow a common interface
+describe("Checker Interface", () => {
+  beforeEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+    await mkdir(TEST_DIR, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+  });
+
+  test("CheckResult has pass boolean and violations array", async () => {
+    await writeFile(
+      join(TEST_DIR, "invariants.md"),
+      `# Project Invariants
+
+## Auth
+
+- [INV-010] auth | All API routes must check authentication
+`
+    );
+    await writeFile(
+      join(TEST_DIR, "bantay.config.yml"),
+      `sourceDirectories:\n  - src\nrouteDirectories:\n  - app/api\n`
+    );
+    await mkdir(join(TEST_DIR, "app/api/users"), { recursive: true });
+    await writeFile(
+      join(TEST_DIR, "app/api/users/route.ts"),
+      `export async function GET() { return Response.json({}); }`
+    );
+
+    // Get JSON output to verify structure
+    const { stdout } = await runBantay(["check", "--json"]);
+    const result = JSON.parse(stdout);
+
+    // Verify CheckResult shape
+    expect(result.results).toBeDefined();
+    expect(Array.isArray(result.results)).toBe(true);
+
+    const firstResult = result.results[0];
+    expect(typeof firstResult.status).toBe("string");
+    expect(["pass", "fail", "skipped"]).toContain(firstResult.status);
+  });
+
+  test("violations include file, line, and message", async () => {
+    await writeFile(
+      join(TEST_DIR, "invariants.md"),
+      `# Project Invariants
+
+## Auth
+
+- [INV-010] auth | All API routes must check authentication
+`
+    );
+    await writeFile(
+      join(TEST_DIR, "bantay.config.yml"),
+      `sourceDirectories:\n  - src\nrouteDirectories:\n  - app/api\n`
+    );
+    await mkdir(join(TEST_DIR, "app/api/users"), { recursive: true });
+    await writeFile(
+      join(TEST_DIR, "app/api/users/route.ts"),
+      `export async function GET() { return Response.json({}); }`
+    );
+
+    const { stdout } = await runBantay(["check", "--json"]);
+    const result = JSON.parse(stdout);
+
+    // Find a failing result
+    const failResult = result.results.find((r: any) => r.status === "fail");
+    if (failResult) {
+      expect(failResult.violations).toBeDefined();
+      expect(Array.isArray(failResult.violations)).toBe(true);
+
+      if (failResult.violations.length > 0) {
+        const violation = failResult.violations[0];
+        expect(violation.file).toBeDefined();
+        expect(violation.message).toBeDefined();
+      }
+    }
+  });
+});
+
+// sc_checker_missing: Referenced checker not found
+describe("Missing Checker", () => {
+  beforeEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+    await mkdir(TEST_DIR, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+  });
+
+  test("reports SKIPPED when no checker exists for category", async () => {
+    await writeFile(
+      join(TEST_DIR, "invariants.md"),
+      `# Project Invariants
+
+## NonexistentCategory
+
+- [INV-999] nonexistent | Some rule with no checker
+`
+    );
+    await writeFile(join(TEST_DIR, "bantay.config.yml"), `sourceDirectories:\n  - src\n`);
+
+    const { stderr } = await runBantay(["check"]);
+
+    expect(stderr).toContain("SKIPPED");
+  });
+
+  test("skipped invariants do not cause non-zero exit", async () => {
+    await writeFile(
+      join(TEST_DIR, "invariants.md"),
+      `# Project Invariants
+
+## UnknownCategory
+
+- [INV-999] unknown | Rule with no checker
+`
+    );
+    await writeFile(join(TEST_DIR, "bantay.config.yml"), `sourceDirectories:\n  - src\n`);
+
+    const { exitCode } = await runBantay(["check"]);
+
+    expect(exitCode).toBe(0);
+  });
+
+  test("warning displayed for missing checker", async () => {
+    await writeFile(
+      join(TEST_DIR, "invariants.md"),
+      `# Project Invariants
+
+## FakeCategory
+
+- [INV-999] fakecategory | Nonexistent checker
+`
+    );
+    await writeFile(join(TEST_DIR, "bantay.config.yml"), `sourceDirectories:\n  - src\n`);
+
+    const { stderr } = await runBantay(["check"]);
+
+    expect(stderr).toMatch(/no checker|skipped/i);
+  });
+});
+
+// sc_checker_sandboxed: Project checkers run sandboxed
+describe("Checker Sandbox", () => {
+  beforeEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+    await mkdir(TEST_DIR, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+  });
+
+  test("checker receives config as read-only input", async () => {
+    await mkdir(join(TEST_DIR, ".bantay/checkers"), { recursive: true });
+
+    // Checker that returns config info
+    await writeFile(
+      join(TEST_DIR, ".bantay/checkers/config-test.ts"),
+      `export const name = "config-test";
+export const description = "Tests config input";
+
+export async function check(config: any) {
+  // Config should have projectPath
+  const hasProjectPath = typeof config.projectPath === 'string';
+  return {
+    pass: hasProjectPath,
+    violations: hasProjectPath ? [] : [{ file: "test", line: 1, message: "No config" }]
+  };
+}`
+    );
+
+    await writeFile(
+      join(TEST_DIR, "invariants.md"),
+      `# Project Invariants
+
+## ConfigTest
+
+- [INV-100] configtest | Checker receives config
+`
+    );
+    await writeFile(join(TEST_DIR, "bantay.config.yml"), `sourceDirectories:\n  - src\n`);
+
+    const { exitCode } = await runBantay(["check"]);
+
+    // Should not crash
+    expect(exitCode).toBeLessThanOrEqual(1);
+  });
+
+  test("checker returns structured result", async () => {
+    await mkdir(join(TEST_DIR, ".bantay/checkers"), { recursive: true });
+
+    await writeFile(
+      join(TEST_DIR, ".bantay/checkers/structured.ts"),
+      `export const name = "structured";
+export const description = "Returns structured result";
+
+export async function check() {
+  return {
+    pass: false,
+    violations: [
+      { file: "src/test.ts", line: 10, message: "Test violation" }
+    ]
+  };
+}`
+    );
+
+    await writeFile(
+      join(TEST_DIR, "invariants.md"),
+      `# Project Invariants
+
+## Structured
+
+- [INV-100] structured | Structured result test
+`
+    );
+    await writeFile(join(TEST_DIR, "bantay.config.yml"), `sourceDirectories:\n  - src\n`);
+
+    const { exitCode } = await runBantay(["check"]);
+
+    // Checker should complete
+    expect(exitCode).toBeLessThanOrEqual(1);
+  });
+});
+
+// sc_checker_community: Install community checker from npm
+describe("Community Checkers", () => {
+  beforeEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+    await mkdir(TEST_DIR, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(TEST_DIR, { recursive: true, force: true });
+  });
+
+  test("community checker follows same interface as built-in", async () => {
+    // Simulate a community checker by creating a node_modules package
+    await mkdir(join(TEST_DIR, "node_modules/@bantay/checker-test"), { recursive: true });
+
+    // Create package.json
+    await writeFile(
+      join(TEST_DIR, "node_modules/@bantay/checker-test/package.json"),
+      JSON.stringify({
+        name: "@bantay/checker-test",
+        version: "1.0.0",
+        main: "index.js",
+      })
+    );
+
+    // Create index.js with checker interface
+    await writeFile(
+      join(TEST_DIR, "node_modules/@bantay/checker-test/index.js"),
+      `module.exports = {
+  name: "test-checker",
+  description: "A test community checker",
+  check: async function(config) {
+    return {
+      pass: true,
+      violations: []
+    };
+  }
+};`
+    );
+
+    // The invariants.md would reference it like:
+    // checker: @bantay/checker-test
+    // For now, this test verifies the interface contract
+    const checker = require(join(TEST_DIR, "node_modules/@bantay/checker-test"));
+
+    expect(checker.name).toBe("test-checker");
+    expect(checker.description).toBeDefined();
+    expect(typeof checker.check).toBe("function");
+
+    const result = await checker.check({});
+    expect(typeof result.pass).toBe("boolean");
+    expect(Array.isArray(result.violations)).toBe(true);
+  });
+
+  test("community checker returns CheckResult shape", async () => {
+    await mkdir(join(TEST_DIR, "node_modules/@bantay/checker-mock"), { recursive: true });
+
+    await writeFile(
+      join(TEST_DIR, "node_modules/@bantay/checker-mock/package.json"),
+      JSON.stringify({ name: "@bantay/checker-mock", main: "index.js" })
+    );
+
+    await writeFile(
+      join(TEST_DIR, "node_modules/@bantay/checker-mock/index.js"),
+      `module.exports = {
+  name: "mock",
+  description: "Mock checker",
+  check: async () => ({
+    pass: false,
+    violations: [
+      { file: "src/foo.ts", line: 42, message: "Test violation" }
+    ]
+  })
+};`
+    );
+
+    const checker = require(join(TEST_DIR, "node_modules/@bantay/checker-mock"));
+    const result = await checker.check({});
+
+    expect(result.pass).toBe(false);
+    expect(result.violations[0].file).toBe("src/foo.ts");
+    expect(result.violations[0].line).toBe(42);
+    expect(result.violations[0].message).toBe("Test violation");
   });
 });

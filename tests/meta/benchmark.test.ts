@@ -3,6 +3,8 @@
  *
  * Generate a fixture with 50 invariants and a 500-line diff.
  * Time bantay check --diff. Assert under 5 seconds.
+ *
+ * @scenario sc_check_speed
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";

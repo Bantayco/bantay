@@ -4,6 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { detectStack, type StackDetectionResult } from "../src/detectors";
 
+// sc_init_detect_stack: Detect project stack
 describe("Stack Detection", () => {
   let testDir: string;
 

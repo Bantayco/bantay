@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-18T16:33:17.568Z
+# Generated: 2026-03-18T20:25:54.719Z
 
 entities:
   bantay_cli: 40c228db
@@ -30,20 +30,20 @@ entities:
   found_one_file: 745e4581
   found_same_interface: 1b198dc4
   foundations: 61b8c932
-  inv_bun_available: 62b4b3f5
-  inv_check_speed: 3b3018f8
+  inv_bun_available: 15ff125e
+  inv_check_speed: 5e9f58a6
   inv_checker_interface_uniform: 4aeb9d69
   inv_checker_sandboxed: 38855215
-  inv_ci_output_parseable: 0dba5703
+  inv_ci_output_parseable: 5ad08564
   inv_cli_invocable: 69f51b7d
-  inv_diff_subset: 746f9922
+  inv_diff_subset: 041e295d
   inv_exit_code: 03f7c404
-  inv_export_all_success: 19a828f7
+  inv_export_all_success: 2c15aef6
   inv_export_idempotent: 7bca4b8f
   inv_init_no_overwrite: 4363bad4
   inv_no_clobber: 5bdcc536
   inv_no_code_execution: 298a7a56
-  inv_no_false_negatives: 5c94f4c0
+  inv_no_false_negatives: 37441005
   inv_no_inline_shell: 261b8229
   inv_no_network: 2ef2eec3
   inv_no_source_modification: 23376c16

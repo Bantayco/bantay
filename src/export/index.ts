@@ -5,6 +5,7 @@
 export { exportInvariants, generateInvariantsMd } from "./invariants";
 export { exportClaude, generateClaudeSection, insertSection } from "./claude";
 export { exportCursor } from "./cursor";
+export { exportCodex } from "./codex";
 export { exportAll } from "./all";
 
 export type {

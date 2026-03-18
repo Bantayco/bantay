@@ -15,6 +15,8 @@ describe("Init Command", () => {
     await rm(testDir, { recursive: true, force: true });
   });
 
+  // sc_init_generate_invariants: Generate starter invariants.md
+  // sc_init_generate_config: Generate bantay.config.yml
   describe("Full Integration", () => {
     test("creates invariants.md and bantay.config.yml for Next.js + Prisma project", async () => {
       // Setup Next.js + Prisma project
@@ -64,6 +66,7 @@ describe("Init Command", () => {
     });
   });
 
+  // sc_init_no_project: Init in empty directory
   describe("Empty Directory", () => {
     test("warns when no framework detected", async () => {
       const result = await runInit(testDir);
@@ -91,6 +94,7 @@ describe("Init Command", () => {
     });
   });
 
+  // sc_init_already_initialized: Init when invariants.md already exists
   describe("Already Initialized", () => {
     test("does NOT overwrite existing invariants.md", async () => {
       const existingContent = "# My Custom Invariants\n\n- [INV-999] custom | My rule";
@@ -121,6 +125,7 @@ describe("Init Command", () => {
     });
   });
 
+  // sc_init_speed: Init completes quickly
   describe("Speed", () => {
     test("completes in under 1 second for simple project", async () => {
       await writeFile(
