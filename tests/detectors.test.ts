@@ -26,11 +26,9 @@ describe("Stack Detection", () => {
 
       const result = await detectStack(testDir);
 
-      expect(result.framework).toEqual({
-        name: "nextjs",
-        version: "14.0.0",
-        confidence: "high",
-      });
+      expect(result.framework?.name).toBe("nextjs");
+      expect(result.framework?.version).toBe("14.0.0");
+      expect(result.framework?.confidence).toBe("high");
     });
 
     test("detects Next.js from next.config.js", async () => {
@@ -105,11 +103,9 @@ describe("Stack Detection", () => {
 
       const result = await detectStack(testDir);
 
-      expect(result.orm).toEqual({
-        name: "prisma",
-        version: "5.0.0",
-        confidence: "high",
-      });
+      expect(result.orm?.name).toBe("prisma");
+      expect(result.orm?.version).toBe("5.0.0");
+      expect(result.orm?.confidence).toBe("high");
     });
 
     test("detects Prisma schema file location", async () => {
@@ -177,6 +173,106 @@ describe("Stack Detection", () => {
     });
   });
 
+  describe("Stripe Detection", () => {
+    test("detects Stripe from package.json dependency", async () => {
+      await writeFile(
+        join(testDir, "package.json"),
+        JSON.stringify({
+          dependencies: { stripe: "14.0.0" },
+        })
+      );
+
+      const result = await detectStack(testDir);
+
+      expect(result.payments?.name).toBe("stripe");
+      expect(result.payments?.confidence).toBe("high");
+    });
+
+    test("detects Stripe webhook pattern", async () => {
+      await writeFile(
+        join(testDir, "package.json"),
+        JSON.stringify({
+          dependencies: { stripe: "14.0.0" },
+        })
+      );
+      await mkdir(join(testDir, "app", "api", "webhooks", "stripe"), { recursive: true });
+      await writeFile(
+        join(testDir, "app", "api", "webhooks", "stripe", "route.ts"),
+        "export async function POST() {}"
+      );
+
+      const result = await detectStack(testDir);
+
+      expect(result.payments?.webhookPattern).toBe("app/api/webhooks/stripe/route.ts");
+    });
+  });
+
+  describe("Auth.js Detection", () => {
+    test("detects next-auth from package.json", async () => {
+      await writeFile(
+        join(testDir, "package.json"),
+        JSON.stringify({
+          dependencies: { "next-auth": "4.24.0" },
+        })
+      );
+
+      const result = await detectStack(testDir);
+
+      expect(result.auth?.name).toBe("authjs");
+      expect(result.auth?.confidence).toBe("high");
+    });
+  });
+
+  describe("Clerk Detection", () => {
+    test("detects Clerk from package.json", async () => {
+      await writeFile(
+        join(testDir, "package.json"),
+        JSON.stringify({
+          dependencies: { "@clerk/nextjs": "4.29.0" },
+        })
+      );
+
+      const result = await detectStack(testDir);
+
+      expect(result.auth?.name).toBe("clerk");
+      expect(result.auth?.confidence).toBe("high");
+    });
+  });
+
+  describe("Drizzle Detection", () => {
+    test("detects Drizzle from package.json", async () => {
+      await writeFile(
+        join(testDir, "package.json"),
+        JSON.stringify({
+          dependencies: { "drizzle-orm": "0.29.0" },
+        })
+      );
+
+      const result = await detectStack(testDir);
+
+      expect(result.orm?.name).toBe("drizzle");
+      expect(result.orm?.confidence).toBe("high");
+    });
+
+    test("detects Drizzle schema location", async () => {
+      await writeFile(
+        join(testDir, "package.json"),
+        JSON.stringify({
+          dependencies: { "drizzle-orm": "0.29.0" },
+        })
+      );
+      await mkdir(join(testDir, "src", "db"), { recursive: true });
+      await writeFile(
+        join(testDir, "src", "db", "schema.ts"),
+        "export const users = pgTable('users', {});"
+      );
+
+      const result = await detectStack(testDir);
+
+      expect(result.orm?.schemaPath).toBe("src/db/schema.ts");
+    });
+  });
+
   describe("Empty/Unknown Project", () => {
     test("returns null detections for empty directory", async () => {
       const result = await detectStack(testDir);
@@ -184,6 +280,7 @@ describe("Stack Detection", () => {
       expect(result.framework).toBeNull();
       expect(result.orm).toBeNull();
       expect(result.auth).toBeNull();
+      expect(result.payments).toBeNull();
     });
 
     test("returns null detections for project with no recognized framework", async () => {

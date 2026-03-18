@@ -74,18 +74,27 @@ export async function detect(projectPath: string): Promise<FrameworkDetection | 
     return null;
   }
 
-  // Detect router type
+  // Detect router type and determine route pattern
   let router: "app" | "pages" | undefined;
+  let routePattern: string | undefined;
 
   const hasAppDir = await dirExists(join(projectPath, "app"));
   const hasPagesDir = await dirExists(join(projectPath, "pages"));
   const hasSrcAppDir = await dirExists(join(projectPath, "src", "app"));
   const hasSrcPagesDir = await dirExists(join(projectPath, "src", "pages"));
 
-  if (hasAppDir || hasSrcAppDir) {
+  if (hasAppDir) {
     router = "app";
-  } else if (hasPagesDir || hasSrcPagesDir) {
+    routePattern = "app/api/**/route.ts";
+  } else if (hasSrcAppDir) {
+    router = "app";
+    routePattern = "src/app/api/**/route.ts";
+  } else if (hasPagesDir) {
     router = "pages";
+    routePattern = "pages/api/**/*.ts";
+  } else if (hasSrcPagesDir) {
+    router = "pages";
+    routePattern = "src/pages/api/**/*.ts";
   }
 
   return {
@@ -93,5 +102,6 @@ export async function detect(projectPath: string): Promise<FrameworkDetection | 
     version,
     confidence,
     router,
+    routePattern,
   };
 }

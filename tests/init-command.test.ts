@@ -40,8 +40,10 @@ describe("Init Command", () => {
       const invariantsPath = join(testDir, "invariants.md");
       const configPath = join(testDir, "bantay.config.yml");
       const invariantsContent = await readFile(invariantsPath, "utf-8");
-      expect(invariantsContent).toContain("auth-on-routes");
-      expect(invariantsContent).toContain("timestamps-on-tables");
+      expect(invariantsContent).toContain("inv_route_auth");
+      expect(invariantsContent).toContain("app/api/**/route.ts");
+      expect(invariantsContent).toContain("inv_model_timestamps");
+      expect(invariantsContent).toContain("prisma/schema.prisma");
 
       const configContent = await readFile(configPath, "utf-8");
       expect(configContent).toContain("prisma/schema.prisma");

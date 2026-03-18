@@ -133,6 +133,12 @@ async function handleInit(args: string[]) {
       console.log("  Auth: Not detected");
     }
 
+    if (result.detection.payments) {
+      console.log(`  Payments: ${result.detection.payments.name} (${result.detection.payments.confidence} confidence)`);
+    } else {
+      console.log("  Payments: Not detected");
+    }
+
     console.log("");
 
     // Display warnings
