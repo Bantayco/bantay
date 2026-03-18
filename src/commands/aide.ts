@@ -11,6 +11,38 @@ import {
 } from "../aide";
 import type { RelationshipType, Cardinality } from "../aide/types";
 
+/**
+ * Entity type classification based on ID prefix
+ */
+const ENTITY_TYPE_PREFIXES: Record<string, string> = {
+  "cuj_": "cuj",
+  "sc_": "scenario",
+  "inv_": "invariant",
+  "con_": "constraint",
+  "found_": "foundation",
+  "wis_": "wisdom",
+};
+
+/**
+ * Get entity type from ID prefix
+ */
+function getEntityType(id: string): string {
+  for (const [prefix, type] of Object.entries(ENTITY_TYPE_PREFIXES)) {
+    if (id.startsWith(prefix)) {
+      return type;
+    }
+  }
+  return "entity";
+}
+
+/**
+ * Parsed lock file structure
+ */
+interface LockFile {
+  entities: Record<string, string>;
+  relationships: string[];
+}
+
 const DEFAULT_AIDE_PATH = "bantay.aide";
 
 /**
@@ -513,6 +545,239 @@ function computeRelationshipHash(rel: { from: string; to: string; type: string; 
 }
 
 /**
+ * Handle bantay aide diff
+ * Usage: bantay aide diff [--json]
+ * Compare bantay.aide against bantay.aide.lock and show changes
+ */
+export async function handleAideDiff(args: string[]): Promise<void> {
+  const { options } = parseOptions(args);
+  const aidePath = getAidePath(options);
+  const lockPath = `${aidePath}.lock`;
+  const jsonOutput = args.includes("--json");
+
+  // Check that both files exist
+  if (!existsSync(aidePath)) {
+    console.error(`Error: Aide file not found: ${aidePath}`);
+    process.exit(1);
+  }
+
+  if (!existsSync(lockPath)) {
+    console.error(`Error: Lock file not found: ${lockPath}`);
+    console.error("Run 'bantay aide lock' to create a lock file first.");
+    process.exit(1);
+  }
+
+  try {
+    // Read and parse current aide file
+    const tree = await read(aidePath);
+
+    // Read and parse lock file
+    const lockContent = await readFile(lockPath, "utf-8");
+    const lock = parseLockFile(lockContent);
+
+    // Compute current hashes
+    const currentHashes: Record<string, string> = {};
+    for (const [id, entity] of Object.entries(tree.entities)) {
+      currentHashes[id] = computeEntityHash(id, entity);
+    }
+
+    // Compute current relationship keys
+    const currentRelationships = new Set<string>();
+    for (const rel of tree.relationships) {
+      currentRelationships.add(`${rel.from}:${rel.to}:${rel.type}`);
+    }
+
+    // Parse lock relationships into set
+    const lockRelationships = new Set<string>(lock.relationships);
+
+    // Find differences
+    const added: string[] = [];
+    const removed: string[] = [];
+    const modified: string[] = [];
+
+    // Find added and modified entities
+    for (const id of Object.keys(currentHashes)) {
+      if (!(id in lock.entities)) {
+        added.push(id);
+      } else if (lock.entities[id] !== currentHashes[id]) {
+        modified.push(id);
+      }
+    }
+
+    // Find removed entities
+    for (const id of Object.keys(lock.entities)) {
+      if (!(id in currentHashes)) {
+        removed.push(id);
+      }
+    }
+
+    // Find relationship changes
+    const addedRelationships: string[] = [];
+    const removedRelationships: string[] = [];
+
+    for (const rel of currentRelationships) {
+      if (!lockRelationships.has(rel)) {
+        addedRelationships.push(rel);
+      }
+    }
+
+    for (const rel of lockRelationships) {
+      if (!currentRelationships.has(rel)) {
+        removedRelationships.push(rel);
+      }
+    }
+
+    // Check if there are any changes
+    const hasChanges =
+      added.length > 0 ||
+      removed.length > 0 ||
+      modified.length > 0 ||
+      addedRelationships.length > 0 ||
+      removedRelationships.length > 0;
+
+    if (jsonOutput) {
+      // JSON output
+      const result = {
+        hasChanges,
+        added: added.map((id) => ({ id, type: getEntityType(id) })),
+        removed: removed.map((id) => ({ id, type: getEntityType(id) })),
+        modified: modified.map((id) => ({ id, type: getEntityType(id) })),
+        relationships: {
+          added: addedRelationships.map((r) => {
+            const [from, to, type] = r.split(":");
+            return { from, to, type };
+          }),
+          removed: removedRelationships.map((r) => {
+            const [from, to, type] = r.split(":");
+            return { from, to, type };
+          }),
+        },
+        summary: {
+          entitiesAdded: added.length,
+          entitiesRemoved: removed.length,
+          entitiesModified: modified.length,
+          relationshipsAdded: addedRelationships.length,
+          relationshipsRemoved: removedRelationships.length,
+        },
+      };
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      // Human-readable output
+      if (!hasChanges) {
+        console.log("No changes since last lock.");
+        process.exit(0);
+      }
+
+      console.log("Changes since last lock:\n");
+
+      if (added.length > 0) {
+        console.log("ADDED");
+        for (const id of added.sort()) {
+          console.log(`  + ${id} (${getEntityType(id)})`);
+        }
+        console.log("");
+      }
+
+      if (modified.length > 0) {
+        console.log("MODIFIED");
+        for (const id of modified.sort()) {
+          console.log(`  ~ ${id} (${getEntityType(id)})`);
+        }
+        console.log("");
+      }
+
+      if (removed.length > 0) {
+        console.log("REMOVED");
+        for (const id of removed.sort()) {
+          console.log(`  - ${id} (${getEntityType(id)})`);
+        }
+        console.log("");
+      }
+
+      if (addedRelationships.length > 0 || removedRelationships.length > 0) {
+        console.log("RELATIONSHIPS");
+        for (const rel of addedRelationships) {
+          const [from, to, type] = rel.split(":");
+          console.log(`  + ${from} --[${type}]--> ${to}`);
+        }
+        for (const rel of removedRelationships) {
+          const [from, to, type] = rel.split(":");
+          console.log(`  - ${from} --[${type}]--> ${to}`);
+        }
+        console.log("");
+      }
+
+      // Summary
+      console.log("Summary:");
+      const parts: string[] = [];
+      if (added.length > 0) parts.push(`${added.length} added`);
+      if (modified.length > 0) parts.push(`${modified.length} modified`);
+      if (removed.length > 0) parts.push(`${removed.length} removed`);
+      if (addedRelationships.length > 0)
+        parts.push(`${addedRelationships.length} relationship(s) added`);
+      if (removedRelationships.length > 0)
+        parts.push(`${removedRelationships.length} relationship(s) removed`);
+      console.log(`  ${parts.join(", ")}`);
+    }
+
+    // Exit with code 1 if changes exist
+    process.exit(hasChanges ? 1 : 0);
+  } catch (error) {
+    console.error(`Error comparing aide files: ${error instanceof Error ? error.message : error}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Parse lock file content into structured format
+ */
+function parseLockFile(content: string): LockFile {
+  const result: LockFile = {
+    entities: {},
+    relationships: [],
+  };
+
+  let section = "";
+  const lines = content.split("\n");
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Skip comments and empty lines
+    if (trimmed.startsWith("#") || trimmed === "") {
+      continue;
+    }
+
+    // Section headers
+    if (trimmed === "entities:") {
+      section = "entities";
+      continue;
+    }
+    if (trimmed === "relationships:") {
+      section = "relationships";
+      continue;
+    }
+
+    // Parse content based on section
+    if (section === "entities") {
+      // Format: "  entity_id: hash"
+      const match = trimmed.match(/^(\w+):\s*(\w+)$/);
+      if (match) {
+        result.entities[match[1]] = match[2];
+      }
+    } else if (section === "relationships") {
+      // Format: "  - from:to:type: hash"
+      const match = trimmed.match(/^-\s*(\w+):(\w+):(\w+):\s*\w+$/);
+      if (match) {
+        result.relationships.push(`${match[1]}:${match[2]}:${match[3]}`);
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
  * Print help for aide subcommands
  */
 export function printAideHelp(): void {
@@ -529,6 +794,7 @@ Subcommands:
   show      Display the entity tree or a specific entity
   validate  Validate the aide file
   lock      Generate a lock file
+  diff      Compare aide against lock file
 
 Add Options:
   <id>              Entity ID (optional, auto-generated if parent provided)
@@ -556,6 +822,9 @@ Show Options:
   [id]              Specific entity to show (optional)
   --format, -f      Output format: tree (default) or json
 
+Diff Options:
+  --json            Output as JSON
+
 Global Options:
   --aide, -a        Path to aide file (default: bantay.aide)
 
@@ -567,5 +836,7 @@ Examples:
   bantay aide show invariants
   bantay aide validate
   bantay aide lock
+  bantay aide diff
+  bantay aide diff --json
 `);
 }

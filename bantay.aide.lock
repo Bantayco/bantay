@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-18T20:25:54.719Z
+# Generated: 2026-03-18T22:29:23.078Z
 
 entities:
   bantay_cli: 40c228db
@@ -16,6 +16,7 @@ entities:
   con_static_analysis_only: 5d63d448
   con_three_tier_checkers: 0f14e65e
   constraints: 7fdc499f
+  cuj_aide: 77512f4d
   cuj_check: 7a10da07
   cuj_checkers: 072d1c3c
   cuj_ci: 6f639b53
@@ -49,6 +50,7 @@ entities:
   inv_no_source_modification: 23376c16
   inv_stable_ids: 71049810
   invariants: 27615c59
+  sc_aide_diff: 31242108
   sc_check_diff: 1b3bfd5d
   sc_check_full: 0c8eb03e
   sc_check_no_execution: 5e0def01

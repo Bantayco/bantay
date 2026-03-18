@@ -401,6 +401,26 @@ entities:
         - All content outside the delimited Bantay section is preserved exactly
         - If no Bantay section exists, it is appended at the end
         - If Bantay section exists, only that section is replaced
+  cuj_aide:
+    parent: cujs
+    props:
+      feature: Developer manages project aide structure and tracks changes
+      tier: secondary
+      area: aide
+  sc_aide_diff:
+    parent: cuj_aide
+    props:
+      name: Compare aide against lock file
+      given: Developer has bantay.aide and bantay.aide.lock files
+      when: Developer runs bantay aide diff
+      then:
+        - Shows entities ADDED (in aide but not lock)
+        - Shows entities REMOVED (in lock but not aide)
+        - Shows entities MODIFIED (hash differs)
+        - Shows relationship changes
+        - Classifies entity types by ID prefix (cuj_, sc_, inv_, con_, found_, wis_)
+        - Exit code 0 if no changes, exit code 1 if changes
+        - Supports --json flag for machine-readable output
   inv_bun_available:
     parent: invariants
     props:

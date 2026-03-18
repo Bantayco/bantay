@@ -10,6 +10,7 @@ import {
   handleAideShow,
   handleAideValidate,
   handleAideLock,
+  handleAideDiff,
   printAideHelp,
 } from "./commands/aide";
 import { exportInvariants, exportClaude, exportCursor, exportCodex, exportAll } from "./export";
@@ -387,6 +388,8 @@ async function handleAide(args: string[]) {
     await handleAideValidate(subArgs);
   } else if (subcommand === "lock") {
     await handleAideLock(subArgs);
+  } else if (subcommand === "diff") {
+    await handleAideDiff(subArgs);
   } else {
     console.error(`Unknown aide subcommand: ${subcommand}`);
     console.error('Run "bantay aide help" for usage information.');
