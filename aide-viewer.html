@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>.aide viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', -apple-system, sans-serif; background: #fafaf9; }
+  button { font-family: inherit; }
+  textarea { font-family: 'JetBrains Mono', monospace; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const e = React.createElement;
+const { useState, useMemo, useRef } = React;
+
+// === YAML LOADING ===
+function loadAide(text) {
+  try {
+    const d = jsyaml.load(text);
+    if (d && d.entities && Object.keys(d.entities).length > 0) return d;
+  } catch(err) {}
+  try { return JSON.parse(text); } catch(err) {}
+  return null;
+}
+
+// === CONSTANTS ===
+const TIER = { primary:{c:"#d97706",bg:"#fffbeb"}, secondary:{c:"#7c3aed",bg:"#f5f3ff"}, tertiary:{c:"#6b7280",bg:"#f9fafb"} };
+const PAL = ["#d97706","#dc2626","#2563eb","#059669","#8b5cf6","#0891b2","#ec4899","#f97316","#84cc16","#6366f1","#14b8a6","#f43f5e"];
+function colorMap(vals) { const m={}; vals.forEach((v,i)=>{m[v]=PAL[i%PAL.length]}); return m; }
+const ICONS = { cujs:"◇", invariants:"🛡", constraints:"⚙", foundations:"◎", wisdom:"💡" };
+
+// === HELPERS ===
+function getChildren(entities, pid) {
+  return Object.entries(entities).filter(([_,e])=>e.parent===pid).map(([id,e])=>({id,...e}));
+}
+function groupBy(items, key) {
+  return items.reduce((a,i)=>{ const k=i.props?.[key]||"other"; (a[k]=a[k]||[]).push(i); return a; },{});
+}
+
+// === SCENARIO ===
+function Scenario({sc, entities, relationships}) {
+  const [open, setOpen] = useState(false);
+  const rels = relationships.filter(r=>r.from===sc.id&&r.type==="protected_by");
+  const thenArr = Array.isArray(sc.props?.then)?sc.props.then:(sc.props?.then?[sc.props.then]:[]);
+
+  return e("div", {
+    style:{marginBottom:8,background:"#fff",borderRadius:8,border:"1px solid #e5e7eb",overflow:"hidden",cursor:"pointer",transition:"box-shadow 0.2s"},
+    onClick:ev=>{ev.stopPropagation();setOpen(!open)},
+    onMouseEnter:ev=>ev.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.06)",
+    onMouseLeave:ev=>ev.currentTarget.style.boxShadow="none"
+  },
+    e("div",{style:{padding:"10px 14px",display:"flex",alignItems:"center",gap:8}},
+      e("span",{style:{fontSize:10,color:"#999",transform:open?"rotate(90deg)":"none",transition:"transform 0.15s",flexShrink:0}},"▶"),
+      e("span",{style:{fontWeight:600,fontSize:13,color:"#1a1a2e"}},sc.props?.name||sc.id),
+      rels.length>0&&e("span",{style:{marginLeft:"auto",fontSize:10,color:"#999"}},"🛡 "+rels.length)
+    ),
+    open&&e("div",{style:{padding:"0 14px 12px",borderTop:"1px solid #f3f4f6"}},
+      e("div",{style:{paddingTop:10,fontSize:12,lineHeight:1.7,color:"#555"}},
+        sc.props?.given&&e("div",null,e("span",{style:{fontWeight:700,color:"#7c3aed",fontSize:10,textTransform:"uppercase",letterSpacing:"0.06em"}},"Given")," ",sc.props.given),
+        sc.props?.when&&e("div",{style:{marginTop:2}},e("span",{style:{fontWeight:700,color:"#2563eb",fontSize:10,textTransform:"uppercase",letterSpacing:"0.06em"}},"When")," ",sc.props.when),
+        thenArr.length>0&&e("div",{style:{marginTop:6}},
+          thenArr.map((t,i)=>e("div",{key:i,style:{paddingLeft:16,position:"relative",color:"#333",marginTop:2}},
+            e("span",{style:{position:"absolute",left:0,color:"#d97706",fontWeight:700}},"→"),t
+          ))
+        )
+      ),
+      rels.length>0&&e("div",{style:{marginTop:10,display:"flex",gap:4,flexWrap:"wrap"}},
+        rels.map((rel,i)=>e("span",{key:i,style:{fontSize:10,padding:"2px 8px",borderRadius:4,background:"#fef2f210",color:"#991b1b",fontWeight:500,border:"1px solid #fecaca"}},"🛡 "+((entities[rel.to]?.props?.statement||rel.to).slice(0,55))))
+      )
+    )
+  );
+}
+
+// === CUJ CARD ===
+function CujCard({cuj, entities, relationships}) {
+  const children = getChildren(entities, cuj.id);
+  const [open, setOpen] = useState(false);
+  const t = TIER[cuj.props?.tier]||TIER.tertiary;
+  const deps = relationships.filter(r=>r.type==="depends_on"&&r.from===cuj.id);
+
+  return e("div",{style:{marginBottom:10}},
+    e("div",{onClick:()=>setOpen(!open),style:{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"12px 16px",background:open?"#fafbfc":"#fff",borderRadius:10,border:"1px solid "+(open?t.c+"30":"#e5e7eb"),transition:"all 0.2s"}},
+      e("span",{style:{fontSize:11,color:"#bbb",transform:open?"rotate(90deg)":"none",transition:"transform 0.15s"}},"▶"),
+      cuj.props?.tier&&e("span",{style:{fontSize:11,fontWeight:700,color:t.c,background:t.bg,padding:"2px 8px",borderRadius:4,textTransform:"uppercase"}},cuj.props.tier),
+      e("span",{style:{fontWeight:600,fontSize:14,color:"#1a1a2e",flex:1}},cuj.props?.feature||cuj.id),
+      e("span",{style:{fontSize:12,color:"#bbb"}},children.length)
+    ),
+    open&&e("div",{style:{paddingLeft:24,paddingTop:8}},
+      deps.length>0&&e("div",{style:{marginBottom:10,display:"flex",gap:4,flexWrap:"wrap"}},
+        deps.map((d,i)=>e("span",{key:i,style:{fontSize:10,padding:"2px 8px",background:"#eff6ff",color:"#3b82f6",borderRadius:4,fontWeight:500}},"depends → "+(entities[d.to]?.props?.feature||d.to)))
+      ),
+      children.map(sc=>e(Scenario,{key:sc.id,sc,entities,relationships}))
+    )
+  );
+}
+
+// === INVARIANT ROW ===
+function InvariantRow({inv, entities, relationships, catColors}) {
+  const c = catColors[inv.props?.category]||"#666";
+  const [open, setOpen] = useState(false);
+  const protecting = relationships.filter(r=>r.type==="protected_by"&&r.to===inv.id);
+  const implementing = relationships.filter(r=>r.type==="implements"&&r.to===inv.id);
+
+  return e("div",{
+    style:{padding:"10px 14px",background:"#fff",borderRadius:8,marginBottom:6,border:"1px solid #e5e7eb",cursor:"pointer",transition:"box-shadow 0.2s"},
+    onClick:()=>setOpen(!open),
+    onMouseEnter:ev=>ev.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,0.05)",
+    onMouseLeave:ev=>ev.currentTarget.style.boxShadow="none"
+  },
+    e("div",{style:{display:"flex",alignItems:"flex-start",gap:10}},
+      e("div",{style:{width:20,height:20,borderRadius:5,border:"2px solid "+c,flexShrink:0,marginTop:1,display:"flex",alignItems:"center",justifyContent:"center"}},
+        inv.props?.done&&e("div",{style:{width:12,height:12,borderRadius:3,background:c}})
+      ),
+      e("div",{style:{flex:1}},
+        e("div",{style:{fontSize:13,fontWeight:500,color:"#1a1a2e",lineHeight:1.5}},inv.props?.statement||inv.id),
+        open&&e("div",{style:{marginTop:8}},
+          inv.props?.threat_signal&&e("div",{style:{fontSize:12,color:"#991b1b",background:"#fef2f2",padding:"8px 12px",borderRadius:6,lineHeight:1.6,border:"1px solid #fecaca"}},
+            e("span",{style:{fontWeight:700,fontSize:10,textTransform:"uppercase",letterSpacing:"0.06em"}},"Threat Signal"),e("br"),inv.props.threat_signal
+          ),
+          protecting.length>0&&e("div",{style:{marginTop:8}},
+            e("div",{style:{fontSize:10,fontWeight:700,color:"#999",textTransform:"uppercase",marginBottom:4}},"Protects"),
+            e("div",{style:{display:"flex",gap:4,flexWrap:"wrap"}},
+              protecting.map((r,i)=>e("span",{key:i,style:{fontSize:10,padding:"2px 8px",background:"#f0fdf4",color:"#166534",borderRadius:4,fontWeight:500}},entities[r.from]?.props?.name||r.from))
+            )
+          ),
+          implementing.length>0&&e("div",{style:{marginTop:8}},
+            e("div",{style:{fontSize:10,fontWeight:700,color:"#999",textTransform:"uppercase",marginBottom:4}},"Implemented by"),
+            e("div",{style:{display:"flex",gap:4,flexWrap:"wrap"}},
+              implementing.map((r,i)=>e("span",{key:i,style:{fontSize:10,padding:"2px 8px",background:"#eff6ff",color:"#1e40af",borderRadius:4,fontWeight:500}},"⚙ "+((entities[r.from]?.props?.text||r.from).slice(0,60))))
+            )
+          )
+        )
+      ),
+      e("div",{style:{display:"flex",gap:6,flexShrink:0,alignItems:"center"}},
+        protecting.length>0&&e("span",{style:{fontSize:10,color:"#999"}},"↔"+protecting.length),
+        implementing.length>0&&e("span",{style:{fontSize:10,color:"#3b82f6"}},"⚙"+implementing.length)
+      )
+    )
+  );
+}
+
+// === CONSTRAINT ITEM ===
+function ConstraintItem({item, entities, relationships, domColors}) {
+  const c = domColors[item.props?.domain]||"#666";
+  const [open, setOpen] = useState(false);
+  const impl = relationships.filter(r=>r.type==="implements"&&r.from===item.id);
+  const hasMore = item.props?.rationale||impl.length>0;
+
+  return e("div",{
+    style:{background:"#fff",borderRadius:8,marginBottom:6,border:"1px solid #e5e7eb",cursor:hasMore?"pointer":"default",overflow:"hidden",transition:"box-shadow 0.2s"},
+    onClick:()=>hasMore&&setOpen(!open),
+    onMouseEnter:ev=>{if(hasMore)ev.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,0.05)"},
+    onMouseLeave:ev=>ev.currentTarget.style.boxShadow="none"
+  },
+    e("div",{style:{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 16px"}},
+      item.props?.domain&&e("span",{style:{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:c,background:c+"10",padding:"3px 8px",borderRadius:4,flexShrink:0,marginTop:2,border:"1px solid "+c+"20"}},String(item.props.domain).replace(/_/g," ")),
+      e("span",{style:{fontSize:13,color:"#444",lineHeight:1.6,flex:1}},item.props?.text||item.id),
+      hasMore&&e("span",{style:{fontSize:10,color:"#bbb",flexShrink:0}},(item.props?.rationale?"💡":"")+(impl.length>0?" ⚙"+impl.length:""))
+    ),
+    open&&hasMore&&e("div",{style:{padding:"0 16px 12px",borderTop:"1px solid #f3f4f6"}},
+      item.props?.rationale&&e("div",{style:{marginTop:8,fontSize:12,color:"#92400e",background:"#fffbeb",padding:"8px 12px",borderRadius:6,lineHeight:1.6,border:"1px solid #fde68a"}},
+        e("span",{style:{fontWeight:700,fontSize:10,textTransform:"uppercase"}},"Rationale"),e("br"),item.props.rationale
+      ),
+      impl.length>0&&e("div",{style:{marginTop:8}},
+        e("div",{style:{fontSize:10,fontWeight:700,color:"#999",textTransform:"uppercase",marginBottom:4}},"Implements"),
+        e("div",{style:{display:"flex",gap:4,flexWrap:"wrap"}},
+          impl.map((r,i)=>e("span",{key:i,style:{fontSize:10,padding:"2px 8px",background:"#eff6ff",color:"#1e40af",borderRadius:4,fontWeight:500}},"→ "+((entities[r.to]?.props?.statement||r.to).slice(0,55))))
+        )
+      )
+    )
+  );
+}
+
+// === SIMPLE ITEM ===
+function SimpleItem({item}) {
+  return e("div",{style:{fontSize:13,color:"#444",padding:"12px 16px",background:"#fff",borderRadius:8,marginBottom:6,border:"1px solid #e5e7eb",lineHeight:1.7}},item.props?.text||JSON.stringify(item.props));
+}
+
+// === GROUPED SECTION ===
+function GroupedSection({sectionId, entities, relationships, renderItem, colors}) {
+  const section = entities[sectionId];
+  const items = getChildren(entities, sectionId);
+  const groupKey = section?.props?._group_by;
+
+  if (groupKey && items.length > 0) {
+    const grouped = groupBy(items, groupKey);
+    return e("div",null,
+      Object.entries(grouped).map(([g, gItems])=>
+        e("div",{key:g,style:{marginBottom:24}},
+          e("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:10}},
+            e("span",{style:{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:colors?.[g]||"#888"}},g.replace(/_/g," ")),
+            e("span",{style:{fontSize:11,color:"#ccc"}},gItems.length)
+          ),
+          gItems.map(item=>renderItem(item))
+        )
+      )
+    );
+  }
+  return e("div",null,items.map(item=>renderItem(item)));
+}
+
+// === UPLOAD SCREEN ===
+function UploadScreen({onLoad}) {
+  const [text, setText] = useState("");
+  const [error, setError] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileRef = useRef();
+
+  const handleLoad = (content) => {
+    const data = loadAide(content);
+    if (data) { setError(null); onLoad(data); }
+    else setError("Could not parse. Ensure the file has an 'entities:' section with valid YAML.");
+  };
+
+  const handleFile = (file) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => { const c=ev.target.result; setText(c); handleLoad(c); };
+    reader.readAsText(file);
+  };
+
+  const SAMPLE = `entities:
+  my_app:
+    display: page
+    props:
+      title: Sample App
+      description: A minimal .aide to demo the viewer
+      version: "0.1"
+  cujs:
+    parent: my_app
+    display: table
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+  invariants:
+    parent: my_app
+    display: checklist
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  constraints:
+    parent: my_app
+    display: list
+    props:
+      title: Constraints
+      _pattern: flat_list
+      _group_by: domain
+  foundations:
+    parent: my_app
+    display: list
+    props:
+      title: Foundations
+      _pattern: flat_list
+  wisdom:
+    parent: my_app
+    display: list
+    props:
+      title: Wisdom
+      _pattern: flat_list
+  cuj_login:
+    parent: cujs
+    props:
+      feature: User can log in
+      tier: primary
+      area: auth
+  sc_login_success:
+    parent: cuj_login
+    props:
+      name: Successful login
+      given: User is on the login page
+      when: User enters valid credentials
+      then:
+        - User sees their dashboard
+        - Session is created
+        - Last login timestamp updated
+  sc_login_fail:
+    parent: cuj_login
+    props:
+      name: Failed login
+      given: User is on the login page
+      when: User enters invalid credentials
+      then:
+        - Error message shown
+        - No session created
+        - Failed attempt logged
+  sc_account_locked:
+    parent: cuj_login
+    props:
+      name: Account locked after failures
+      given: User has failed 3 times
+      when: User attempts again
+      then:
+        - Account is locked
+        - Unlock instructions shown
+  cuj_create_item:
+    parent: cujs
+    props:
+      feature: User creates an item
+      tier: primary
+      area: core
+  sc_create_success:
+    parent: cuj_create_item
+    props:
+      name: Create item
+      given: User is on the dashboard
+      when: User fills form and submits
+      then:
+        - Item created with timestamps
+        - User sees confirmation
+        - Item appears in list
+  inv_auth_required:
+    parent: invariants
+    props:
+      statement: Every route requires authentication unless explicitly public
+      category: security
+      threat_signal: Unauthenticated request reaches a protected endpoint
+      done: false
+  inv_no_data_loss:
+    parent: invariants
+    props:
+      statement: No user data silently deleted or corrupted
+      category: data_integrity
+      threat_signal: Record count decreases without user action
+      done: false
+  con_soft_delete:
+    parent: constraints
+    props:
+      text: All deletes are soft (deleted_at timestamp)
+      domain: data_design
+      rationale: Hard deletes are unrecoverable. Soft deletes support audit trails and undo.
+  con_auth_every_route:
+    parent: constraints
+    props:
+      text: Every route requires auth unless explicitly marked public
+      domain: security
+  found_spec_is_product:
+    parent: foundations
+    props:
+      text: The .aide is the product. The code is disposable.
+  wis_start_small:
+    parent: wisdom
+    props:
+      text: Start with 3-5 primary CUJs. Expand as you learn.
+relationships:
+  - from: sc_login_success
+    to: inv_auth_required
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_account_locked
+    to: inv_auth_required
+    type: protected_by
+    cardinality: many_to_many
+  - from: con_soft_delete
+    to: inv_no_data_loss
+    type: implements
+    cardinality: many_to_one
+  - from: con_auth_every_route
+    to: inv_auth_required
+    type: implements
+    cardinality: many_to_one
+  - from: cuj_create_item
+    to: cuj_login
+    type: depends_on
+    cardinality: many_to_many`;
+
+  return e("div",{style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:32}},
+    e("div",{style:{textAlign:"center",marginBottom:32}},
+      e("div",{style:{fontFamily:"'JetBrains Mono'",fontSize:14,color:"#999",marginBottom:8}},".aide viewer"),
+      e("h1",{style:{fontSize:36,fontWeight:700,color:"#1a1a2e",margin:"0 0 8px"}},"Load any .aide file"),
+      e("p",{style:{fontSize:15,color:"#888",maxWidth:500,lineHeight:1.6,margin:"0 auto"}},"Drop a .aide YAML file, paste it, or try the sample.")
+    ),
+    e("div",{
+      onDragOver:ev=>{ev.preventDefault();setDragOver(true)},
+      onDragLeave:()=>setDragOver(false),
+      onDrop:ev=>{ev.preventDefault();setDragOver(false);const f=ev.dataTransfer.files[0];if(f)handleFile(f)},
+      onClick:()=>fileRef.current?.click(),
+      style:{width:"100%",maxWidth:600,minHeight:180,borderRadius:16,border:"2px dashed "+(dragOver?"#d97706":"#d1d5db"),background:dragOver?"#fffbeb":"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"all 0.2s",padding:32}
+    },
+      e("input",{ref:fileRef,type:"file",accept:".aide,.yaml,.yml,.json",style:{display:"none"},onChange:ev=>{if(ev.target.files[0])handleFile(ev.target.files[0])}}),
+      e("div",{style:{fontSize:48,marginBottom:12,opacity:0.3}},"📦"),
+      e("div",{style:{fontSize:15,fontWeight:600,color:"#1a1a2e"}},"Drop .aide file here or click to browse"),
+      e("div",{style:{fontSize:13,color:"#999",marginTop:4}},".aide  .yaml  .yml  .json")
+    ),
+    e("div",{style:{marginTop:16,display:"flex",gap:12,alignItems:"center"}},
+      e("span",{style:{fontSize:13,color:"#bbb"}},"or"),
+      e("button",{onClick:()=>{setText(SAMPLE);handleLoad(SAMPLE)},style:{padding:"8px 20px",borderRadius:8,border:"1px solid #d97706",background:"transparent",color:"#d97706",fontWeight:600,fontSize:13,cursor:"pointer"}},"Load sample"),
+      e("span",{style:{fontSize:13,color:"#bbb"}},"or paste below")
+    ),
+    e("textarea",{value:text,onChange:ev=>setText(ev.target.value),placeholder:"Paste .aide YAML here...",style:{width:"100%",maxWidth:600,height:180,marginTop:16,borderRadius:12,border:"1px solid #e5e7eb",padding:16,fontSize:12,lineHeight:1.6,resize:"vertical",color:"#333",background:"#fff"}}),
+    text&&e("button",{onClick:()=>handleLoad(text),style:{marginTop:12,padding:"10px 32px",borderRadius:8,border:"none",background:"#1a1a2e",color:"#fff",fontWeight:600,fontSize:14,cursor:"pointer"}},"Render .aide"),
+    error&&e("div",{style:{marginTop:12,fontSize:13,color:"#dc2626",background:"#fef2f2",padding:"8px 16px",borderRadius:8,border:"1px solid #fecaca"}},error)
+  );
+}
+
+// === MAIN VIEWER ===
+function AideViewer({data, onBack}) {
+  const entities = data.entities;
+  const relationships = data.relationships||[];
+  const [tab, setTab] = useState(null);
+
+  const pageId = useMemo(()=>Object.keys(entities).find(k=>entities[k].display==="page"),[entities]);
+  const page = pageId?entities[pageId]:null;
+  const sections = useMemo(()=>{
+    if(!pageId) return [];
+    return Object.entries(entities).filter(([_,e])=>e.parent===pageId).map(([id,e])=>({id,...e}));
+  },[entities,pageId]);
+
+  useMemo(()=>{if(sections.length>0&&!tab)setTab(sections[0].id)},[sections]);
+
+  const stats = useMemo(()=>{
+    const ids=Object.keys(entities);
+    return {
+      total:ids.length,
+      cujs:ids.filter(k=>k.startsWith("cuj_")).length,
+      scenarios:ids.filter(k=>k.startsWith("sc_")).length,
+      invariants:ids.filter(k=>k.startsWith("inv_")).length,
+      constraints:ids.filter(k=>k.startsWith("con_")).length,
+      rels:relationships.length,
+      protected:relationships.filter(r=>r.type==="protected_by").length,
+      impl:relationships.filter(r=>r.type==="implements").length,
+      deps:relationships.filter(r=>r.type==="depends_on").length,
+    };
+  },[entities,relationships]);
+
+  function getColors(sectionId, key) {
+    const items=getChildren(entities,sectionId);
+    const vals=[...new Set(items.map(i=>i.props?.[key]).filter(Boolean))];
+    return colorMap(vals);
+  }
+
+  function renderSection(sid) {
+    const section=entities[sid];
+    const gk=section?.props?._group_by;
+    const colors=gk?getColors(sid,gk):{};
+    const name=(section?.props?.title||sid).toLowerCase();
+    const children=getChildren(entities,sid);
+    const hasSubs=children.some(c=>getChildren(entities,c.id).length>0);
+
+    if (hasSubs||name.includes("cuj")||name.includes("journey")) {
+      return e(GroupedSection,{sectionId:sid,entities,relationships,colors,renderItem:item=>e(CujCard,{key:item.id,cuj:item,entities,relationships})});
+    }
+    if (name.includes("invariant")) {
+      return e(GroupedSection,{sectionId:sid,entities,relationships,colors,renderItem:item=>e(InvariantRow,{key:item.id,inv:item,entities,relationships,catColors:colors})});
+    }
+    if (name.includes("constraint")) {
+      return e(GroupedSection,{sectionId:sid,entities,relationships,colors,renderItem:item=>e(ConstraintItem,{key:item.id,item,entities,relationships,domColors:colors})});
+    }
+    return e(GroupedSection,{sectionId:sid,entities,relationships,colors,renderItem:item=>e(SimpleItem,{key:item.id,item})});
+  }
+
+  const childCount=(sid)=>Object.values(entities).filter(x=>x.parent===sid).length;
+
+  return e("div",{style:{minHeight:"100vh"}},
+    // Header
+    e("div",{style:{background:"#1a1a2e",padding:"28px 32px 22px",borderBottom:"3px solid #d97706"}},
+      e("div",{style:{maxWidth:960,margin:"0 auto"}},
+        e("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:6}},
+          e("button",{onClick:onBack,style:{background:"none",border:"1px solid #4a5578",borderRadius:6,color:"#7c8db5",padding:"3px 10px",fontSize:11,cursor:"pointer",fontFamily:"'JetBrains Mono'"}},"← load another"),
+          e("span",{style:{fontFamily:"'JetBrains Mono'",fontSize:12,color:"#7c8db5"}},(pageId||"untitled")+".aide"),
+          page?.props?.version&&e("span",{style:{fontSize:10,color:"#4a5578"}},"v"+page.props.version)
+        ),
+        e("h1",{style:{fontSize:30,fontWeight:700,color:"#fff",margin:"0 0 4px"}},page?.props?.title||pageId||"Untitled"),
+        page?.props?.description&&e("p",{style:{fontSize:14,color:"#8b9dc3",margin:0,maxWidth:700,lineHeight:1.5}},page.props.description),
+        e("div",{style:{display:"flex",gap:24,marginTop:18,flexWrap:"wrap"}},
+          [{v:stats.total,l:"Entities"},{v:stats.cujs,l:"CUJs"},{v:stats.scenarios,l:"Scenarios"},{v:stats.invariants,l:"Invariants"},{v:stats.constraints,l:"Constraints"},{v:stats.rels,l:"Relationships",sub:stats.protected+"P · "+stats.impl+"I · "+stats.deps+"D"}].map(s=>
+            e("div",{key:s.l},
+              e("div",{style:{fontSize:20,fontWeight:700,color:"#fff",fontFamily:"'JetBrains Mono'"}},s.v),
+              e("div",{style:{fontSize:9,color:"#5a6a8a",textTransform:"uppercase",letterSpacing:"0.06em"}},s.l),
+              s.sub&&e("div",{style:{fontSize:9,color:"#7c8db5",marginTop:2}},s.sub)
+            )
+          )
+        )
+      )
+    ),
+    // Tabs
+    e("div",{style:{background:"#fff",borderBottom:"1px solid #e5e7eb",position:"sticky",top:0,zIndex:10}},
+      e("div",{style:{maxWidth:960,margin:"0 auto",display:"flex",overflowX:"auto"}},
+        sections.map(s=>
+          e("button",{key:s.id,onClick:()=>setTab(s.id),style:{
+            padding:"11px 16px",border:"none",background:"none",cursor:"pointer",
+            fontSize:13,fontWeight:tab===s.id?700:500,
+            color:tab===s.id?"#1a1a2e":"#aaa",
+            borderBottom:tab===s.id?"2px solid #d97706":"2px solid transparent",
+            transition:"all 0.15s",display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",flexShrink:0
+          }},
+            e("span",{style:{fontSize:13}},ICONS[s.id]||"•"),
+            s.props?.title||s.id,
+            e("span",{style:{fontSize:10,color:"#ccc",fontWeight:400,marginLeft:4}},childCount(s.id))
+          )
+        )
+      )
+    ),
+    // Content
+    e("div",{style:{maxWidth:960,margin:"0 auto",padding:"24px 32px 60px"}},
+      tab&&renderSection(tab)
+    )
+  );
+}
+
+// === ROOT ===
+function App() {
+  const [data, setData] = useState(null);
+  if (!data) return e(UploadScreen,{onLoad:setData});
+  return e(AideViewer,{data,onBack:()=>setData(null)});
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+</script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+#!/usr/bin/env bun
+import { runInit } from "./commands/init";
+import { runCheck, formatCheckResults, formatCheckResultsJson } from "./commands/check";
+import { checkAllPrerequisites } from "./prerequisites";
+import {
+  handleAideAdd,
+  handleAideUpdate,
+  handleAideRemove,
+  handleAideLink,
+  handleAideShow,
+  handleAideValidate,
+  handleAideLock,
+  printAideHelp,
+} from "./commands/aide";
+import { exportInvariants, exportClaude, exportCursor, exportAll } from "./export";
+
+const args = process.argv.slice(2);
+const command = args[0];
+
+async function main() {
+  if (!command || command === "help" || command === "--help" || command === "-h") {
+    printHelp();
+    process.exit(0);
+  }
+
+  // Check prerequisites before any command runs
+  await runPrerequisiteCheck();
+
+  if (command === "init") {
+    await handleInit(args.slice(1));
+  } else if (command === "check") {
+    await handleCheck(args.slice(1));
+  } else if (command === "aide") {
+    await handleAide(args.slice(1));
+  } else if (command === "ci") {
+    console.error("bantay ci: Not yet implemented");
+    process.exit(1);
+  } else if (command === "export") {
+    await handleExport(args.slice(1));
+  } else {
+    console.error(`Unknown command: ${command}`);
+    console.error('Run "bantay help" for usage information.');
+    process.exit(1);
+  }
+}
+
+async function runPrerequisiteCheck() {
+  console.error("Checking prerequisites...");
+  const prereqs = await checkAllPrerequisites();
+
+  if (!prereqs.passed) {
+    console.error("\nPrerequisite check failed:\n");
+    for (const { name, result } of prereqs.results) {
+      if (!result.available) {
+        console.error(`  ${name}: FAILED`);
+        console.error(`    ${result.error}`);
+      }
+    }
+    process.exit(1);
+  }
+}
+
+function printHelp() {
+  console.log(`
+Bantay CLI - Enforce project invariants on every PR
+
+Usage: bantay <command> [options]
+
+Commands:
+  init      Initialize Bantay in the current project
+  check     Check all invariants against the codebase
+  aide      Manage the aide entity tree (add, remove, link, show, validate, lock)
+  ci        Generate CI workflow configuration
+  export    Export invariants to agent context files
+
+Options:
+  -h, --help    Show this help message
+
+Examples:
+  bantay init                Initialize in current directory
+  bantay check               Run full invariant check
+  bantay check --diff HEAD~1 Check only affected invariants
+  bantay aide show           Show the aide entity tree
+  bantay aide add inv_test --parent invariants --prop "statement=Test"
+  bantay ci --github-actions Generate GitHub Actions workflow
+  bantay export all              Export all targets
+  bantay export invariants       Generate invariants.md from bantay.aide
+  bantay export claude           Export to CLAUDE.md
+  bantay export cursor           Export to .cursorrules
+
+Run "bantay aide help" for aide subcommand details.
+`);
+}
+
+async function handleInit(args: string[]) {
+  const projectPath = process.cwd();
+  const regenerateConfig = args.includes("--regenerate-config");
+  const dryRun = args.includes("--dry-run");
+
+  console.log("Initializing Bantay...\n");
+
+  if (dryRun) {
+    console.log("Dry run mode - no files will be created.");
+    process.exit(0);
+  }
+
+  try {
+    const result = await runInit(projectPath, { regenerateConfig });
+
+    // Display detection results
+    console.log("Stack Detection:");
+    if (result.detection.framework) {
+      console.log(`  Framework: ${result.detection.framework.name} (${result.detection.framework.confidence} confidence)`);
+      if (result.detection.framework.router) {
+        console.log(`    Router: ${result.detection.framework.router}`);
+      }
+    } else {
+      console.log("  Framework: Not detected");
+    }
+
+    if (result.detection.orm) {
+      console.log(`  ORM: ${result.detection.orm.name} (${result.detection.orm.confidence} confidence)`);
+      if (result.detection.orm.schemaPath) {
+        console.log(`    Schema: ${result.detection.orm.schemaPath}`);
+      }
+    } else {
+      console.log("  ORM: Not detected");
+    }
+
+    if (result.detection.auth) {
+      console.log(`  Auth: ${result.detection.auth.name} (${result.detection.auth.confidence} confidence)`);
+    } else {
+      console.log("  Auth: Not detected");
+    }
+
+    console.log("");
+
+    // Display warnings
+    for (const warning of result.warnings) {
+      console.log(`Warning: ${warning}`);
+    }
+
+    // Display created files
+    if (result.filesCreated.length > 0) {
+      console.log("\nCreated files:");
+      for (const file of result.filesCreated) {
+        console.log(`  - ${file}`);
+      }
+    }
+
+    console.log("\nBantay initialized successfully!");
+    console.log("Edit invariants.md to customize your project invariants.");
+    console.log('Run "bantay check" to verify invariants.');
+
+    process.exit(0);
+  } catch (error) {
+    console.error("Error initializing Bantay:", error);
+    process.exit(1);
+  }
+}
+
+async function handleCheck(args: string[]) {
+  const projectPath = process.cwd();
+
+  // Parse options
+  const idIndex = args.indexOf("--id");
+  const diffIndex = args.indexOf("--diff");
+  const jsonOutput = args.includes("--json");
+
+  const options: { id?: string; diff?: string } = {};
+
+  if (idIndex !== -1 && args[idIndex + 1]) {
+    options.id = args[idIndex + 1];
+  }
+
+  if (diffIndex !== -1) {
+    options.diff = args[diffIndex + 1] || "HEAD";
+  }
+
+  try {
+    const summary = await runCheck(projectPath, options);
+
+    if (jsonOutput) {
+      // JSON output to stdout, nothing to stderr
+      const jsonResult = await formatCheckResultsJson(summary, projectPath);
+      console.log(JSON.stringify(jsonResult, null, 2));
+    } else {
+      // Human-readable output to stderr
+      const output = formatCheckResults(summary);
+      console.error(output);
+    }
+
+    // Exit non-zero if any invariants failed
+    if (summary.failed > 0) {
+      process.exit(1);
+    }
+
+    process.exit(0);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error running check:", error);
+    }
+    process.exit(1);
+  }
+}
+
+async function handleExport(args: string[]) {
+  const projectPath = process.cwd();
+
+  // Parse target from args
+  // Formats: bantay export invariants, bantay export claude, bantay export cursor
+  // Or: bantay export --target claude
+  const targetIndex = args.indexOf("--target");
+  let target: string;
+
+  if (targetIndex !== -1 && args[targetIndex + 1]) {
+    target = args[targetIndex + 1];
+  } else if (args[0] && !args[0].startsWith("-")) {
+    target = args[0];
+  } else {
+    console.error("Usage: bantay export <target>");
+    console.error("");
+    console.error("Targets:");
+    console.error("  all         Export all targets (invariants, claude, cursor)");
+    console.error("  invariants  Generate invariants.md from bantay.aide");
+    console.error("  claude      Export to CLAUDE.md with section markers");
+    console.error("  cursor      Export to .cursorrules with section markers");
+    console.error("");
+    console.error("Examples:");
+    console.error("  bantay export invariants");
+    console.error("  bantay export claude");
+    console.error("  bantay export --target cursor");
+    process.exit(1);
+  }
+
+  const dryRun = args.includes("--dry-run");
+
+  try {
+    if (target === "all") {
+      const results = await exportAll(projectPath, { dryRun });
+      console.log("Exported all targets:");
+      for (const r of results) {
+        console.log(`  ${r.target}: ${r.outputPath} (${r.bytesWritten} bytes)`);
+      }
+    } else if (target === "invariants") {
+      const result = await exportInvariants(projectPath, { dryRun });
+      console.log(`Exported invariants to ${result.outputPath}`);
+      console.log(`  ${result.bytesWritten} bytes written`);
+    } else if (target === "claude") {
+      const result = await exportClaude(projectPath, { dryRun });
+      console.log(`Exported to ${result.outputPath}`);
+      console.log(`  ${result.bytesWritten} bytes written`);
+    } else if (target === "cursor") {
+      const result = await exportCursor(projectPath, { dryRun });
+      console.log(`Exported to ${result.outputPath}`);
+      console.log(`  ${result.bytesWritten} bytes written`);
+    } else {
+      console.error(`Unknown export target: ${target}`);
+      console.error('Valid targets: all, invariants, claude, cursor');
+      process.exit(1);
+    }
+
+    if (dryRun) {
+      console.log("\n(Dry run - no files were written)");
+    }
+
+    process.exit(0);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error running export:", error);
+    }
+    process.exit(1);
+  }
+}
+
+async function handleAide(args: string[]) {
+  const subcommand = args[0];
+
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    printAideHelp();
+    process.exit(0);
+  }
+
+  const subArgs = args.slice(1);
+
+  if (subcommand === "add") {
+    await handleAideAdd(subArgs);
+  } else if (subcommand === "update") {
+    await handleAideUpdate(subArgs);
+  } else if (subcommand === "remove") {
+    await handleAideRemove(subArgs);
+  } else if (subcommand === "link") {
+    await handleAideLink(subArgs);
+  } else if (subcommand === "show") {
+    await handleAideShow(subArgs);
+  } else if (subcommand === "validate") {
+    await handleAideValidate(subArgs);
+  } else if (subcommand === "lock") {
+    await handleAideLock(subArgs);
+  } else {
+    console.error(`Unknown aide subcommand: ${subcommand}`);
+    console.error('Run "bantay aide help" for usage information.');
+    process.exit(1);
+  }
+}
+
+main().catch((error) => {
+  console.error("Fatal error:", error);
+  process.exit(1);
+});

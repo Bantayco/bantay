@@ -1,0 +1,11 @@
+# Bantay configuration
+# Edit this file to customize invariant checking
+
+source:
+  include:
+    - src/**/*
+  exclude:
+    - node_modules/**
+    - dist/**
+    - .next/**
+    - build/**

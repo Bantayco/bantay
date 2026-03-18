@@ -1,0 +1,822 @@
+entities:
+  bantay_cli:
+    display: page
+    props:
+      title: Bantay CLI
+      description: Write down the rules your system must never break. We enforce them on every PR, every agent session, every change.
+      version: 0.3
+      date: "2026-03-17"
+  cujs:
+    display: table
+    parent: bantay_cli
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  invariants:
+    display: checklist
+    parent: bantay_cli
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  constraints:
+    display: list
+    parent: bantay_cli
+    props:
+      title: Architectural Constraints
+      _pattern: flat_list
+      _group_by: domain
+  foundations:
+    display: list
+    parent: bantay_cli
+    props:
+      title: Design Foundations
+      _pattern: flat_list
+  wisdom:
+    display: list
+    parent: bantay_cli
+    props:
+      title: Project Wisdom
+      _pattern: flat_list
+  cuj_init:
+    parent: cujs
+    props:
+      feature: Developer initializes Bantay in an existing project
+      tier: primary
+      area: init
+  sc_init_prerequisites:
+    parent: cuj_init
+    props:
+      name: Verify prerequisites before init
+      given: Developer runs bantay init
+      when: Bantay checks the environment
+      then:
+        - Bun runtime availability verified
+        - If Bun not found, clear error with install instructions (link to bun.sh)
+        - No silent fallback to Node
+        - Prerequisite check runs before any file system scanning
+  sc_init_binary:
+    parent: cuj_init
+    props:
+      name: CLI is invocable by name
+      given: Developer has installed Bantay via bun link, bunx, or npm
+      when: Developer types bantay init
+      then:
+        - Command resolves to the CLI entry point
+        - bin field in package.json maps "bantay" to src/cli.ts
+        - bunx @bantay/cli init works without global install
+        - npx @bantay/cli init works for Node users
+  sc_init_detect_stack:
+    parent: cuj_init
+    props:
+      name: Detect project stack
+      given: Developer runs bantay init in a project directory
+      when: Bantay scans the project
+      then:
+        - Framework detected (Next.js, Express, Django, Rails, FastAPI, etc.)
+        - ORM detected (Prisma, Drizzle, SQLAlchemy, ActiveRecord, etc.)
+        - Auth library detected (Clerk, Auth.js, Supabase Auth, Passport, etc.)
+        - Detection results displayed to developer
+        - If confidence is low for any detection, marked [manual] not guessed
+  sc_init_generate_invariants:
+    parent: cuj_init
+    props:
+      name: Generate starter invariants.md
+      given: Stack detection is complete
+      when: Bantay generates the invariants file
+      then:
+        - invariants.md created with stack-appropriate defaults
+        - Next.js + Prisma gets auth-on-routes, timestamps-on-tables, soft-deletes, no-raw-sql
+        - Django + PostgreSQL gets different defaults than Next.js + Prisma
+        - Each invariant has a unique stable ID
+        - Each invariant has a category
+        - Invariants reference built-in checkers by name where available
+        - File is human-readable markdown with enough structure for bantay check to parse
+  sc_init_generate_config:
+    parent: cuj_init
+    props:
+      name: Generate bantay.config.yml
+      given: Stack detection is complete
+      when: Bantay generates the config
+      then:
+        - bantay.config.yml created with paths to source dirs, schema files, route definitions
+        - Config references detected locations, not hardcoded paths
+        - Developer can edit config to correct any misdetection
+  sc_init_no_project:
+    parent: cuj_init
+    props:
+      name: Init in empty directory
+      given: Developer runs bantay init in a directory with no recognizable project
+      when: Bantay scans and finds nothing
+      then:
+        - Warning displayed that no framework was detected
+        - Minimal invariants.md generated with universal defaults only
+        - Config generated with placeholder paths
+        - Developer guided to edit both files
+  sc_init_already_initialized:
+    parent: cuj_init
+    props:
+      name: Init when invariants.md already exists
+      given: Developer runs bantay init in a project that already has invariants.md
+      when: Bantay detects existing file
+      then:
+        - Existing invariants.md is NOT overwritten
+        - Developer warned that init was already run
+        - Option to regenerate config only
+  sc_init_speed:
+    parent: cuj_init
+    props:
+      name: Init completes quickly
+      given: Project has up to 10,000 files
+      when: Bantay scans
+      then:
+        - Init completes in under 10 seconds
+        - Scanning uses file system metadata and pattern matching, not full AST parsing
+  cuj_check:
+    parent: cujs
+    props:
+      feature: Developer checks invariants against their codebase
+      tier: primary
+      area: check
+  sc_check_full:
+    parent: cuj_check
+    props:
+      name: Full invariant check
+      given: invariants.md and bantay.config.yml exist
+      when: Developer runs bantay check
+      then:
+        - Every invariant in invariants.md is evaluated against the codebase
+        - Checker resolved for each invariant (built-in, community, or project)
+        - Each invariant reports PASS or FAIL
+        - Failed invariants include file path and line number of violation
+        - Summary shows total passed, total failed, total skipped
+        - Exit code 0 if all pass, non-zero if any fail
+  sc_check_diff:
+    parent: cuj_check
+    props:
+      name: Diff-aware check
+      given: Developer has uncommitted or recent changes
+      when: Developer runs bantay check --diff HEAD~1
+      then:
+        - Only invariants that could be affected by the diff are checked
+        - Changed a route file — auth invariants run
+        - Changed a migration — schema invariants run
+        - Changed a log statement — PII invariants run
+        - Results are a strict subset of full check
+        - Any invariant that would fail on full check and is affected by the diff also fails here
+  sc_check_single:
+    parent: cuj_check
+    props:
+      name: Check single invariant
+      given: Developer wants to verify one specific invariant
+      when: Developer runs bantay check --id INV-003
+      then:
+        - Only the specified invariant is checked
+        - Result shows PASS or FAIL with details
+  sc_check_no_invariants:
+    parent: cuj_check
+    props:
+      name: Check with no invariants file
+      given: invariants.md does not exist
+      when: Developer runs bantay check
+      then:
+        - Clear error message suggesting bantay init
+        - Exit code non-zero
+  sc_check_unparseable_invariant:
+    parent: cuj_check
+    props:
+      name: Invariant with no checker available
+      given: An invariant in invariants.md references no checker or a checker that isn't installed
+      when: bantay check runs
+      then:
+        - Invariant reported as SKIPPED, not PASS
+        - Warning displayed that no checker was found
+        - Skipped invariants do not cause non-zero exit code
+  sc_check_speed:
+    parent: cuj_check
+    props:
+      name: Diff check completes quickly
+      given: Diff is 500 lines or fewer, project has 50 invariants
+      when: Developer runs bantay check --diff
+      then:
+        - Check completes in under 5 seconds
+  sc_check_no_execution:
+    parent: cuj_check
+    props:
+      name: Check never executes project code
+      given: Project contains arbitrary code
+      when: bantay check runs
+      then:
+        - No project code is imported, required, or eval'd by bantay core
+        - Built-in checkers use static analysis only
+        - Project checkers run in sandboxed subprocess with no access to bantay internals
+        - A malicious project cannot compromise the developer's machine through bantay check
+  cuj_checkers:
+    parent: cujs
+    props:
+      feature: Developer extends invariant checking with custom or community checkers
+      tier: primary
+      area: checkers
+  sc_checker_builtin:
+    parent: cuj_checkers
+    props:
+      name: Built-in checkers ship with Bantay
+      given: Developer installs @bantay/cli
+      when: bantay check runs against a standard invariant category
+      then:
+        - Built-in checkers available for auth, schema, logging, and other common patterns
+        - No additional install required
+        - Checkers are stack-aware (Next.js auth checker differs from Express auth checker)
+        - invariants.md generated by bantay init references built-in checkers by default
+  sc_checker_community:
+    parent: cuj_checkers
+    props:
+      name: Install community checker from npm
+      given: Developer needs a checker Bantay doesn't ship with
+      when: Developer installs a community checker package
+      then:
+        - bun add -d @bantay/checker-stripe installs the package
+        - Invariant in invariants.md references it by package name
+        - "Format: checker: @bantay/checker-stripe/webhook-signature"
+        - bantay check discovers and runs it automatically
+        - Community checker follows the same interface as built-in checkers
+  sc_checker_project:
+    parent: cuj_checkers
+    props:
+      name: Write a project-specific checker
+      given: Developer has an invariant unique to their codebase
+      when: Developer creates a checker in .bantay/checkers/
+      then:
+        - .bantay/checkers/my-check.ts exports a check() function
+        - "Invariant in invariants.md references it: checker: ./my-check"
+        - bantay check discovers and runs it
+        - Project checker follows the same interface as built-in checkers
+  sc_checker_sandboxed:
+    parent: cuj_checkers
+    props:
+      name: Project checkers run sandboxed
+      given: A project checker exists in .bantay/checkers/
+      when: bantay check executes the checker
+      then:
+        - Checker runs in a sandboxed subprocess
+        - Checker cannot access bantay internals
+        - Checker cannot modify files outside its output
+        - Checker receives config (source paths, schema paths) as read-only input
+        - Checker returns structured result (pass/fail, violations with file paths)
+  sc_checker_interface:
+    parent: cuj_checkers
+    props:
+      name: All checkers follow a common interface
+      given: A checker is built-in, community, or project
+      when: bantay check loads the checker
+      then:
+        - "Checker exports: { name, description, check(config) → CheckResult }"
+        - "CheckResult: { pass: boolean, violations: Array<{file, line, message}> }"
+        - Same interface regardless of where the checker comes from
+        - Checker receives bantay.config.yml paths and invariant statement as input
+  sc_checker_missing:
+    parent: cuj_checkers
+    props:
+      name: Referenced checker not found
+      given: An invariant references a checker that isn't installed or doesn't exist
+      when: bantay check attempts to load the checker
+      then:
+        - Invariant reported as SKIPPED
+        - Warning names the missing checker and suggests install command
+        - "For npm: bun add -d @bantay/checker-foo"
+        - "For project: create .bantay/checkers/foo.ts"
+  cuj_ci:
+    parent: cujs
+    props:
+      feature: Developer adds Bantay as a required check on every PR
+      tier: primary
+      area: ci
+  sc_ci_github:
+    parent: cuj_ci
+    props:
+      name: Generate GitHub Actions workflow
+      given: Developer runs bantay ci --github-actions
+      when: Bantay generates the workflow
+      then:
+        - .github/workflows/bantay.yml created
+        - Workflow runs bantay check on every PR
+        - Workflow installs Bantay via bunx
+        - Workflow installs community checker packages if referenced in invariants.md
+        - Status check reports pass/fail summary
+        - Workflow file is valid YAML that GitHub Actions accepts
+  sc_ci_gitlab:
+    parent: cuj_ci
+    props:
+      name: Generate GitLab CI config
+      given: Developer runs bantay ci --gitlab
+      when: Bantay generates the config
+      then:
+        - .gitlab-ci.yml updated with bantay stage
+        - If file already exists, Bantay stage is appended, existing stages untouched
+  sc_ci_generic:
+    parent: cuj_ci
+    props:
+      name: Generic CI instructions
+      given: Developer runs bantay ci with no flag or unsupported CI
+      when: Bantay cannot generate a specific config
+      then:
+        - Prints the shell commands needed to run bantay check in any CI
+        - Developer copies into their CI config manually
+  sc_ci_existing_workflow:
+    parent: cuj_ci
+    props:
+      name: CI generation when workflow already exists
+      given: .github/workflows/bantay.yml already exists
+      when: Developer runs bantay ci --github-actions
+      then:
+        - Existing file is NOT overwritten
+        - Developer warned and given option to overwrite with --force
+  sc_ci_audit_output:
+    parent: cuj_ci
+    props:
+      name: CI produces audit-ready output
+      given: CI check runs on a PR
+      when: All invariants are evaluated
+      then:
+        - JSON output includes timestamp, commit SHA, invariant IDs checked, pass/fail per invariant
+        - Each result includes which checker was used (built-in, community package name, or project path)
+        - Output is machine-parseable for future dashboard ingestion
+        - This is the seed of the compliance evidence trail
+  cuj_export:
+    parent: cujs
+    props:
+      feature: Developer exports invariants into agent context files
+      tier: primary
+      area: export
+  sc_export_claude:
+    parent: cuj_export
+    props:
+      name: Export to CLAUDE.md
+      given: Developer runs bantay export --target claude
+      when: Bantay writes to CLAUDE.md
+      then:
+        - Invariants section appended/replaced in CLAUDE.md
+        - Section has clear start/end markers
+        - Content outside markers is untouched
+        - Invariants formatted as rules the agent must follow
+        - File is valid markdown
+  sc_export_cursor:
+    parent: cuj_export
+    props:
+      name: Export to .cursorrules
+      given: Developer runs bantay export --target cursor
+      when: Bantay writes to .cursorrules
+      then:
+        - Invariants section appended/replaced in .cursorrules
+        - Follows Cursor's expected format
+        - Existing rules outside markers untouched
+  sc_export_codex:
+    parent: cuj_export
+    props:
+      name: Export to AGENTS.md
+      given: Developer runs bantay export --target codex
+      when: Bantay writes to AGENTS.md
+      then:
+        - Invariants section appended/replaced in AGENTS.md
+        - Works for Codex, Copilot, and any agent that reads AGENTS.md
+  sc_export_idempotent:
+    parent: cuj_export
+    props:
+      name: Export is idempotent
+      given: Developer runs export twice without changing invariants.md
+      when: Second export runs
+      then:
+        - Output file is byte-identical to first export
+        - No spurious git diffs
+  sc_export_no_clobber:
+    parent: cuj_export
+    props:
+      name: Export never destroys user content
+      given: CLAUDE.md has user-written content outside the Bantay section
+      when: bantay export runs
+      then:
+        - All content outside the delimited Bantay section is preserved exactly
+        - If no Bantay section exists, it is appended at the end
+        - If Bantay section exists, only that section is replaced
+  inv_bun_available:
+    parent: invariants
+    props:
+      statement: Bantay verifies Bun runtime is available before any operation
+      category: prerequisites
+      threat_signal: Command fails with cryptic error instead of clear install instructions
+      enforced: src/cli.ts
+      done: true
+  inv_cli_invocable:
+    parent: invariants
+    props:
+      statement: bantay command resolves to the CLI entry point via bin field in package.json
+      category: prerequisites
+      threat_signal: User must type bun run src/cli.ts instead of bantay
+      done: false
+      checker: ./bin-field
+  inv_no_false_negatives:
+    parent: invariants
+    props:
+      statement: bantay check never reports PASS for a violated invariant
+      category: correctness
+      threat_signal: Violated invariant merged to main without detection
+      done: false
+      test: tests/meta/false-negatives.test.ts
+  inv_exit_code:
+    parent: invariants
+    props:
+      statement: bantay check exits non-zero when any invariant is violated
+      category: correctness
+      threat_signal: CI pipeline passes despite invariant violation
+      done: false
+      checker: ./exit-code
+  inv_diff_subset:
+    parent: invariants
+    props:
+      statement: bantay check --diff results are a strict subset of bantay check full results
+      category: correctness
+      threat_signal: Diff check misses violation that full check catches
+      done: false
+      test: tests/meta/diff-subset.test.ts
+  inv_checker_interface_uniform:
+    parent: invariants
+    props:
+      statement: All checkers — built-in, community, and project — implement the same interface and return the same result shape
+      category: correctness
+      threat_signal: Community or project checker returns unexpected shape causing runtime error in bantay check
+      done: false
+      checker: ./checker-interface
+  inv_export_idempotent:
+    parent: invariants
+    props:
+      statement: Running bantay export twice produces identical output
+      category: integrity
+      threat_signal: Spurious git diffs after export
+      done: false
+      checker: ./export-idempotent
+  inv_no_clobber:
+    parent: invariants
+    props:
+      statement: bantay export never modifies content outside its delimited section
+      category: integrity
+      threat_signal: User content in CLAUDE.md altered after export
+      done: false
+      checker: ./no-clobber
+  inv_no_code_execution:
+    parent: invariants
+    props:
+      statement: bantay core never imports, requires, or evals project code. Built-in checkers use static analysis only.
+      category: security
+      threat_signal: Arbitrary code execution triggered by scanning a project
+      done: false
+      checker: ./no-eval
+  inv_checker_sandboxed:
+    parent: invariants
+    props:
+      statement: Project and community checkers run in a sandboxed subprocess with no access to bantay internals or the ability to modify files
+      category: security
+      threat_signal: Malicious project checker escapes sandbox and modifies codebase or exfiltrates data
+      done: false
+      checker: ./checker-sandboxed
+  inv_no_inline_shell:
+    parent: invariants
+    props:
+      statement: invariants.md never contains executable shell commands. Enforcement is through checker modules only.
+      category: security
+      threat_signal: "User adds check: rm -rf / to invariants.md and bantay executes it"
+      done: false
+      checker: ./no-inline-shell
+  inv_no_network:
+    parent: invariants
+    props:
+      statement: Bantay CLI makes zero network requests during init, check, ci, or export
+      category: security
+      threat_signal: DNS or HTTP request observed during offline operation
+      done: false
+      checker: ./no-network
+  inv_no_source_modification:
+    parent: invariants
+    props:
+      statement: Bantay never modifies project source files
+      category: security
+      threat_signal: Project source file changed after bantay check
+      done: false
+      checker: ./no-source-modification
+  inv_stable_ids:
+    parent: invariants
+    props:
+      statement: Each invariant in invariants.md has a unique stable ID that persists across edits
+      category: auditability
+      threat_signal: Invariant ID changes when text is edited, breaking audit trail continuity
+      done: false
+      checker: ./stable-ids
+  inv_ci_output_parseable:
+    parent: invariants
+    props:
+      statement: CI check output includes machine-parseable JSON with timestamp, commit SHA, and per-invariant results
+      category: auditability
+      threat_signal: CI output is human-readable only, no structured data for dashboard ingestion
+      done: false
+      test: tests/meta/ci-output.test.ts
+  inv_init_no_overwrite:
+    parent: invariants
+    props:
+      statement: bantay init never overwrites an existing invariants.md
+      category: trust
+      threat_signal: User's hand-edited invariants destroyed by re-running init
+      done: false
+      checker: ./init-no-overwrite
+  inv_check_speed:
+    parent: invariants
+    props:
+      statement: bantay check --diff completes in under 5 seconds for diffs under 500 lines with 50 invariants
+      category: performance
+      threat_signal: Developers skip bantay check because it's slower than their linter
+      done: false
+      test: tests/meta/benchmark.test.ts
+  con_bun_runtime:
+    parent: constraints
+    props:
+      text: Built with Bun. Published to npm. Consumable via bunx or npx.
+      domain: stack
+      rationale: Claude Code ships as a Bun executable. Anthropic acquired Bun. The primary user already has Bun on their machine. bun init generates CLAUDE.md. The toolchain is pre-wired. npm distribution ensures Node users aren't excluded.
+  con_bin_field:
+    parent: constraints
+    props:
+      text: package.json bin field maps 'bantay' to src/cli.ts. Bun runs TypeScript directly — no build step.
+      domain: stack
+      rationale: A CLI that can't be invoked by its name isn't a CLI. The bin field is what makes bunx @bantay/cli init, bun link, and npm global install work. Without it the user types bun run src/cli.ts which is not a product.
+  con_three_tier_checkers:
+    parent: constraints
+    props:
+      text: "Checkers exist at three tiers: built-in (ship with @bantay/cli), community (npm packages like @bantay/checker-stripe), and project (.bantay/checkers/*.ts in the repo). All three tiers implement the same interface. Resolution order: project > community > built-in."
+      domain: architecture
+      rationale: Built-in checkers make bantay init useful on day one. Community checkers create a network effect and ecosystem moat. Project checkers let any team enforce rules specific to their codebase without publishing a package. Same interface across all three means bantay check doesn't care where a checker comes from.
+  con_checker_interface:
+    parent: constraints
+    props:
+      text: "Every checker exports { name: string, description: string, check(config: CheckerConfig) → CheckResult }. CheckResult is { pass: boolean, violations: Array<{file: string, line: number, message: string}> }. No exceptions. No extensions to the interface without a version bump."
+      domain: architecture
+      rationale: A uniform interface means bantay check can load any checker without special-casing. It means community authors know exactly what to implement. It means the CI audit output has a consistent shape. The interface is the contract between bantay and the checker ecosystem.
+  con_no_inline_shell:
+    parent: constraints
+    props:
+      text: "invariants.md never contains executable code. No check: fields with shell commands. All enforcement goes through checker modules (built-in, community, or project)."
+      domain: security
+      rationale: Inline shell commands in invariants.md would mean Bantay executes arbitrary user code during bantay check. This violates inv_no_code_execution. A malicious invariants.md could run destructive commands. Checker modules in .bantay/checkers/ are sandboxed and explicit. Shell strings in markdown are neither.
+  con_static_analysis_only:
+    parent: constraints
+    props:
+      text: Built-in checkers use static analysis only — AST parsing, glob, regex, schema inspection. No project code execution.
+      domain: security
+      rationale: Built-in checkers run in the bantay process, not sandboxed. They must be safe by construction. Static analysis means they read files but never execute them. Project and community checkers CAN execute code, but only in a sandboxed subprocess — different trust boundary.
+  con_invariants_md_is_truth:
+    parent: constraints
+    props:
+      text: invariants.md is the single source of truth for all enforcement. No invariant is enforced that isn't in this file.
+      domain: architecture
+      rationale: One file, one place to look, one thing to edit. If enforcement could come from config, from hidden defaults, or from the checker itself, trust breaks. The user must be able to read invariants.md and know exactly what's being enforced.
+  con_section_markers:
+    parent: constraints
+    props:
+      text: "Agent context exports use unambiguous start/end markers that regex can find. Format: <!-- bantay:start --> and <!-- bantay:end -->."
+      domain: export
+      rationale: The export must be able to find and replace its own section without parsing the full markdown document. HTML comments are invisible in rendered markdown and won't collide with user content.
+  con_json_audit_output:
+    parent: constraints
+    props:
+      text: CI check emits structured JSON to stdout. Human-readable summary to stderr. Never mixed.
+      domain: ci
+      rationale: CI systems parse stdout. Humans read stderr. Mixing them breaks piping, breaks parsers, and makes the audit trail unreliable. JSON on stdout is the seed of the compliance evidence trail that the Dashboard will ingest.
+  con_checker_registry:
+    parent: constraints
+    props:
+      text: Built-in checkers are registered explicitly in a registry module. Community checkers are discovered by package name from invariants.md. Project checkers are discovered from .bantay/checkers/ directory. No magic discovery beyond these three paths.
+      domain: architecture
+      rationale: "Three discovery mechanisms, each explicit: a code registry for built-ins, npm require for community, filesystem glob for project. If a checker isn't in one of these three places, it doesn't exist. No classpath scanning, no environment variables, no hidden config."
+  con_stack_detection_plugins:
+    parent: constraints
+    props:
+      text: Stack detection in bantay init uses a plugin pattern. Each framework/ORM/auth detector is a separate module with a detect() and generate() function.
+      domain: architecture
+      rationale: New framework support should not require modifying core init logic. A contributor adds a detector for Django, registers it, done. This is also how the community extends Bantay to stacks beyond the initial supported set.
+  found_one_file:
+    parent: foundations
+    props:
+      text: One file the user writes. Everything else generated.
+  found_deterministic:
+    parent: foundations
+    props:
+      text: Enforcement is deterministic. Same code, same invariants, same result. Every time.
+  found_not_advice:
+    parent: foundations
+    props:
+      text: Bantay is a compiler error, not a code review comment. You can't ignore it.
+  found_accumulates:
+    parent: foundations
+    props:
+      text: invariants.md grows as understanding grows. Every bug is a missing invariant. The system gets smarter.
+  found_offline:
+    parent: foundations
+    props:
+      text: The CLI works without network access. Your code never leaves your machine.
+  found_dogfood:
+    parent: foundations
+    props:
+      text: Bantay checks itself. If we don't trust it on our own code, nobody should.
+  found_same_interface:
+    parent: foundations
+    props:
+      text: A checker is a checker is a checker. Built-in, community, or project — same interface, same result shape, same trust model.
+  wis_ci_is_wedge:
+    parent: wisdom
+    props:
+      text: The CI check is the wedge. It's the only surface that actually blocks bad code. Everything else is advisory.
+  wis_false_negatives_kill_trust:
+    parent: wisdom
+    props:
+      text: One false negative — a violation that slips through — destroys more trust than a hundred false positives. Err conservative.
+  wis_agent_context_is_free:
+    parent: wisdom
+    props:
+      text: Exporting to CLAUDE.md costs nothing and prevents most violations. The CI check catches what the agent forgot.
+  wis_start_structural:
+    parent: wisdom
+    props:
+      text: Start with structural invariants (auth on routes, timestamps on tables). Add state invariants (balance never negative) in v2 with property tests. Add behavioral invariants (undo returns to previous state) in v3 with Playwright.
+  wis_not_another_linter:
+    parent: wisdom
+    props:
+      text: If people compare Bantay to ESLint or CodeQL, the positioning is wrong. Those tools check universal programming patterns. Bantay checks your system's specific truths. The invariants file is project knowledge, not a rule pack.
+  wis_spec_kit_completes:
+    parent: wisdom
+    props:
+      text: Bantay completes SDD tools, it doesn't compete with them. Spec Kit tells agents what to build. Bantay makes sure they built it right. Post in their communities. Write the integration. Be the missing layer.
+  wis_bun_distribution:
+    parent: wisdom
+    props:
+      text: Build with Bun, publish to npm. Claude Code users have Bun. Node users use npx. Nobody is excluded. Bun's speed matters for the 5-second diff check target.
+  wis_invariant_to_aide:
+    parent: wisdom
+    props:
+      text: invariants.md is the MVP format. It becomes an export of the .aide entity tree later. Don't build the .aide parser now. Do ensure invariants have stable IDs and one-rule-per-line so the future import works without rewriting.
+  wis_implicit_prerequisites:
+    parent: wisdom
+    props:
+      text: "\"Built with Bun\" is a constraint. \"Bun must be installed\" is an invariant. The aide captured the architectural decision but missed the prerequisite. Every constraint implies a runtime invariant. Check for this pattern on every new constraint."
+  wis_cli_binary:
+    parent: wisdom
+    props:
+      text: A CLI that can't be invoked by its name isn't a CLI. The bin field in package.json is a prerequisite, not a nice-to-have. The agent built working code that wasn't a working product. Invocability is an invariant.
+  wis_no_inline_shell:
+    parent: wisdom
+    props:
+      text: Inline shell commands in invariants.md were tempting — zero friction, self-contained. But they violate the security model. bantay check would be executing arbitrary user code from a markdown file. Checker modules are more friction but maintain the trust boundary.
+  wis_registry_is_moat:
+    parent: wisdom
+    props:
+      text: The community checker ecosystem is the competitive moat. Every @bantay/checker-* package published makes Bantay more useful. Don't build a registry website on day one. Let people publish to npm. Index @bantay/checker-* packages later.
+  wis_dogfood_checker_package:
+    parent: wisdom
+    props:
+      text: Bantay's own project checkers in .bantay/checkers/ are the seed of the first community package. Package them as @bantay/checker-cli-hygiene and you've published your first community checker. Dogfood the ecosystem, not just the CLI.
+  inv_export_all_success:
+    parent: invariants
+    props:
+      statement: bantay export all generates every output file without error
+      category: correctness
+      threat_signal: Export silently skips a file, stale exports persist
+      done: false
+      test: tests/meta/export-all.test.ts
+  wis_1:
+    parent: wisdom
+    props:
+      text: enforced_by was renamed to protected_by because the original read backwards. A scenario says 'sc_login protected_by inv_auth_check' — the invariant protects the scenario, not enforces it. The new name reads correctly in both directions.
+relationships:
+  - from: sc_init_prerequisites
+    to: inv_bun_available
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_init_binary
+    to: inv_cli_invocable
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_check_full
+    to: inv_no_false_negatives
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_check_full
+    to: inv_exit_code
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_check_diff
+    to: inv_diff_subset
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_check_diff
+    to: inv_check_speed
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_check_no_execution
+    to: inv_no_code_execution
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_checker_sandboxed
+    to: inv_checker_sandboxed
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_checker_interface
+    to: inv_checker_interface_uniform
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_export_idempotent
+    to: inv_export_idempotent
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_export_no_clobber
+    to: inv_no_clobber
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_init_already_initialized
+    to: inv_init_no_overwrite
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_ci_audit_output
+    to: inv_ci_output_parseable
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_init_detect_stack
+    to: inv_no_network
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_check_full
+    to: inv_no_source_modification
+    type: protected_by
+    cardinality: many_to_many
+  - from: cuj_check
+    to: cuj_init
+    type: depends_on
+    cardinality: many_to_many
+  - from: cuj_check
+    to: cuj_checkers
+    type: depends_on
+    cardinality: many_to_many
+  - from: cuj_ci
+    to: cuj_check
+    type: depends_on
+    cardinality: many_to_many
+  - from: cuj_export
+    to: cuj_init
+    type: depends_on
+    cardinality: many_to_many
+  - from: con_bun_runtime
+    to: inv_bun_available
+    type: implements
+    cardinality: many_to_one
+  - from: con_bin_field
+    to: inv_cli_invocable
+    type: implements
+    cardinality: many_to_one
+  - from: con_static_analysis_only
+    to: inv_no_code_execution
+    type: implements
+    cardinality: many_to_one
+  - from: con_three_tier_checkers
+    to: inv_checker_sandboxed
+    type: implements
+    cardinality: many_to_one
+  - from: con_checker_interface
+    to: inv_checker_interface_uniform
+    type: implements
+    cardinality: many_to_one
+  - from: con_no_inline_shell
+    to: inv_no_inline_shell
+    type: implements
+    cardinality: many_to_one
+  - from: con_no_inline_shell
+    to: inv_no_code_execution
+    type: implements
+    cardinality: many_to_one
+  - from: con_invariants_md_is_truth
+    to: inv_no_false_negatives
+    type: implements
+    cardinality: many_to_one
+  - from: con_section_markers
+    to: inv_no_clobber
+    type: implements
+    cardinality: many_to_one
+  - from: con_section_markers
+    to: inv_export_idempotent
+    type: implements
+    cardinality: many_to_one
+  - from: con_json_audit_output
+    to: inv_ci_output_parseable
+    type: implements
+    cardinality: many_to_one
+  - from: con_bun_runtime
+    to: inv_check_speed
+    type: implements
+    cardinality: many_to_one
