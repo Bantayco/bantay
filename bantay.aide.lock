@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-19T06:17:47.828Z
+# Generated: 2026-03-19T06:48:15.616Z
 
 entities:
   bantay_cli: 40c228db
@@ -23,6 +23,7 @@ entities:
   cuj_ci: 6f639b53
   cuj_export: 5c436567
   cuj_init: 770a755a
+  cuj_orchestrate: 0f1088f0
   cuj_tasks: 68f341d8
   cujs: 6dd382da
   found_accumulates: 70afe3fb
@@ -86,12 +87,14 @@ entities:
   sc_init_no_project: 247d51b9
   sc_init_prerequisites: 4fe816e2
   sc_init_speed: 1de396b0
+  sc_orchestrate_spawn: 0e48a66d
   sc_tasks_all: 6ca85866
   sc_tasks_diff: 601d4270
   sc_tasks_output: 06fcfa94
   sc_tasks_phases: 7f46468a
   wis_1: 5ebe435b
   wis_agent_context_is_free: 7acd91af
+  wis_agent_team_limits: 76873f2c
   wis_aide_naming: 6373e31f
   wis_bun_distribution: 13c54e6b
   wis_ci_is_wedge: 45047669
@@ -141,3 +144,4 @@ relationships:
   - con_json_audit_output:inv_ci_output_parseable:implements: 459b886e
   - con_bun_runtime:inv_check_speed:implements: 09947482
   - cuj_tasks:cuj_aide:depends_on: 31e7b532
+  - cuj_orchestrate:cuj_tasks:depends_on: 27e0f78f

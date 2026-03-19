@@ -777,6 +777,23 @@ entities:
       given: Task generation completes
       when: bantay tasks finishes
       then: tasks.md created with phases, scenarios as acceptance criteria, and checklist format
+  cuj_orchestrate:
+    parent: cujs
+    props:
+      feature: Developer orchestrates multi-agent builds from aide
+      tier: primary
+      area: orchestrate
+  sc_orchestrate_spawn:
+    parent: cuj_orchestrate
+    props:
+      name: Spawn teammates for CUJ phases
+      given: Developer runs /bantay-orchestrate
+      when: Bantay orchestrates the build
+      then: Maximum 2 teammates spawned at a time. Lead coordinates sequentially across phases, parallel within each phase up to 2 agents.
+  wis_agent_team_limits:
+    parent: wisdom
+    props:
+      text: Limit Agent Teams to 1 lead + 2 teammates max. Rate limits on Max 100 are real. 3 concurrent agents hit the ceiling in under an hour. 2 is sustainable for a full build session.
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
@@ -904,5 +921,9 @@ relationships:
     cardinality: many_to_one
   - from: cuj_tasks
     to: cuj_aide
+    type: depends_on
+    cardinality: many_to_many
+  - from: cuj_orchestrate
+    to: cuj_tasks
     type: depends_on
     cardinality: many_to_many

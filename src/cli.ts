@@ -88,6 +88,7 @@ Options:
 
 Examples:
   bantay init                Initialize in current directory
+  bantay init --force        Regenerate slash commands
   bantay check               Run full invariant check
   bantay check --diff HEAD~1 Check only affected invariants
   bantay aide show           Show the aide entity tree
@@ -109,6 +110,7 @@ Run "bantay aide help" for aide subcommand details.
 async function handleInit(args: string[]) {
   const projectPath = process.cwd();
   const regenerateConfig = args.includes("--regenerate-config");
+  const force = args.includes("--force");
   const dryRun = args.includes("--dry-run");
 
   console.log("Initializing Bantay...\n");
@@ -119,7 +121,7 @@ async function handleInit(args: string[]) {
   }
 
   try {
-    const result = await runInit(projectPath, { regenerateConfig });
+    const result = await runInit(projectPath, { regenerateConfig, force });
 
     // Display detection results
     console.log("Stack Detection:");

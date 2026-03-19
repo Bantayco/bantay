@@ -7,10 +7,12 @@ import {
   generateInterviewCommand,
   generateStatusCommand,
   generateCheckCommand,
+  generateOrchestrateCommand,
 } from "../generators/claude-commands";
 
 export interface InitOptions {
   regenerateConfig?: boolean;
+  force?: boolean;
 }
 
 export interface InitResult {
@@ -78,21 +80,27 @@ export async function runInit(
   const interviewPath = join(claudeCommandsDir, "bantay-interview.md");
   const statusPath = join(claudeCommandsDir, "bantay-status.md");
   const checkPath = join(claudeCommandsDir, "bantay-check.md");
+  const orchestratePath = join(claudeCommandsDir, "bantay-orchestrate.md");
 
-  // Only create if they don't exist (don't overwrite user customizations)
-  if (!(await fileExists(interviewPath))) {
+  // Only create if they don't exist (don't overwrite user customizations) unless --force
+  if (options?.force || !(await fileExists(interviewPath))) {
     await writeFile(interviewPath, generateInterviewCommand());
     filesCreated.push(".claude/commands/bantay-interview.md");
   }
 
-  if (!(await fileExists(statusPath))) {
+  if (options?.force || !(await fileExists(statusPath))) {
     await writeFile(statusPath, generateStatusCommand());
     filesCreated.push(".claude/commands/bantay-status.md");
   }
 
-  if (!(await fileExists(checkPath))) {
+  if (options?.force || !(await fileExists(checkPath))) {
     await writeFile(checkPath, generateCheckCommand());
     filesCreated.push(".claude/commands/bantay-check.md");
+  }
+
+  if (options?.force || !(await fileExists(orchestratePath))) {
+    await writeFile(orchestratePath, generateOrchestrateCommand());
+    filesCreated.push(".claude/commands/bantay-orchestrate.md");
   }
 
   return {

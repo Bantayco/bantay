@@ -47,3 +47,15 @@ export function generateCheckCommand(): string {
     "utf-8"
   );
 }
+
+/**
+ * Generate the bantay-orchestrate.md command
+ *
+ * This command orchestrates multi-agent builds from the aide task list.
+ */
+export function generateOrchestrateCommand(): string {
+  return readFileSync(
+    join(__dirname, "../templates/commands/bantay-orchestrate.md"),
+    "utf-8"
+  );
+}
