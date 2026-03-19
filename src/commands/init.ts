@@ -1,8 +1,13 @@
-import { writeFile, access } from "fs/promises";
+import { writeFile, access, mkdir } from "fs/promises";
 import { join } from "path";
 import { detectStack, type StackDetectionResult } from "../detectors";
 import { generateInvariants } from "../generators/invariants";
 import { generateConfig, configToYaml } from "../generators/config";
+import {
+  generateInterviewCommand,
+  generateStatusCommand,
+  generateCheckCommand,
+} from "../generators/claude-commands";
 
 export interface InitOptions {
   regenerateConfig?: boolean;
@@ -64,6 +69,30 @@ export async function runInit(
     const configContent = configToYaml(config);
     await writeFile(configPath, configContent);
     filesCreated.push("bantay.config.yml");
+  }
+
+  // Generate Claude Code slash commands
+  const claudeCommandsDir = join(projectPath, ".claude", "commands");
+  await mkdir(claudeCommandsDir, { recursive: true });
+
+  const interviewPath = join(claudeCommandsDir, "bantay-interview.md");
+  const statusPath = join(claudeCommandsDir, "bantay-status.md");
+  const checkPath = join(claudeCommandsDir, "bantay-check.md");
+
+  // Only create if they don't exist (don't overwrite user customizations)
+  if (!(await fileExists(interviewPath))) {
+    await writeFile(interviewPath, generateInterviewCommand());
+    filesCreated.push(".claude/commands/bantay-interview.md");
+  }
+
+  if (!(await fileExists(statusPath))) {
+    await writeFile(statusPath, generateStatusCommand());
+    filesCreated.push(".claude/commands/bantay-status.md");
+  }
+
+  if (!(await fileExists(checkPath))) {
+    await writeFile(checkPath, generateCheckCommand());
+    filesCreated.push(".claude/commands/bantay-check.md");
   }
 
   return {

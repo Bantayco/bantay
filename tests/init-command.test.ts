@@ -142,4 +142,61 @@ describe("Init Command", () => {
       expect(elapsed).toBeLessThan(1000);
     });
   });
+
+  // Claude Code slash commands
+  describe("Claude Commands", () => {
+    test("creates .claude/commands/ directory with slash command files", async () => {
+      const result = await runInit(testDir);
+
+      expect(result.filesCreated).toContain(".claude/commands/bantay-interview.md");
+      expect(result.filesCreated).toContain(".claude/commands/bantay-status.md");
+      expect(result.filesCreated).toContain(".claude/commands/bantay-check.md");
+
+      // Verify files exist and have content
+      const interviewContent = await readFile(
+        join(testDir, ".claude", "commands", "bantay-interview.md"),
+        "utf-8"
+      );
+      expect(interviewContent).toContain("Bantay Aide Interview");
+      expect(interviewContent).toContain("bantay aide add");
+      expect(interviewContent).toContain("bantay aide validate");
+
+      const statusContent = await readFile(
+        join(testDir, ".claude", "commands", "bantay-status.md"),
+        "utf-8"
+      );
+      expect(statusContent).toContain("bantay status");
+
+      const checkContent = await readFile(
+        join(testDir, ".claude", "commands", "bantay-check.md"),
+        "utf-8"
+      );
+      expect(checkContent).toContain("bantay check");
+    });
+
+    test("does not overwrite existing command files", async () => {
+      // Create existing command file
+      await mkdir(join(testDir, ".claude", "commands"), { recursive: true });
+      const customContent = "# My Custom Interview\n\nCustom content here";
+      await writeFile(
+        join(testDir, ".claude", "commands", "bantay-interview.md"),
+        customContent
+      );
+
+      const result = await runInit(testDir);
+
+      // Should not be in filesCreated since it already exists
+      expect(result.filesCreated).not.toContain(".claude/commands/bantay-interview.md");
+      // But other files should be created
+      expect(result.filesCreated).toContain(".claude/commands/bantay-status.md");
+      expect(result.filesCreated).toContain(".claude/commands/bantay-check.md");
+
+      // Verify existing content is preserved
+      const content = await readFile(
+        join(testDir, ".claude", "commands", "bantay-interview.md"),
+        "utf-8"
+      );
+      expect(content).toBe(customContent);
+    });
+  });
 });
