@@ -17,6 +17,7 @@ import {
 import { exportInvariants, exportClaude, exportCursor, exportCodex, exportAll } from "./export";
 import { runStatus, formatStatus } from "./commands/status";
 import { runCi, type CiOptions } from "./commands/ci";
+import { runTasks, formatTasks } from "./commands/tasks";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -42,6 +43,8 @@ async function main() {
     await handleExport(args.slice(1));
   } else if (command === "status") {
     await handleStatus(args.slice(1));
+  } else if (command === "tasks") {
+    await handleTasks(args.slice(1));
   } else {
     console.error(`Unknown command: ${command}`);
     console.error('Run "bantay help" for usage information.');
@@ -78,6 +81,7 @@ Commands:
   ci        Generate CI workflow configuration
   export    Export invariants to agent context files
   status    Show scenario implementation status
+  tasks     Generate task list from aide CUJs
 
 Options:
   -h, --help    Show this help message
@@ -95,6 +99,8 @@ Examples:
   bantay export cursor       Export to .cursorrules
   bantay status              Show scenario implementation status
   bantay status --json       Output as JSON
+  bantay tasks               Generate tasks for changed CUJs (requires lock)
+  bantay tasks --all         Generate tasks for all CUJs
 
 Run "bantay aide help" for aide subcommand details.
 `);
@@ -360,6 +366,28 @@ async function handleStatus(args: string[]) {
       console.error(`Error: ${error.message}`);
     } else {
       console.error("Error running status:", error);
+    }
+    process.exit(1);
+  }
+}
+
+async function handleTasks(args: string[]) {
+  const projectPath = process.cwd();
+  const allFlag = args.includes("--all");
+
+  // Parse --aide option
+  const aideIndex = args.indexOf("--aide");
+  const aideFile = aideIndex !== -1 ? args[aideIndex + 1] : undefined;
+
+  try {
+    const result = await runTasks(projectPath, { all: allFlag, aide: aideFile });
+    console.log(formatTasks(result));
+    process.exit(0);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error running tasks:", error);
     }
     process.exit(1);
   }

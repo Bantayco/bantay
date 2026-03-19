@@ -739,6 +739,44 @@ entities:
       text: Slash command prompts are stored as markdown files in src/templates/commands/, not as template literals in TypeScript.
       domain: architecture
       rationale: Prompts embedded in TypeScript are hard to read, hard to edit, and hard for agents to update without breaking string escaping. Separate files are readable, diffable, and editable as standalone documents.
+  wis_complete_interview:
+    parent: wisdom
+    props:
+      text: "The interview prompt must cover all entity types: CUJs, scenarios, invariants with threat signals, constraints with rationale, foundations, wisdom, and all relationship types (protected_by, depends_on, implements). Missing any section produces an incomplete aide."
+  cuj_tasks:
+    parent: cujs
+    props:
+      feature: Developer generates a task list from the aide
+      tier: primary
+      area: tasks
+  sc_tasks_all:
+    parent: cuj_tasks
+    props:
+      name: Generate tasks for full aide
+      given: Developer runs bantay tasks --all
+      when: Bantay reads the full aide
+      then: Task list generated for every CUJ, ordered by depends_on
+  sc_tasks_diff:
+    parent: cuj_tasks
+    props:
+      name: Generate tasks from diff
+      given: Aide has changed since lock
+      when: Developer runs bantay tasks
+      then: Tasks generated only for added or modified entities
+  sc_tasks_phases:
+    parent: cuj_tasks
+    props:
+      name: Tasks ordered into phases by dependencies
+      given: CUJs have depends_on relationships
+      when: bantay tasks generates the list
+      then: CUJs with no dependencies come first, dependent CUJs come after
+  sc_tasks_output:
+    parent: cuj_tasks
+    props:
+      name: Tasks written to tasks.md
+      given: Task generation completes
+      when: bantay tasks finishes
+      then: tasks.md created with phases, scenarios as acceptance criteria, and checklist format
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
@@ -864,3 +902,7 @@ relationships:
     to: inv_check_speed
     type: implements
     cardinality: many_to_one
+  - from: cuj_tasks
+    to: cuj_aide
+    type: depends_on
+    cardinality: many_to_many

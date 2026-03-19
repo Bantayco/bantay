@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-18T22:29:23.078Z
+# Generated: 2026-03-19T06:17:47.828Z
 
 entities:
   bantay_cli: 40c228db
@@ -11,6 +11,7 @@ entities:
   con_invariants_md_is_truth: 47877d6b
   con_json_audit_output: 7286bda3
   con_no_inline_shell: 0dce8b55
+  con_prompts_as_files: 6716a3a2
   con_section_markers: 4886de9b
   con_stack_detection_plugins: 30c073fe
   con_static_analysis_only: 5d63d448
@@ -22,6 +23,7 @@ entities:
   cuj_ci: 6f639b53
   cuj_export: 5c436567
   cuj_init: 770a755a
+  cuj_tasks: 68f341d8
   cujs: 6dd382da
   found_accumulates: 70afe3fb
   found_deterministic: 55b7d600
@@ -51,6 +53,8 @@ entities:
   inv_stable_ids: 71049810
   invariants: 27615c59
   sc_aide_diff: 31242108
+  sc_aide_discovery: 3668c60f
+  sc_aide_init: 44c8677d
   sc_check_diff: 1b3bfd5d
   sc_check_full: 0c8eb03e
   sc_check_no_execution: 5e0def01
@@ -82,11 +86,17 @@ entities:
   sc_init_no_project: 247d51b9
   sc_init_prerequisites: 4fe816e2
   sc_init_speed: 1de396b0
+  sc_tasks_all: 6ca85866
+  sc_tasks_diff: 601d4270
+  sc_tasks_output: 06fcfa94
+  sc_tasks_phases: 7f46468a
   wis_1: 5ebe435b
   wis_agent_context_is_free: 7acd91af
+  wis_aide_naming: 6373e31f
   wis_bun_distribution: 13c54e6b
   wis_ci_is_wedge: 45047669
   wis_cli_binary: 7494e45f
+  wis_complete_interview: 77838dfc
   wis_dogfood_checker_package: 414a0d9f
   wis_false_negatives_kill_trust: 7d4188bd
   wis_implicit_prerequisites: 231365e6
@@ -130,3 +140,4 @@ relationships:
   - con_section_markers:inv_export_idempotent:implements: 1c32b559
   - con_json_audit_output:inv_ci_output_parseable:implements: 459b886e
   - con_bun_runtime:inv_check_speed:implements: 09947482
+  - cuj_tasks:cuj_aide:depends_on: 31e7b532

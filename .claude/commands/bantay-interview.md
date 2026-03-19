@@ -9,18 +9,16 @@ Guide the user through a structured conversation to understand their project and
 ## Before Starting
 
 First, check if an .aide file exists:
-
 ```bash
-ls *.aide
+ls *.aide 2>/dev/null || echo "No .aide file found"
 ```
 
-If no .aide file exists, ask the user for their product name and run:
-
+If no .aide file exists:
+1. Ask the user: "What's the name of your project? (This will be used for the aide file)"
+2. Create the aide file:
 ```bash
-bantay aide init --name <product_name>
+bantay aide init --name <project-name>
 ```
-
-If an .aide file already exists, run `bantay aide show` to understand what's already defined, then continue from where it left off.
 
 ## Interview Flow
 
@@ -43,15 +41,6 @@ For each confirmed CUJ, run:
 bantay aide add cuj_<name> --parent cujs --prop "feature=<description>" --prop "tier=primary" --prop "area=<area>"
 ```
 
-After all CUJs are added, propose dependencies:
-- "Which of these journeys require another journey to work first?"
-- For example: "Does checkout depend on cart? Does cart depend on browse?"
-
-For each dependency, run:
-```bash
-bantay aide link cuj_<dependent> cuj_<dependency> --type depends_on
-```
-
 ### 3. Define Scenarios for Each CUJ
 
 For each CUJ, propose scenarios:
@@ -64,91 +53,24 @@ For each confirmed scenario, run:
 bantay aide add sc_<name> --parent cuj_<parent> --prop "name=<scenario name>" --prop "given=<given>" --prop "when=<when>" --prop "then=<then>"
 ```
 
-### 4. Extract Invariants with Threat Signals
+### 4. Extract Invariants
 
 Ask about rules that must never be broken:
 - "What security rules must always hold? (e.g., all routes require auth)"
 - "What data integrity rules exist? (e.g., balances never go negative)"
 - "What performance requirements exist? (e.g., pages load in under 2s)"
 
-For each confirmed invariant:
-
-1. First, add the invariant:
+For each confirmed invariant, run:
 ```bash
 bantay aide add inv_<name> --parent invariants --prop "statement=<the rule>" --prop "category=<security|integrity|performance|etc>"
-```
-
-2. Immediately ask: "What does it look like when this is violated intentionally? What pattern would indicate someone is testing this boundary?"
-
-3. Then update with the threat signal:
-```bash
-bantay aide update inv_<name> --prop "threat_signal=<signal>"
 ```
 
 ### 5. Link Scenarios to Invariants
 
 For scenarios that are protected by invariants:
-- "Which scenarios would fail if this invariant were violated?"
-
 ```bash
 bantay aide link sc_<scenario> inv_<invariant> --type protected_by
 ```
-
-### 6. Define Design Foundations
-
-Ask about the principles that shape everything:
-- "What are the 4-6 design principles that shape everything in this product?"
-- "These are the poster-worthy truths - the things you'd put on a wall to remind the team what matters."
-- Examples: "Offline-first", "Zero trust", "Convention over configuration", "Fail fast", "Privacy by default"
-
-For each confirmed foundation, run:
-```bash
-bantay aide add found_<name> --parent foundations --prop "text=<the principle>"
-```
-
-### 7. Define Architectural Constraints
-
-Ask about tech decisions:
-- "What's the tech stack? What architectural decisions have you made and why?"
-- "What patterns must all code follow? What's off-limits?"
-
-For each constraint, run:
-```bash
-bantay aide add con_<name> --parent constraints --prop "text=<the decision>" --prop "domain=<stack|security|architecture|etc>" --prop "rationale=<why this decision was made>"
-```
-
-After adding each constraint, ask:
-- "Which invariant does this constraint help enforce?"
-
-Then link it:
-```bash
-bantay aide link con_<name> inv_<invariant> --type implements
-```
-
-### 8. Capture Project Wisdom
-
-Ask about hard-won lessons:
-- "What lessons have you learned the hard way on this project?"
-- "What do new team members always get wrong at first?"
-- "What decisions seem counterintuitive but are correct for good reasons?"
-
-For each wisdom entry, run:
-```bash
-bantay aide add wis_<name> --parent wisdom --prop "text=<the lesson>"
-```
-
-### 9. Validate and Review
-
-After completing all sections, validate and show the complete tree:
-
-```bash
-bantay aide validate
-bantay aide show
-```
-
-Confirm with the user:
-- "Here's your complete aide structure. Does this capture everything?"
-- If anything is missing, go back and add it.
 
 ## Rules
 
@@ -156,12 +78,10 @@ Confirm with the user:
 2. **Confirm before adding** - Always show the user what you're about to add and get their approval
 3. **Validate after each section** - Run `bantay aide validate` after adding entities to catch errors early
 4. **Use consistent naming** - IDs should be snake_case: `cuj_user_login`, `sc_login_success`, `inv_auth_required`
-5. **Cover all entity types** - CUJs, scenarios, invariants (with threat signals), constraints (with rationale), foundations, wisdom
-6. **Cover all relationship types** - protected_by (scenario→invariant), depends_on (cuj→cuj), implements (constraint→invariant)
 
 ## Validation
 
-After each major section, run:
+After each major section (CUJs, scenarios, invariants), run:
 ```bash
 bantay aide validate
 ```
@@ -191,17 +111,7 @@ Does this capture your core journeys? Should I add or modify any?"
 bantay aide add cuj_browse --parent cujs --prop "feature=Customer discovers and views products" --prop "tier=primary" --prop "area=shopping"
 bantay aide add cuj_cart --parent cujs --prop "feature=Customer manages their shopping cart" --prop "tier=primary" --prop "area=shopping"
 bantay aide add cuj_checkout --parent cujs --prop "feature=Customer completes a purchase" --prop "tier=primary" --prop "area=shopping"
-```
-
-**You**: "Now, which of these journeys depend on another? I'd guess checkout depends on cart, and cart depends on browse. Is that right?"
-
-**User**: "Yes"
-
-**You**: "Linking the dependencies..."
-```bash
-bantay aide link cuj_checkout cuj_cart --type depends_on
-bantay aide link cuj_cart cuj_browse --type depends_on
 bantay aide validate
 ```
 
-Continue this pattern for scenarios, invariants, constraints, foundations, and wisdom.
+Continue this pattern for scenarios and invariants.

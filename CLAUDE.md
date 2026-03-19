@@ -82,6 +82,8 @@ Use bun:test. Every invariant from bantay.aide becomes a test:
   - *Rationale*: Three discovery mechanisms, each explicit: a code registry for built-ins, npm require for community, filesystem glob for project. If a checker isn't in one of these three places, it doesn't exist. No classpath scanning, no environment variables, no hidden config.
 - **con_stack_detection_plugins**: Stack detection in bantay init uses a plugin pattern. Each framework/ORM/auth detector is a separate module with a detect() and generate() function.
   - *Rationale*: New framework support should not require modifying core init logic. A contributor adds a detector for Django, registers it, done. This is also how the community extends Bantay to stacks beyond the initial supported set.
+- **con_prompts_as_files**: Slash command prompts are stored as markdown files in src/templates/commands/, not as template literals in TypeScript.
+  - *Rationale*: Prompts embedded in TypeScript are hard to read, hard to edit, and hard for agents to update without breaking string escaping. Separate files are readable, diffable, and editable as standalone documents.
 
 #### Ci
 
