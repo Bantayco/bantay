@@ -849,7 +849,7 @@ relationships:
         ]);
 
         expect(exitCode).not.toBe(0);
-        expect(stderr).toContain("bantay.aide");
+        expect(stderr).toContain("No .aide file found");
       } finally {
         await rm(testDir, { recursive: true, force: true });
       }

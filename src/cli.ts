@@ -3,6 +3,7 @@ import { runInit } from "./commands/init";
 import { runCheck, formatCheckResults, formatCheckResultsJson } from "./commands/check";
 import { checkAllPrerequisites } from "./prerequisites";
 import {
+  handleAideInit,
   handleAideAdd,
   handleAideUpdate,
   handleAideRemove,
@@ -374,7 +375,9 @@ async function handleAide(args: string[]) {
 
   const subArgs = args.slice(1);
 
-  if (subcommand === "add") {
+  if (subcommand === "init") {
+    await handleAideInit(subArgs);
+  } else if (subcommand === "add") {
     await handleAideAdd(subArgs);
   } else if (subcommand === "update") {
     await handleAideUpdate(subArgs);

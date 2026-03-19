@@ -1,5 +1,6 @@
 import { existsSync } from "fs";
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile, readdir } from "fs/promises";
+import { basename } from "path";
 import {
   read,
   write,
@@ -43,8 +44,6 @@ interface LockFile {
   relationships: string[];
 }
 
-const DEFAULT_AIDE_PATH = "bantay.aide";
-
 /**
  * Parse command-line arguments for the aide commands
  */
@@ -68,10 +67,161 @@ function parseOptions(args: string[]): { options: AideCommandOptions; rest: stri
 }
 
 /**
- * Get the aide file path, defaulting to bantay.aide in cwd
+ * Discover .aide files in the current directory
+ * Returns: { found: string[], error?: string }
  */
-function getAidePath(options: AideCommandOptions): string {
-  return options.aidePath || `${process.cwd()}/${DEFAULT_AIDE_PATH}`;
+async function discoverAideFiles(cwd: string): Promise<{ found: string[]; error?: string }> {
+  try {
+    const files = await readdir(cwd);
+    const aideFiles = files.filter((f) => f.endsWith(".aide"));
+    return { found: aideFiles };
+  } catch (error) {
+    return { found: [], error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * Get the aide file path with auto-discovery
+ * - If --aide flag is provided, use that
+ * - Otherwise, glob for *.aide in cwd
+ * - If exactly one found, use it
+ * - If multiple found, error
+ * - If none found, error
+ */
+async function getAidePath(options: AideCommandOptions): Promise<string> {
+  const cwd = process.cwd();
+
+  // If explicit path provided, use it (resolve relative to cwd)
+  if (options.aidePath) {
+    if (options.aidePath.startsWith("/")) {
+      return options.aidePath;
+    }
+    return `${cwd}/${options.aidePath}`;
+  }
+
+  // Auto-discover
+  const { found, error } = await discoverAideFiles(cwd);
+
+  if (error) {
+    console.error(`Error discovering aide files: ${error}`);
+    process.exit(1);
+  }
+
+  if (found.length === 0) {
+    console.error("No .aide file found. Run 'bantay aide init' to create one.");
+    process.exit(1);
+  }
+
+  if (found.length > 1) {
+    console.error("Multiple .aide files found. Specify one with --aide <path>");
+    console.error("Found:");
+    for (const f of found) {
+      console.error(`  - ${f}`);
+    }
+    process.exit(1);
+  }
+
+  return `${cwd}/${found[0]}`;
+}
+
+/**
+ * Generate skeleton aide file content
+ */
+function generateAideSkeleton(projectName: string): string {
+  return `entities:
+  ${projectName}:
+    display: page
+    props:
+      title: ${projectName}
+      description: Project description
+      version: "0.1"
+  cujs:
+    display: table
+    parent: ${projectName}
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  invariants:
+    display: checklist
+    parent: ${projectName}
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  constraints:
+    display: list
+    parent: ${projectName}
+    props:
+      title: Architectural Constraints
+      _pattern: flat_list
+      _group_by: domain
+  foundations:
+    display: list
+    parent: ${projectName}
+    props:
+      title: Design Foundations
+      _pattern: flat_list
+  wisdom:
+    display: list
+    parent: ${projectName}
+    props:
+      title: Project Wisdom
+      _pattern: flat_list
+relationships: []
+`;
+}
+
+/**
+ * Handle bantay aide init
+ * Usage: bantay aide init [--name <name>]
+ * Creates a new .aide file with skeleton structure
+ */
+export async function handleAideInit(args: string[]): Promise<void> {
+  const cwd = process.cwd();
+  const dirName = basename(cwd);
+
+  // Parse --name option
+  let name: string | undefined;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--name" || args[i] === "-n") {
+      name = args[++i];
+    }
+  }
+
+  // Determine the aide filename
+  const aideName = name || dirName;
+  const aideFilename = `${aideName}.aide`;
+  const aidePath = `${cwd}/${aideFilename}`;
+
+  // Check if any .aide file already exists
+  const { found } = await discoverAideFiles(cwd);
+
+  if (found.length > 0) {
+    // Check if the specific file we want to create exists
+    if (found.includes(aideFilename)) {
+      console.error(`Error: ${aideFilename} already exists.`);
+      console.error("Use a different name with --name <name> or delete the existing file.");
+      process.exit(1);
+    }
+
+    // If we're trying to create a new aide file but others exist, warn
+    console.error(`Error: .aide file already exists: ${found[0]}`);
+    console.error("Use --name <name> to create a differently named file, or use the existing one.");
+    process.exit(1);
+  }
+
+  // Generate and write the skeleton
+  const content = generateAideSkeleton(aideName);
+  await writeFile(aidePath, content, "utf-8");
+
+  console.log(`Created ${aideFilename}`);
+  console.log(`\nNext steps:`);
+  console.log(`  1. Edit ${aideFilename} to add your project's CUJs, invariants, and constraints`);
+  console.log(`  2. Run 'bantay aide validate' to check the file`);
+  console.log(`  3. Run 'bantay export all' to generate invariants.md and agent context files`);
 }
 
 /**
@@ -80,13 +230,7 @@ function getAidePath(options: AideCommandOptions): string {
  */
 export async function handleAideAdd(args: string[]): Promise<void> {
   const { options, rest } = parseOptions(args);
-  const aidePath = getAidePath(options);
-
-  if (!existsSync(aidePath)) {
-    console.error(`Error: Aide file not found: ${aidePath}`);
-    console.error("Run 'bantay init' to create a project first.");
-    process.exit(1);
-  }
+  const aidePath = await getAidePath(options);
 
   // Parse add-specific options
   let id: string | undefined;
@@ -133,12 +277,7 @@ export async function handleAideAdd(args: string[]): Promise<void> {
  */
 export async function handleAideRemove(args: string[]): Promise<void> {
   const { options, rest } = parseOptions(args);
-  const aidePath = getAidePath(options);
-
-  if (!existsSync(aidePath)) {
-    console.error(`Error: Aide file not found: ${aidePath}`);
-    process.exit(1);
-  }
+  const aidePath = await getAidePath(options);
 
   const id = rest.find((arg) => !arg.startsWith("-"));
   const force = rest.includes("--force") || rest.includes("-f");
@@ -167,12 +306,7 @@ export async function handleAideRemove(args: string[]): Promise<void> {
  */
 export async function handleAideLink(args: string[]): Promise<void> {
   const { options, rest } = parseOptions(args);
-  const aidePath = getAidePath(options);
-
-  if (!existsSync(aidePath)) {
-    console.error(`Error: Aide file not found: ${aidePath}`);
-    process.exit(1);
-  }
+  const aidePath = await getAidePath(options);
 
   let from: string | undefined;
   let to: string | undefined;
@@ -224,12 +358,7 @@ export async function handleAideLink(args: string[]): Promise<void> {
  */
 export async function handleAideShow(args: string[]): Promise<void> {
   const { options, rest } = parseOptions(args);
-  const aidePath = getAidePath(options);
-
-  if (!existsSync(aidePath)) {
-    console.error(`Error: Aide file not found: ${aidePath}`);
-    process.exit(1);
-  }
+  const aidePath = await getAidePath(options);
 
   let entityId: string | undefined;
   let format = "tree";
@@ -277,12 +406,7 @@ export async function handleAideShow(args: string[]): Promise<void> {
  */
 export async function handleAideValidate(args: string[]): Promise<void> {
   const { options } = parseOptions(args);
-  const aidePath = getAidePath(options);
-
-  if (!existsSync(aidePath)) {
-    console.error(`Error: Aide file not found: ${aidePath}`);
-    process.exit(1);
-  }
+  const aidePath = await getAidePath(options);
 
   try {
     const tree = await read(aidePath);
@@ -314,13 +438,8 @@ export async function handleAideValidate(args: string[]): Promise<void> {
  */
 export async function handleAideLock(args: string[]): Promise<void> {
   const { options } = parseOptions(args);
-  const aidePath = getAidePath(options);
+  const aidePath = await getAidePath(options);
   const lockPath = `${aidePath}.lock`;
-
-  if (!existsSync(aidePath)) {
-    console.error(`Error: Aide file not found: ${aidePath}`);
-    process.exit(1);
-  }
 
   try {
     const tree = await read(aidePath);
@@ -353,12 +472,7 @@ export async function handleAideLock(args: string[]): Promise<void> {
  */
 export async function handleAideUpdate(args: string[]): Promise<void> {
   const { options, rest } = parseOptions(args);
-  const aidePath = getAidePath(options);
-
-  if (!existsSync(aidePath)) {
-    console.error(`Error: Aide file not found: ${aidePath}`);
-    process.exit(1);
-  }
+  const aidePath = await getAidePath(options);
 
   let id: string | undefined;
   const propsToSet: Record<string, unknown> = {};
@@ -551,16 +665,11 @@ function computeRelationshipHash(rel: { from: string; to: string; type: string; 
  */
 export async function handleAideDiff(args: string[]): Promise<void> {
   const { options } = parseOptions(args);
-  const aidePath = getAidePath(options);
+  const aidePath = await getAidePath(options);
   const lockPath = `${aidePath}.lock`;
   const jsonOutput = args.includes("--json");
 
-  // Check that both files exist
-  if (!existsSync(aidePath)) {
-    console.error(`Error: Aide file not found: ${aidePath}`);
-    process.exit(1);
-  }
-
+  // Check that lock file exists
   if (!existsSync(lockPath)) {
     console.error(`Error: Lock file not found: ${lockPath}`);
     console.error("Run 'bantay aide lock' to create a lock file first.");
@@ -787,6 +896,7 @@ bantay aide - Manage the aide entity tree
 Usage: bantay aide <subcommand> [options]
 
 Subcommands:
+  init      Create a new .aide file with skeleton structure
   add       Add an entity to the tree
   update    Update an entity's properties
   remove    Remove an entity from the tree
@@ -795,6 +905,9 @@ Subcommands:
   validate  Validate the aide file
   lock      Generate a lock file
   diff      Compare aide against lock file
+
+Init Options:
+  --name, -n    Name for the aide file (default: current directory name)
 
 Add Options:
   <id>              Entity ID (optional, auto-generated if parent provided)

@@ -715,6 +715,24 @@ entities:
     parent: wisdom
     props:
       text: enforced_by was renamed to protected_by because the original read backwards. A scenario says 'sc_login protected_by inv_auth_check' — the invariant protects the scenario, not enforces it. The new name reads correctly in both directions.
+  sc_aide_init:
+    parent: cuj_aide
+    props:
+      name: Initialize a new aide file
+      given: Developer runs bantay aide init in a project
+      when: No .aide file exists
+      then: <dirname>.aide created with skeleton structure
+  sc_aide_discovery:
+    parent: cuj_aide
+    props:
+      name: Auto-discover aide file
+      given: Developer runs any bantay aide subcommand
+      when: Exactly one .aide file exists in the directory
+      then: That file is used without --aide flag
+  wis_aide_naming:
+    parent: wisdom
+    props:
+      text: The aide file should be named after the project, not after bantay. bantay.aide is for the bantay project. spout.aide is for spout. The tool serves the project, not itself.
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
