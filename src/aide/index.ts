@@ -16,6 +16,15 @@ import {
 // Re-export types
 export type { AideTree, Entity, Relationship } from "./types";
 
+// Re-export discovery functions
+export {
+  discoverAideFiles,
+  resolveAidePath,
+  tryResolveAidePath,
+  type DiscoveryResult,
+  type ResolvedAidePath,
+} from "./discovery";
+
 /**
  * Read and parse a .aide YAML file
  */

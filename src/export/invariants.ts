@@ -4,19 +4,19 @@
 
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
-import { read as readAide } from "../aide";
+import { read as readAide, resolveAidePath } from "../aide";
 import { extractInvariants, groupBy } from "./aide-reader";
 import type { ExportOptions, ExportResult, ExtractedInvariant } from "./types";
 
 /**
  * Generate invariants.md content from the aide tree
  */
-export function generateInvariantsMd(invariants: ExtractedInvariant[]): string {
+export function generateInvariantsMd(invariants: ExtractedInvariant[], aideFilename: string = "*.aide"): string {
   const lines: string[] = [];
 
   lines.push("# Invariants");
   lines.push("");
-  lines.push("Rules this project must never break. Generated from bantay.aide.");
+  lines.push(`Rules this project must never break. Generated from ${aideFilename}.`);
   lines.push("");
 
   // Group by category
@@ -66,7 +66,9 @@ export async function exportInvariants(
   projectPath: string,
   options: ExportOptions = {}
 ): Promise<ExportResult> {
-  const aidePath = options.aidePath || join(projectPath, "bantay.aide");
+  // Discover aide file if not explicitly provided
+  const resolved = await resolveAidePath(projectPath, options.aidePath);
+  const aidePath = resolved.path;
   const outputPath = options.outputPath || join(projectPath, "invariants.md");
 
   // Read the aide tree
@@ -76,7 +78,7 @@ export async function exportInvariants(
   const invariants = extractInvariants(tree);
 
   // Generate content
-  const content = generateInvariantsMd(invariants);
+  const content = generateInvariantsMd(invariants, resolved.filename);
 
   // Write unless dry run
   if (!options.dryRun) {

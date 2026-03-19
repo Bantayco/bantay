@@ -293,7 +293,7 @@ describe("sc_init_prerequisites", () => {
     test("handles missing aide file", async () => {
       const result = await runStatus(testDir);
 
-      expect(result.error).toBe("bantay.aide not found");
+      expect(result.error).toBe("No .aide file found. Run 'bantay aide init' to create one.");
       expect(result.scenarios).toHaveLength(0);
     });
 

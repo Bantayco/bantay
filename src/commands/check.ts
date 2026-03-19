@@ -6,7 +6,7 @@ import { runChecker, hasChecker } from "../checkers/registry";
 import { loadConfig } from "../config";
 import { getGitDiff, shouldCheckInvariant } from "../diff";
 import type { CheckResult, CheckerContext } from "../checkers/types";
-import { read as readAide } from "../aide";
+import { read as readAide, tryResolveAidePath } from "../aide";
 
 export interface CheckOptions {
   id?: string;
@@ -44,16 +44,21 @@ interface InvariantEnforcementInfo {
 }
 
 /**
- * Load checker and test paths from bantay.aide for each invariant
+ * Load checker and test paths from .aide file for each invariant
  */
 async function getEnforcementInfo(
   projectPath: string
 ): Promise<Map<string, InvariantEnforcementInfo>> {
   const info = new Map<string, InvariantEnforcementInfo>();
-  const aidePath = join(projectPath, "bantay.aide");
+
+  // Try to discover the aide file
+  const resolved = await tryResolveAidePath(projectPath);
+  if (!resolved) {
+    return info; // No aide file found, return empty map
+  }
 
   try {
-    const tree = await readAide(aidePath);
+    const tree = await readAide(resolved.path);
     for (const [id, entity] of Object.entries(tree.entities)) {
       if (id.startsWith("inv_")) {
         const enforcement: InvariantEnforcementInfo = {};

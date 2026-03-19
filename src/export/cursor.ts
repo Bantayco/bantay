@@ -4,7 +4,7 @@
 
 import { readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
-import { read as readAide } from "../aide";
+import { read as readAide, resolveAidePath } from "../aide";
 import {
   extractConstraints,
   extractFoundations,
@@ -32,7 +32,9 @@ export async function exportCursor(
   projectPath: string,
   options: ExportOptions = {}
 ): Promise<ExportResult> {
-  const aidePath = options.aidePath || join(projectPath, "bantay.aide");
+  // Discover aide file if not explicitly provided
+  const resolved = await resolveAidePath(projectPath, options.aidePath);
+  const aidePath = resolved.path;
   const outputPath = options.outputPath || join(projectPath, ".cursorrules");
 
   // Read the aide tree
@@ -44,7 +46,7 @@ export async function exportCursor(
   const invariants = extractInvariants(tree);
 
   // Generate section content (same format as claude)
-  const section = generateClaudeSection(constraints, foundations, invariants);
+  const section = generateClaudeSection(constraints, foundations, invariants, resolved.filename);
 
   // Read existing file if it exists
   let existingContent = "";

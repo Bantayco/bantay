@@ -733,6 +733,12 @@ entities:
     parent: wisdom
     props:
       text: The aide file should be named after the project, not after bantay. bantay.aide is for the bantay project. spout.aide is for spout. The tool serves the project, not itself.
+  con_prompts_as_files:
+    parent: constraints
+    props:
+      text: Slash command prompts are stored as markdown files in src/templates/commands/, not as template literals in TypeScript.
+      domain: architecture
+      rationale: Prompts embedded in TypeScript are hard to read, hard to edit, and hard for agents to update without breaking string escaping. Separate files are readable, diffable, and editable as standalone documents.
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available

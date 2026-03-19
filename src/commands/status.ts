@@ -1,6 +1,7 @@
 import { readFile, readdir, access } from "fs/promises";
 import { join, relative } from "path";
 import * as yaml from "js-yaml";
+import { tryResolveAidePath } from "../aide";
 
 export interface StatusOptions {
   json?: boolean;
@@ -146,16 +147,17 @@ export async function runStatus(
   projectPath: string,
   options?: StatusOptions
 ): Promise<StatusResult> {
-  const aidePath = join(projectPath, "bantay.aide");
-
-  // Check if aide file exists
-  if (!(await fileExists(aidePath))) {
+  // Discover aide file
+  const resolved = await tryResolveAidePath(projectPath);
+  if (!resolved) {
     return {
       scenarios: [],
       summary: { total: 0, implemented: 0, missing: 0 },
-      error: "bantay.aide not found",
+      error: "No .aide file found. Run 'bantay aide init' to create one.",
     };
   }
+
+  const aidePath = resolved.path;
 
   // Parse aide file
   let aideContent: AideFile;
@@ -166,7 +168,7 @@ export async function runStatus(
     return {
       scenarios: [],
       summary: { total: 0, implemented: 0, missing: 0 },
-      error: `Failed to parse bantay.aide: ${e instanceof Error ? e.message : String(e)}`,
+      error: `Failed to parse ${resolved.filename}: ${e instanceof Error ? e.message : String(e)}`,
     };
   }
 
@@ -174,7 +176,7 @@ export async function runStatus(
     return {
       scenarios: [],
       summary: { total: 0, implemented: 0, missing: 0 },
-      error: "bantay.aide has no entities",
+      error: `${resolved.filename} has no entities`,
     };
   }
 

@@ -4,7 +4,7 @@
 
 import { readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
-import { read as readAide } from "../aide";
+import { read as readAide, resolveAidePath } from "../aide";
 import {
   extractConstraints,
   extractFoundations,
@@ -27,7 +27,8 @@ import {
 export function generateClaudeSection(
   constraints: ExtractedConstraint[],
   foundations: ExtractedFoundation[],
-  invariants: ExtractedInvariant[]
+  invariants: ExtractedInvariant[],
+  aideFilename: string = "*.aide"
 ): string {
   const lines: string[] = [];
 
@@ -35,7 +36,7 @@ export function generateClaudeSection(
   lines.push("");
   lines.push("## Bantay Project Rules");
   lines.push("");
-  lines.push("*Auto-generated from bantay.aide. Do not edit manually.*");
+  lines.push(`*Auto-generated from ${aideFilename}. Do not edit manually.*`);
   lines.push("");
 
   // Foundations as principles
@@ -184,7 +185,9 @@ export async function exportClaude(
   projectPath: string,
   options: ExportOptions = {}
 ): Promise<ExportResult> {
-  const aidePath = options.aidePath || join(projectPath, "bantay.aide");
+  // Discover aide file if not explicitly provided
+  const resolved = await resolveAidePath(projectPath, options.aidePath);
+  const aidePath = resolved.path;
   const outputPath = options.outputPath || join(projectPath, "CLAUDE.md");
 
   // Read the aide tree
@@ -196,7 +199,7 @@ export async function exportClaude(
   const invariants = extractInvariants(tree);
 
   // Generate section content
-  const section = generateClaudeSection(constraints, foundations, invariants);
+  const section = generateClaudeSection(constraints, foundations, invariants, resolved.filename);
 
   // Read existing file if it exists
   let existingContent = "";
