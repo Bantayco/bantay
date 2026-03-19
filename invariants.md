@@ -29,6 +29,11 @@ Rules this project must never break. Generated from bantay.aide.
 - [ ] **inv_no_clobber**: bantay export never modifies content outside its delimited section
   - Threat: User content in CLAUDE.md altered after export
 
+## Orchestration
+
+- [ ] **inv_plan_validated**: No plan is committed without passing all 5 validation checks: aide coverage, file references, interface contracts, dependency check, invariant coverage
+  - Threat: Lead hallucinates file paths or API signatures in plan, teammate builds against nonexistent code, entire CUJ wasted
+
 ## Performance
 
 - [ ] **inv_check_speed**: bantay check --diff completes in under 5 seconds for diffs under 500 lines with 50 invariants

@@ -129,6 +129,10 @@ Use bun:test. Every invariant from bantay.aide becomes a test:
 - **inv_export_idempotent**: Running bantay export twice produces identical output
 - **inv_no_clobber**: bantay export never modifies content outside its delimited section
 
+#### Orchestration
+
+- **inv_plan_validated**: No plan is committed without passing all 5 validation checks: aide coverage, file references, interface contracts, dependency check, invariant coverage
+
 #### Performance
 
 - **inv_check_speed**: bantay check --diff completes in under 5 seconds for diffs under 500 lines with 50 invariants

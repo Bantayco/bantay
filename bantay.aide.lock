@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-19T06:48:15.616Z
+# Generated: 2026-03-19T18:27:23.167Z
 
 entities:
   bantay_cli: 40c228db
@@ -51,6 +51,7 @@ entities:
   inv_no_inline_shell: 261b8229
   inv_no_network: 2ef2eec3
   inv_no_source_modification: 23376c16
+  inv_plan_validated: 24b9b744
   inv_stable_ids: 71049810
   invariants: 27615c59
   sc_aide_diff: 31242108
@@ -87,7 +88,9 @@ entities:
   sc_init_no_project: 247d51b9
   sc_init_prerequisites: 4fe816e2
   sc_init_speed: 1de396b0
-  sc_orchestrate_spawn: 0e48a66d
+  sc_orchestrate_plan: 0d9a1054
+  sc_orchestrate_spawn: 3f36aa44
+  sc_orchestrate_validate_plan: 052156b0
   sc_tasks_all: 6ca85866
   sc_tasks_diff: 601d4270
   sc_tasks_output: 06fcfa94
@@ -106,6 +109,7 @@ entities:
   wis_invariant_to_aide: 0980ba31
   wis_no_inline_shell: 27225ff6
   wis_not_another_linter: 2630a6a0
+  wis_plan_danger: 7d937b06
   wis_registry_is_moat: 1abbe92f
   wis_spec_kit_completes: 59f0fdf0
   wis_start_structural: 73e414cf
@@ -145,3 +149,5 @@ relationships:
   - con_bun_runtime:inv_check_speed:implements: 09947482
   - cuj_tasks:cuj_aide:depends_on: 31e7b532
   - cuj_orchestrate:cuj_tasks:depends_on: 27e0f78f
+  - sc_orchestrate_validate_plan:inv_plan_validated:protected_by: 359f1dba
+  - sc_orchestrate_plan:inv_plan_validated:protected_by: 138b1a15

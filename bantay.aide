@@ -789,11 +789,35 @@ entities:
       name: Spawn teammates for CUJ phases
       given: Developer runs /bantay-orchestrate
       when: Bantay orchestrates the build
-      then: Maximum 2 teammates spawned at a time. Lead coordinates sequentially across phases, parallel within each phase up to 2 agents.
+      then: Maximum 2 teammates spawned at a time. Each teammate monitors context usage after every scenario — compact at 50%, request restart at 80%.
   wis_agent_team_limits:
     parent: wisdom
     props:
       text: Limit Agent Teams to 1 lead + 2 teammates max. Rate limits on Max 100 are real. 3 concurrent agents hit the ceiling in under an hour. 2 is sustainable for a full build session.
+  sc_orchestrate_plan:
+    parent: cuj_orchestrate
+    props:
+      name: Write plan before spawning teammates
+      given: Lead is about to spawn teammates for a CUJ
+      when: Lead prepares the CUJ work assignment
+      then: Lead writes .bantay/plans/<cuj_id>.md with ordered implementation steps, then validates plan against aide, codebase, interfaces, dependencies, and invariants before committing
+  sc_orchestrate_validate_plan:
+    parent: cuj_orchestrate
+    props:
+      name: Validate plan before committing
+      given: Lead has written a plan for a CUJ
+      when: Lead runs the 5-point validation checklist
+      then: Plan is verified against aide scenarios, file references, interface contracts, dependency order, and invariant coverage. Only committed after all checks pass.
+  inv_plan_validated:
+    parent: invariants
+    props:
+      statement: "No plan is committed without passing all 5 validation checks: aide coverage, file references, interface contracts, dependency check, invariant coverage"
+      category: orchestration
+      threat_signal: Lead hallucinates file paths or API signatures in plan, teammate builds against nonexistent code, entire CUJ wasted
+  wis_plan_danger:
+    parent: wisdom
+    props:
+      text: Plans are the most dangerous artifact because nothing checks them before a teammate burns a full context window executing them. Validate every file reference, every interface, every dependency against the actual filesystem and aide before committing the plan.
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
@@ -926,4 +950,12 @@ relationships:
   - from: cuj_orchestrate
     to: cuj_tasks
     type: depends_on
+    cardinality: many_to_many
+  - from: sc_orchestrate_validate_plan
+    to: inv_plan_validated
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_orchestrate_plan
+    to: inv_plan_validated
+    type: protected_by
     cardinality: many_to_many
