@@ -51,8 +51,11 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-async function findTestFiles(testsDir: string): Promise<string[]> {
+async function findTestFiles(projectPath: string): Promise<string[]> {
   const files: string[] = [];
+
+  // Test file extensions to look for
+  const testExtensions = [".test.ts", ".test.tsx", ".test.js", ".test.jsx"];
 
   async function walk(dir: string): Promise<void> {
     try {
@@ -60,8 +63,11 @@ async function findTestFiles(testsDir: string): Promise<string[]> {
       for (const entry of entries) {
         const fullPath = join(dir, entry.name);
         if (entry.isDirectory()) {
-          await walk(fullPath);
-        } else if (entry.name.endsWith(".test.ts") || entry.name.endsWith(".test.js")) {
+          // Skip node_modules and hidden directories
+          if (entry.name !== "node_modules" && !entry.name.startsWith(".")) {
+            await walk(fullPath);
+          }
+        } else if (testExtensions.some(ext => entry.name.endsWith(ext))) {
           files.push(fullPath);
         }
       }
@@ -70,7 +76,19 @@ async function findTestFiles(testsDir: string): Promise<string[]> {
     }
   }
 
-  await walk(testsDir);
+  // Search in common test locations
+  const testDirs = [
+    join(projectPath, "tests"),
+    join(projectPath, "src", "__tests__"),
+    join(projectPath, "__tests__"),
+    join(projectPath, "test"),
+    join(projectPath, "src"),  // For .test.tsx files alongside components
+  ];
+
+  for (const dir of testDirs) {
+    await walk(dir);
+  }
+
   return files;
 }
 
@@ -202,8 +220,7 @@ export async function runStatus(
   }
 
   // Find test files
-  const testsDir = join(projectPath, "tests");
-  const testFiles = await findTestFiles(testsDir);
+  const testFiles = await findTestFiles(projectPath);
 
   // Match scenarios to test files
   for (const scenario of scenarios) {

@@ -344,4 +344,87 @@ describe("sc_init_prerequisites", () => {
       expect(result.cujs!["cuj_init"]).toBe("Developer initializes Bantay in an existing project");
     });
   });
+
+  describe("Alternative Test Locations", () => {
+    test("finds tests in src/__tests__/ directory", async () => {
+      const aideContent = `entities:
+  cuj_flow:
+    parent: cujs
+    props:
+      feature: Flow writing feature
+  sc_start_flow:
+    parent: cuj_flow
+    props:
+      name: Start flow mode
+`;
+      await writeFile(join(testDir, "bantay.aide"), aideContent);
+      await mkdir(join(testDir, "src", "__tests__"), { recursive: true });
+      await writeFile(
+        join(testDir, "src", "__tests__", "flow-writing.test.ts"),
+        `// @scenario sc_start_flow
+describe("Flow Writing", () => {
+  test("starts flow mode", () => {});
+});`
+      );
+
+      const result = await runStatus(testDir);
+
+      expect(result.scenarios[0].status).toBe("implemented");
+      expect(result.scenarios[0].testFile).toBe("src/__tests__/flow-writing.test.ts");
+    });
+
+    test("finds tests with .test.tsx extension", async () => {
+      const aideContent = `entities:
+  cuj_settings:
+    parent: cujs
+    props:
+      feature: Settings management
+  sc_change_theme:
+    parent: cuj_settings
+    props:
+      name: Change theme
+`;
+      await writeFile(join(testDir, "bantay.aide"), aideContent);
+      await mkdir(join(testDir, "src", "__tests__"), { recursive: true });
+      await writeFile(
+        join(testDir, "src", "__tests__", "settings.test.tsx"),
+        `// @scenario sc_change_theme
+describe("Settings", () => {
+  test("changes theme", () => {});
+});`
+      );
+
+      const result = await runStatus(testDir);
+
+      expect(result.scenarios[0].status).toBe("implemented");
+      expect(result.scenarios[0].testFile).toBe("src/__tests__/settings.test.tsx");
+    });
+
+    test("finds tests with .test.jsx extension", async () => {
+      const aideContent = `entities:
+  cuj_ui:
+    parent: cujs
+    props:
+      feature: UI components
+  sc_render_button:
+    parent: cuj_ui
+    props:
+      name: Render button
+`;
+      await writeFile(join(testDir, "bantay.aide"), aideContent);
+      await mkdir(join(testDir, "src", "__tests__"), { recursive: true });
+      await writeFile(
+        join(testDir, "src", "__tests__", "button.test.jsx"),
+        `// @scenario sc_render_button
+describe("Button", () => {
+  test("renders", () => {});
+});`
+      );
+
+      const result = await runStatus(testDir);
+
+      expect(result.scenarios[0].status).toBe("implemented");
+      expect(result.scenarios[0].testFile).toBe("src/__tests__/button.test.jsx");
+    });
+  });
 });

@@ -780,7 +780,7 @@ relationships: []
 
         expect(tokenEntry).toBeDefined();
         expect(tokenEntry.type).toBe("design_token");
-        expect(tokenEntry.corrective_action).toBe("screenshot diff + human review");
+        expect(tokenEntry.corrective_action).toBe("apply tokens to code");
       } finally {
         await rm(testDir, { recursive: true, force: true });
       }

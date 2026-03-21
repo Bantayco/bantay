@@ -846,6 +846,13 @@ entities:
       given: bantay diff reports a design_token change
       when: bantay tasks generates the work plan
       then: "Task generated: apply token change to components, run screenshot diff against baselines, flag for human review"
+  sc_tasks_all_entity_types:
+    parent: cuj_tasks
+    props:
+      name: Tasks generated for all entity types not just scenarios
+      given: bantay diff reports any entity change (constraint, foundation, invariant, design_token, wisdom, relationship)
+      when: bantay tasks reads the diff
+      then: "Corrective action generated per entity type: design_token → apply tokens to code, constraint → enforce in codebase, foundation → apply to project, invariant → write checker, wisdom → update exports"
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available

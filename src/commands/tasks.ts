@@ -46,8 +46,9 @@ interface TasksOptions {
   aide?: string;
 }
 
-interface DesignTokenTask {
+interface EntityTask {
   id: string;
+  type: string;
   action: string;
   corrective_action: string;
   props?: Record<string, string>;
@@ -56,7 +57,7 @@ interface DesignTokenTask {
 export async function runTasks(
   projectPath: string,
   options: TasksOptions = {}
-): Promise<{ outputPath: string; cujs: CUJ[]; designTokens: DesignTokenTask[] }> {
+): Promise<{ outputPath: string; cujs: CUJ[]; entityTasks: EntityTask[] }> {
   // Resolve aide file path
   const { path: aidePath, filename } = await resolveAidePath(
     projectPath,
@@ -71,25 +72,47 @@ export async function runTasks(
   const aideContent = await readFile(aidePath, "utf-8");
   const aideData = yaml.load(aideContent) as AideData;
 
+  // Entity types that generate tasks with corrective actions
+  const ENTITY_TYPES_WITH_TASKS = ["design_token", "constraint", "foundation", "invariant", "wisdom", "relationship"];
+
   // Get CUJs and scenarios to process
   let cujsToProcess: string[];
   let changedScenarios: Map<string, string[]> = new Map(); // Map parent CUJ -> scenario IDs
-  let designTokens: DesignTokenTask[] = [];
+  let entityTasks: EntityTask[] = [];
 
   if (options.all) {
     // All CUJs
     cujsToProcess = Object.keys(aideData.entities).filter((id) =>
       id.startsWith("cuj_")
     );
-    // All design tokens
-    designTokens = Object.entries(aideData.entities)
-      .filter(([, entity]) => entity.parent === "design_system")
-      .map(([id, entity]) => ({
-        id,
-        action: "EXISTING",
-        corrective_action: "screenshot diff + human review",
-        props: entity.props,
-      }));
+    // All entities with corrective actions
+    const parentToType: Record<string, string> = {
+      design_system: "design_token",
+      constraints: "constraint",
+      foundations: "foundation",
+      invariants: "invariant",
+      wisdom: "wisdom",
+    };
+    const typeToAction: Record<string, string> = {
+      design_token: "apply tokens to code",
+      constraint: "enforce in codebase",
+      foundation: "apply to project",
+      invariant: "write checker",
+      wisdom: "update exports",
+    };
+    for (const [id, entity] of Object.entries(aideData.entities)) {
+      const parent = entity.parent;
+      if (parent && parentToType[parent]) {
+        const type = parentToType[parent];
+        entityTasks.push({
+          id,
+          type,
+          action: "EXISTING",
+          corrective_action: typeToAction[type],
+          props: entity.props,
+        });
+      }
+    }
   } else {
     // Diff mode - use bantay diff to find changes
     const lockPath = aidePath + ".lock";
@@ -120,14 +143,15 @@ export async function runTasks(
       }
     }
 
-    // Find design_token changes
+    // Find all entity types with corrective actions
     for (const change of diffResult.changes) {
-      if (change.type === "design_token" && (change.action === "ADDED" || change.action === "MODIFIED")) {
+      if (ENTITY_TYPES_WITH_TASKS.includes(change.type) && (change.action === "ADDED" || change.action === "MODIFIED")) {
         const entity = aideData.entities[change.entity_id];
-        designTokens.push({
+        entityTasks.push({
           id: change.entity_id,
+          type: change.type,
           action: change.action,
-          corrective_action: change.corrective_action || "screenshot diff + human review",
+          corrective_action: change.corrective_action || "",
           props: entity?.props,
         });
       }
@@ -199,13 +223,13 @@ export async function runTasks(
   const phases = topologicalSort(cujs);
 
   // Generate tasks.md content
-  const content = generateTasksMarkdown(phases, designTokens);
+  const content = generateTasksMarkdown(phases, entityTasks);
 
   // Write to tasks.md
   const outputPath = join(projectPath, "tasks.md");
   await writeFile(outputPath, content, "utf-8");
 
-  return { outputPath, cujs, designTokens };
+  return { outputPath, cujs, entityTasks };
 }
 
 function topologicalSort(cujs: CUJ[]): CUJ[][] {
@@ -251,22 +275,38 @@ function topologicalSort(cujs: CUJ[]): CUJ[][] {
   return phases;
 }
 
-function generateTasksMarkdown(phases: CUJ[][], designTokens: DesignTokenTask[] = []): string {
+function generateTasksMarkdown(phases: CUJ[][], entityTasks: EntityTask[] = []): string {
   const lines: string[] = ["# Tasks", ""];
 
-  // Generate design token tasks first (they need visual review)
-  if (designTokens.length > 0) {
-    lines.push("## Design Token Changes");
-    lines.push("");
-    lines.push("*These changes require visual review before deployment.*");
+  // Group entity tasks by type
+  const tasksByType = new Map<string, EntityTask[]>();
+  for (const task of entityTasks) {
+    if (!tasksByType.has(task.type)) {
+      tasksByType.set(task.type, []);
+    }
+    tasksByType.get(task.type)!.push(task);
+  }
+
+  // Section titles for each entity type
+  const sectionTitles: Record<string, string> = {
+    design_token: "Design Token Changes",
+    constraint: "Constraint Changes",
+    foundation: "Foundation Changes",
+    invariant: "Invariant Changes",
+    wisdom: "Wisdom Changes",
+    relationship: "Relationship Changes",
+  };
+
+  // Generate entity task sections
+  for (const [type, tasks] of tasksByType) {
+    const title = sectionTitles[type] || `${type} Changes`;
+    lines.push(`## ${title}`);
     lines.push("");
 
-    for (const token of designTokens) {
-      lines.push(`### ${token.id}`);
+    for (const task of tasks) {
+      lines.push(`### ${task.id}`);
       lines.push("");
-      lines.push(`- [ ] Apply ${token.id} token change to components`);
-      lines.push(`- [ ] Run screenshot diff against baselines`);
-      lines.push(`- [ ] Flag for human review`);
+      lines.push(`- [ ] ${task.corrective_action}`);
       lines.push("");
     }
   }
@@ -274,7 +314,7 @@ function generateTasksMarkdown(phases: CUJ[][], designTokens: DesignTokenTask[] 
   // Generate CUJ phases
   for (let i = 0; i < phases.length; i++) {
     const phase = phases[i];
-    const phaseNum = designTokens.length > 0 ? i + 2 : i + 1;
+    const phaseNum = entityTasks.length > 0 ? i + tasksByType.size + 1 : i + 1;
     lines.push(`## Phase ${phaseNum}`);
     lines.push("");
 
@@ -303,7 +343,7 @@ function generateTasksMarkdown(phases: CUJ[][], designTokens: DesignTokenTask[] 
   return lines.join("\n");
 }
 
-export function formatTasks(result: { outputPath: string; cujs: CUJ[]; designTokens: DesignTokenTask[] }): string {
-  const total = result.cujs.length + result.designTokens.length;
+export function formatTasks(result: { outputPath: string; cujs: CUJ[]; entityTasks: EntityTask[] }): string {
+  const total = result.cujs.length + result.entityTasks.length;
   return `Generated ${result.outputPath} with ${total} tasks`;
 }

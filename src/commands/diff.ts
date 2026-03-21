@@ -28,7 +28,12 @@ const PARENT_TYPE_MAP: Record<string, string> = {
  * Corrective actions for specific entity types
  */
 const CORRECTIVE_ACTIONS: Record<string, string> = {
-  design_token: "screenshot diff + human review",
+  design_token: "apply tokens to code",
+  constraint: "enforce in codebase",
+  foundation: "apply to project",
+  invariant: "write checker",
+  wisdom: "update exports",
+  relationship: "verify connection",
 };
 
 const CUJ_PREFIX = "cuj_";
@@ -327,6 +332,7 @@ export async function runDiff(projectPath: string): Promise<DiffResult> {
         from,
         to,
         relationship_type: relType,
+        corrective_action: CORRECTIVE_ACTIONS["relationship"],
       });
     }
   }
