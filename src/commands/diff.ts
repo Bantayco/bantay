@@ -66,11 +66,16 @@ async function discoverAideFile(cwd: string): Promise<string | null> {
  * Get entity type by walking parent chain
  */
 function getEntityTypeByParent(id: string, parent: string | undefined, tree: AideTree): string {
+  // First check ID prefix - CUJs are identified by their prefix, not parent
+  if (id.startsWith(CUJ_PREFIX)) {
+    return "cuj";
+  }
+
   if (!parent) {
     return "entity";
   }
 
-  // Direct mapping
+  // Direct mapping for container parents
   if (parent in PARENT_TYPE_MAP) {
     return PARENT_TYPE_MAP[parent];
   }
@@ -90,16 +95,25 @@ function getEntityTypeByParent(id: string, parent: string | undefined, tree: Aid
 }
 
 /**
- * Get entity type from parent ID (for removed entities)
+ * Get entity type from ID and parent ID (for removed entities)
  */
-function getEntityTypeFromParentId(parentId: string): string {
+function getEntityTypeFromIdAndParent(id: string, parentId: string | undefined): string {
+  // First check ID prefix - CUJs are identified by their prefix
+  if (id.startsWith(CUJ_PREFIX)) {
+    return "cuj";
+  }
+
+  if (!parentId) {
+    return getEntityTypeByIdPrefix(id);
+  }
+
   if (parentId in PARENT_TYPE_MAP) {
     return PARENT_TYPE_MAP[parentId];
   }
   if (parentId.startsWith(CUJ_PREFIX)) {
     return "scenario";
   }
-  return "entity";
+  return getEntityTypeByIdPrefix(id);
 }
 
 /**
@@ -275,12 +289,7 @@ export async function runDiff(projectPath: string): Promise<DiffResult> {
   for (const id of Object.keys(lock.entities)) {
     if (!(id in currentHashes)) {
       const lockEntity = lock.entities[id];
-      let entityType: string;
-      if (lockEntity.parent) {
-        entityType = getEntityTypeFromParentId(lockEntity.parent);
-      } else {
-        entityType = getEntityTypeByIdPrefix(id);
-      }
+      const entityType = getEntityTypeFromIdAndParent(id, lockEntity.parent);
       changes.push({
         action: "REMOVED",
         type: entityType,

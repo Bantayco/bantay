@@ -825,6 +825,13 @@ entities:
       given: Aide has changed since lock
       when: Developer runs bantay diff
       then: Each change from aide diff is tagged with entity type and implied corrective action
+  sc_tasks_entity_level:
+    parent: cuj_tasks
+    props:
+      name: Tasks generated for individual entity changes not just CUJ changes
+      given: bantay diff reports a new or modified scenario under an existing CUJ
+      when: bantay tasks reads the diff
+      then: Task generated for the individual scenario even if the parent CUJ is unchanged
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available

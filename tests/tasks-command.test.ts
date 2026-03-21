@@ -279,6 +279,117 @@ relationships: []
     });
   });
 
+  // @scenario sc_tasks_entity_level
+  describe("Tasks generated for individual entity changes", () => {
+    test("new scenario under existing CUJ generates task for that scenario", async () => {
+      // Create an aide file with an existing CUJ and a new scenario
+      const aideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_existing:
+    parent: cuj_existing
+    props:
+      name: Existing scenario
+      given: Precondition
+      when: Action
+      then: Result
+  sc_new:
+    parent: cuj_existing
+    props:
+      name: New scenario added
+      given: New precondition
+      when: New action
+      then: New result
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), aideContent);
+
+      // Create a lock file that has cuj_existing AND sc_existing, but NOT sc_new
+      const lockContent = `# myapp.aide.lock
+entities:
+  myapp: abc123
+  cujs: def456
+  cuj_existing: ghi789
+  sc_existing: jkl012
+
+relationships:
+`;
+      await writeFile(join(tempDir, "myapp.aide.lock"), lockContent);
+
+      const { stdout, exitCode } = await runCli(["tasks"]);
+
+      expect(exitCode).toBe(0);
+      expect(existsSync(join(tempDir, "tasks.md"))).toBe(true);
+
+      const tasksContent = await readFile(join(tempDir, "tasks.md"), "utf-8");
+      // Should include the new scenario as a task
+      expect(tasksContent).toContain("sc_new");
+      expect(tasksContent).toContain("New scenario added");
+      // Should NOT include unchanged existing scenario in task list
+      // (but may appear as context under its CUJ)
+    });
+
+    test("modified scenario generates task for that scenario", async () => {
+      // Create an aide file with a modified scenario (same ID, different hash)
+      const aideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_modified:
+    parent: cuj_existing
+    props:
+      name: Modified scenario
+      given: Updated precondition
+      when: Updated action
+      then: Updated result
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), aideContent);
+
+      // Create a lock file with an OLD hash for sc_modified
+      const lockContent = `# myapp.aide.lock
+entities:
+  myapp: abc123
+  cujs: def456
+  cuj_existing: ghi789
+  sc_modified: old_hash_000
+
+relationships:
+`;
+      await writeFile(join(tempDir, "myapp.aide.lock"), lockContent);
+
+      const { stdout, exitCode } = await runCli(["tasks"]);
+
+      expect(exitCode).toBe(0);
+
+      const tasksContent = await readFile(join(tempDir, "tasks.md"), "utf-8");
+      // Should include the modified scenario as a task
+      expect(tasksContent).toContain("sc_modified");
+      expect(tasksContent).toContain("Modified scenario");
+    });
+  });
+
   describe("Edge cases", () => {
     test("errors when no aide file found", async () => {
       const { stderr, exitCode } = await runCli(["tasks"]);

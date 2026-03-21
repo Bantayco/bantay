@@ -3,6 +3,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 import * as yaml from "js-yaml";
 import { resolveAidePath } from "../aide/discovery";
+import { runDiff, type ClassifiedChange } from "./diff";
 
 interface Entity {
   id: string;
@@ -63,8 +64,9 @@ export async function runTasks(
   const aideContent = await readFile(aidePath, "utf-8");
   const aideData = yaml.load(aideContent) as AideData;
 
-  // Get CUJs to process
+  // Get CUJs and scenarios to process
   let cujsToProcess: string[];
+  let changedScenarios: Map<string, string[]> = new Map(); // Map parent CUJ -> scenario IDs
 
   if (options.all) {
     // All CUJs
@@ -72,7 +74,7 @@ export async function runTasks(
       id.startsWith("cuj_")
     );
   } else {
-    // Diff mode - only added/modified CUJs
+    // Diff mode - use bantay diff to find changes
     const lockPath = aidePath + ".lock";
     if (!existsSync(lockPath)) {
       throw new Error(
@@ -80,17 +82,33 @@ export async function runTasks(
       );
     }
 
-    const lockContent = await readFile(lockPath, "utf-8");
-    const lockData = yaml.load(lockContent) as { entities: Record<string, string> };
+    // Get diff results
+    const diffResult = await runDiff(projectPath);
 
-    // Find CUJs that are new or modified
-    cujsToProcess = Object.keys(aideData.entities).filter((id) => {
-      if (!id.startsWith("cuj_")) return false;
-      // CUJ is new if not in lock file
-      if (!lockData.entities[id]) return true;
-      // CUJ is modified if hash differs (we'd need to compute hash, but for now check existence)
-      return false;
-    });
+    // Find new CUJs only (not modified - matches original behavior)
+    cujsToProcess = diffResult.changes
+      .filter((c) => c.type === "cuj" && c.action === "ADDED")
+      .map((c) => c.entity_id);
+
+    // Find new/modified scenarios and group by parent CUJ
+    for (const change of diffResult.changes) {
+      if (change.type === "scenario" && (change.action === "ADDED" || change.action === "MODIFIED")) {
+        const parentCuj = change.parent;
+        if (parentCuj && parentCuj.startsWith("cuj_")) {
+          if (!changedScenarios.has(parentCuj)) {
+            changedScenarios.set(parentCuj, []);
+          }
+          changedScenarios.get(parentCuj)!.push(change.entity_id);
+        }
+      }
+    }
+  }
+
+  // Add CUJs that have changed scenarios (even if the CUJ itself didn't change)
+  for (const parentCuj of changedScenarios.keys()) {
+    if (!cujsToProcess.includes(parentCuj)) {
+      cujsToProcess.push(parentCuj);
+    }
   }
 
   // Build CUJ objects with scenarios and dependencies
@@ -98,18 +116,39 @@ export async function runTasks(
     const entity = aideData.entities[id];
     const props = entity.props || {};
 
-    // Find scenarios that are children of this CUJ
-    const scenarios: Scenario[] = Object.entries(aideData.entities)
-      .filter(([scId, scEntity]) =>
-        scId.startsWith("sc_") && scEntity.parent === id
-      )
-      .map(([scId, scEntity]) => ({
-        id: scId,
-        name: scEntity.props?.name || scId,
-        given: scEntity.props?.given,
-        when: scEntity.props?.when,
-        then: scEntity.props?.then,
-      }));
+    // Determine which scenarios to include
+    const changedScenariosForCuj = changedScenarios.get(id);
+    let scenarios: Scenario[];
+
+    if (changedScenariosForCuj && changedScenariosForCuj.length > 0) {
+      // Only include the changed scenarios for this CUJ
+      scenarios = changedScenariosForCuj
+        .map((scId) => {
+          const scEntity = aideData.entities[scId];
+          if (!scEntity) return null;
+          return {
+            id: scId,
+            name: scEntity.props?.name || scId,
+            given: scEntity.props?.given,
+            when: scEntity.props?.when,
+            then: scEntity.props?.then,
+          };
+        })
+        .filter((s): s is Scenario => s !== null);
+    } else {
+      // New or modified CUJ: include all scenarios
+      scenarios = Object.entries(aideData.entities)
+        .filter(([scId, scEntity]) =>
+          scId.startsWith("sc_") && scEntity.parent === id
+        )
+        .map(([scId, scEntity]) => ({
+          id: scId,
+          name: scEntity.props?.name || scId,
+          given: scEntity.props?.given,
+          when: scEntity.props?.when,
+          then: scEntity.props?.then,
+        }));
+    }
 
     // Find dependencies (depends_on relationships where this CUJ is the 'from')
     const dependsOn: string[] = aideData.relationships
@@ -200,7 +239,7 @@ function generateTasksMarkdown(phases: CUJ[][]): string {
         lines.push("**Acceptance Criteria:**");
         lines.push("");
         for (const sc of cuj.scenarios) {
-          lines.push(`- [ ] ${sc.name}`);
+          lines.push(`- [ ] ${sc.id}: ${sc.name}`);
           if (sc.given || sc.when || sc.then) {
             if (sc.given) lines.push(`  - Given: ${sc.given}`);
             if (sc.when) lines.push(`  - When: ${sc.when}`);

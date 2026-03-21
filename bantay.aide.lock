@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-21T05:33:28.771Z
+# Generated: 2026-03-21T06:53:06.033Z
 
 entities:
   bantay_cli: 40c228db
@@ -94,6 +94,7 @@ entities:
   sc_orchestrate_validate_plan: 052156b0
   sc_tasks_all: 6ca85866
   sc_tasks_diff: 601d4270
+  sc_tasks_entity_level: 635169f8
   sc_tasks_output: 06fcfa94
   sc_tasks_phases: 7f46468a
   wis_1: 5ebe435b
