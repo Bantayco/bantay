@@ -21,6 +21,14 @@ const PARENT_TYPE_MAP: Record<string, string> = {
   constraints: "constraint",
   foundations: "foundation",
   wisdom: "wisdom",
+  design_system: "design_token",
+};
+
+/**
+ * Corrective actions for specific entity types
+ */
+const CORRECTIVE_ACTIONS: Record<string, string> = {
+  design_token: "screenshot diff + human review",
 };
 
 const CUJ_PREFIX = "cuj_";
@@ -36,6 +44,7 @@ export interface ClassifiedChange {
   from?: string;
   to?: string;
   relationship_type?: string;
+  corrective_action?: string;
 }
 
 /**
@@ -266,22 +275,30 @@ export async function runDiff(projectPath: string): Promise<DiffResult> {
       const entity = tree.entities[id];
       const parent = entity.parent;
       const entityType = getEntityTypeByParent(id, parent, tree);
-      changes.push({
+      const change: ClassifiedChange = {
         action: "ADDED",
         type: entityType,
         entity_id: id,
         parent,
-      });
+      };
+      if (CORRECTIVE_ACTIONS[entityType]) {
+        change.corrective_action = CORRECTIVE_ACTIONS[entityType];
+      }
+      changes.push(change);
     } else if (lock.entities[id].hash !== currentHashes[id]) {
       const entity = tree.entities[id];
       const parent = entity.parent;
       const entityType = getEntityTypeByParent(id, parent, tree);
-      changes.push({
+      const change: ClassifiedChange = {
         action: "MODIFIED",
         type: entityType,
         entity_id: id,
         parent,
-      });
+      };
+      if (CORRECTIVE_ACTIONS[entityType]) {
+        change.corrective_action = CORRECTIVE_ACTIONS[entityType];
+      }
+      changes.push(change);
     }
   }
 

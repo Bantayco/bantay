@@ -687,6 +687,106 @@ relationships: []
     });
   });
 
+  // @scenario sc_diff_design_token
+  describe("design token classification", () => {
+    test("classifies design_system child as design_token", async () => {
+      const testDir = await createTestDir();
+
+      try {
+        const aideContent = `entities:
+  design_system:
+    display: list
+    props:
+      title: Design System
+relationships: []
+`;
+        await writeFile(join(testDir, "bantay.aide"), aideContent);
+
+        await spawn({
+          cmd: [process.execPath, "run", cliPath, "aide", "lock"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        }).exited;
+
+        // Add a design token under design_system
+        await spawn({
+          cmd: [process.execPath, "run", cliPath, "aide", "add", "color_primary", "--parent", "design_system", "--prop", "value=#007bff"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        }).exited;
+
+        const proc = spawn({
+          cmd: [process.execPath, "run", cliPath, "diff"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+
+        const [, stdout] = await Promise.all([
+          proc.exited,
+          new Response(proc.stdout).text(),
+        ]);
+
+        // Should classify as design_token
+        expect(stdout).toContain("ADDED design_token: color_primary (parent: design_system)");
+      } finally {
+        await rm(testDir, { recursive: true, force: true });
+      }
+    });
+
+    test("JSON output includes corrective_action for design_token", async () => {
+      const testDir = await createTestDir();
+
+      try {
+        const aideContent = `entities:
+  design_system:
+    display: list
+    props:
+      title: Design System
+relationships: []
+`;
+        await writeFile(join(testDir, "bantay.aide"), aideContent);
+
+        await spawn({
+          cmd: [process.execPath, "run", cliPath, "aide", "lock"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        }).exited;
+
+        await spawn({
+          cmd: [process.execPath, "run", cliPath, "aide", "add", "spacing_lg", "--parent", "design_system", "--prop", "value=24px"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        }).exited;
+
+        const proc = spawn({
+          cmd: [process.execPath, "run", cliPath, "diff", "--json"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+
+        const [, stdout] = await Promise.all([
+          proc.exited,
+          new Response(proc.stdout).text(),
+        ]);
+
+        const output = JSON.parse(stdout);
+        const tokenEntry = output.changes.find((e: { entity_id: string }) => e.entity_id === "spacing_lg");
+
+        expect(tokenEntry).toBeDefined();
+        expect(tokenEntry.type).toBe("design_token");
+        expect(tokenEntry.corrective_action).toBe("screenshot diff + human review");
+      } finally {
+        await rm(testDir, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("no changes", () => {
     test("outputs 'No changes' when aide matches lock", async () => {
       const testDir = await createTestDir();

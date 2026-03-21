@@ -832,6 +832,20 @@ entities:
       given: bantay diff reports a new or modified scenario under an existing CUJ
       when: bantay tasks reads the diff
       then: Task generated for the individual scenario even if the parent CUJ is unchanged
+  sc_diff_design_token:
+    parent: cuj_check
+    props:
+      name: bantay diff classifies design token changes
+      given: A design_system child entity changed since lock
+      when: Developer runs bantay diff
+      then: "Change classified as type: design_token with corrective action: screenshot diff + human review"
+  sc_tasks_design_token:
+    parent: cuj_tasks
+    props:
+      name: bantay tasks routes design token changes to visual review
+      given: bantay diff reports a design_token change
+      when: bantay tasks generates the work plan
+      then: "Task generated: apply token change to components, run screenshot diff against baselines, flag for human review"
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available

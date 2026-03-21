@@ -46,10 +46,17 @@ interface TasksOptions {
   aide?: string;
 }
 
+interface DesignTokenTask {
+  id: string;
+  action: string;
+  corrective_action: string;
+  props?: Record<string, string>;
+}
+
 export async function runTasks(
   projectPath: string,
   options: TasksOptions = {}
-): Promise<{ outputPath: string; cujs: CUJ[] }> {
+): Promise<{ outputPath: string; cujs: CUJ[]; designTokens: DesignTokenTask[] }> {
   // Resolve aide file path
   const { path: aidePath, filename } = await resolveAidePath(
     projectPath,
@@ -67,12 +74,22 @@ export async function runTasks(
   // Get CUJs and scenarios to process
   let cujsToProcess: string[];
   let changedScenarios: Map<string, string[]> = new Map(); // Map parent CUJ -> scenario IDs
+  let designTokens: DesignTokenTask[] = [];
 
   if (options.all) {
     // All CUJs
     cujsToProcess = Object.keys(aideData.entities).filter((id) =>
       id.startsWith("cuj_")
     );
+    // All design tokens
+    designTokens = Object.entries(aideData.entities)
+      .filter(([, entity]) => entity.parent === "design_system")
+      .map(([id, entity]) => ({
+        id,
+        action: "EXISTING",
+        corrective_action: "screenshot diff + human review",
+        props: entity.props,
+      }));
   } else {
     // Diff mode - use bantay diff to find changes
     const lockPath = aidePath + ".lock";
@@ -100,6 +117,19 @@ export async function runTasks(
           }
           changedScenarios.get(parentCuj)!.push(change.entity_id);
         }
+      }
+    }
+
+    // Find design_token changes
+    for (const change of diffResult.changes) {
+      if (change.type === "design_token" && (change.action === "ADDED" || change.action === "MODIFIED")) {
+        const entity = aideData.entities[change.entity_id];
+        designTokens.push({
+          id: change.entity_id,
+          action: change.action,
+          corrective_action: change.corrective_action || "screenshot diff + human review",
+          props: entity?.props,
+        });
       }
     }
   }
@@ -169,13 +199,13 @@ export async function runTasks(
   const phases = topologicalSort(cujs);
 
   // Generate tasks.md content
-  const content = generateTasksMarkdown(phases);
+  const content = generateTasksMarkdown(phases, designTokens);
 
   // Write to tasks.md
   const outputPath = join(projectPath, "tasks.md");
   await writeFile(outputPath, content, "utf-8");
 
-  return { outputPath, cujs };
+  return { outputPath, cujs, designTokens };
 }
 
 function topologicalSort(cujs: CUJ[]): CUJ[][] {
@@ -221,12 +251,31 @@ function topologicalSort(cujs: CUJ[]): CUJ[][] {
   return phases;
 }
 
-function generateTasksMarkdown(phases: CUJ[][]): string {
+function generateTasksMarkdown(phases: CUJ[][], designTokens: DesignTokenTask[] = []): string {
   const lines: string[] = ["# Tasks", ""];
 
+  // Generate design token tasks first (they need visual review)
+  if (designTokens.length > 0) {
+    lines.push("## Design Token Changes");
+    lines.push("");
+    lines.push("*These changes require visual review before deployment.*");
+    lines.push("");
+
+    for (const token of designTokens) {
+      lines.push(`### ${token.id}`);
+      lines.push("");
+      lines.push(`- [ ] Apply ${token.id} token change to components`);
+      lines.push(`- [ ] Run screenshot diff against baselines`);
+      lines.push(`- [ ] Flag for human review`);
+      lines.push("");
+    }
+  }
+
+  // Generate CUJ phases
   for (let i = 0; i < phases.length; i++) {
     const phase = phases[i];
-    lines.push(`## Phase ${i + 1}`);
+    const phaseNum = designTokens.length > 0 ? i + 2 : i + 1;
+    lines.push(`## Phase ${phaseNum}`);
     lines.push("");
 
     for (const cuj of phase) {
@@ -254,6 +303,7 @@ function generateTasksMarkdown(phases: CUJ[][]): string {
   return lines.join("\n");
 }
 
-export function formatTasks(result: { outputPath: string; cujs: CUJ[] }): string {
-  return `Generated ${result.outputPath} with ${result.cujs.length} tasks`;
+export function formatTasks(result: { outputPath: string; cujs: CUJ[]; designTokens: DesignTokenTask[] }): string {
+  const total = result.cujs.length + result.designTokens.length;
+  return `Generated ${result.outputPath} with ${total} tasks`;
 }

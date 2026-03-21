@@ -390,6 +390,93 @@ relationships:
     });
   });
 
+  // @scenario sc_tasks_design_token
+  describe("Design token task routing", () => {
+    test("design_token changes generate visual review tasks", async () => {
+      // Create an aide file with design_system and a design token
+      const aideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  design_system:
+    display: list
+    parent: myapp
+    props:
+      title: Design System
+  color_primary:
+    parent: design_system
+    props:
+      value: "#007bff"
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), aideContent);
+
+      // Create a lock file WITHOUT the color_primary token (simulating it being added)
+      const lockContent = `# myapp.aide.lock
+entities:
+  myapp: abc123
+  design_system: def456
+
+relationships:
+`;
+      await writeFile(join(tempDir, "myapp.aide.lock"), lockContent);
+
+      const { stdout, exitCode } = await runCli(["tasks"]);
+
+      expect(exitCode).toBe(0);
+      expect(existsSync(join(tempDir, "tasks.md"))).toBe(true);
+
+      const tasksContent = await readFile(join(tempDir, "tasks.md"), "utf-8");
+
+      // Should include the design token task
+      expect(tasksContent).toContain("color_primary");
+      // Should include the corrective action text
+      expect(tasksContent).toContain("screenshot diff");
+      expect(tasksContent).toContain("human review");
+    });
+
+    test("design_token tasks include apply, screenshot diff, and review steps", async () => {
+      const aideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  design_system:
+    display: list
+    parent: myapp
+    props:
+      title: Design System
+  spacing_lg:
+    parent: design_system
+    props:
+      value: "24px"
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), aideContent);
+
+      const lockContent = `# myapp.aide.lock
+entities:
+  myapp: abc123
+  design_system: def456
+
+relationships:
+`;
+      await writeFile(join(tempDir, "myapp.aide.lock"), lockContent);
+
+      const { exitCode } = await runCli(["tasks"]);
+
+      expect(exitCode).toBe(0);
+
+      const tasksContent = await readFile(join(tempDir, "tasks.md"), "utf-8");
+
+      // Should contain all three steps from the corrective action
+      expect(tasksContent).toContain("Apply");
+      expect(tasksContent).toContain("screenshot diff");
+      expect(tasksContent).toContain("human review");
+    });
+  });
+
   describe("Edge cases", () => {
     test("errors when no aide file found", async () => {
       const { stderr, exitCode } = await runCli(["tasks"]);
