@@ -818,6 +818,13 @@ entities:
     parent: wisdom
     props:
       text: Plans are the most dangerous artifact because nothing checks them before a teammate burns a full context window executing them. Validate every file reference, every interface, every dependency against the actual filesystem and aide before committing the plan.
+  sc_diff_classified:
+    parent: cuj_check
+    props:
+      name: bantay diff classifies aide changes by entity type
+      given: Aide has changed since lock
+      when: Developer runs bantay diff
+      then: Each change from aide diff is tagged with entity type and implied corrective action
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available

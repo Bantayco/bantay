@@ -18,6 +18,7 @@ import { exportInvariants, exportClaude, exportCursor, exportCodex, exportAll } 
 import { runStatus, formatStatus } from "./commands/status";
 import { runCi, type CiOptions } from "./commands/ci";
 import { runTasks, formatTasks } from "./commands/tasks";
+import { handleDiff } from "./commands/diff";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -45,6 +46,8 @@ async function main() {
     await handleStatus(args.slice(1));
   } else if (command === "tasks") {
     await handleTasks(args.slice(1));
+  } else if (command === "diff") {
+    await handleDiff(args.slice(1));
   } else {
     console.error(`Unknown command: ${command}`);
     console.error('Run "bantay help" for usage information.');
@@ -77,6 +80,7 @@ Usage: bantay <command> [options]
 Commands:
   init      Initialize Bantay in the current project
   check     Check all invariants against the codebase
+  diff      Show classified aide changes (wraps aide diff)
   aide      Manage the aide entity tree (add, remove, link, show, validate, lock)
   ci        Generate CI workflow configuration
   export    Export invariants to agent context files
@@ -91,6 +95,8 @@ Examples:
   bantay init --force        Regenerate slash commands
   bantay check               Run full invariant check
   bantay check --diff HEAD~1 Check only affected invariants
+  bantay diff                Show classified aide changes
+  bantay diff --json         Output changes as JSON
   bantay aide show           Show the aide entity tree
   bantay aide add inv_test --parent invariants --prop "statement=Test"
   bantay ci --github-actions Generate GitHub Actions workflow
