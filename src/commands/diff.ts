@@ -50,6 +50,8 @@ export interface ClassifiedChange {
   to?: string;
   relationship_type?: string;
   corrective_action?: string;
+  /** For MODIFIED scenarios: true if behavioral props changed, false if only metadata */
+  behavioral_change?: boolean;
 }
 
 /**
@@ -156,6 +158,7 @@ function getEntityTypeByIdPrefix(id: string): string {
 interface LockFileEntity {
   hash: string;
   parent?: string;
+  behavioralHash?: string;
 }
 
 interface LockFile {
@@ -192,19 +195,23 @@ function parseLockFile(content: string): LockFile {
     }
 
     if (section === "entities") {
-      const matchWithParent = trimmed.match(/^(\w+):\s*(\w+)\s+parent:(\w+)$/);
-      if (matchWithParent) {
-        result.entities[matchWithParent[1]] = {
-          hash: matchWithParent[2],
-          parent: matchWithParent[3],
+      // Parse entity line: "entity_id: hash [parent:parent_id] [bh:behavioral_hash]"
+      const baseMatch = trimmed.match(/^(\w+):\s*(\w+)/);
+      if (baseMatch) {
+        const entity: LockFileEntity = {
+          hash: baseMatch[2],
         };
-      } else {
-        const match = trimmed.match(/^(\w+):\s*(\w+)$/);
-        if (match) {
-          result.entities[match[1]] = {
-            hash: match[2],
-          };
+        // Check for parent:
+        const parentMatch = trimmed.match(/parent:(\w+)/);
+        if (parentMatch) {
+          entity.parent = parentMatch[1];
         }
+        // Check for bh: (behavioral hash)
+        const bhMatch = trimmed.match(/bh:(\w+)/);
+        if (bhMatch) {
+          entity.behavioralHash = bhMatch[1];
+        }
+        result.entities[baseMatch[1]] = entity;
       }
     } else if (section === "relationships") {
       const match = trimmed.match(/^-\s*(\w+):(\w+):(\w+):\s*\w+$/);
@@ -225,6 +232,29 @@ function computeEntityHash(
   entity: { display?: string; parent?: string; props?: Record<string, unknown> }
 ): string {
   const str = JSON.stringify({ id, ...entity });
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).padStart(8, "0");
+}
+
+/**
+ * Compute hash of behavioral props only (given, when, then, name).
+ * Used to distinguish behavioral changes from metadata-only changes in scenarios.
+ * Same as aide.ts implementation.
+ */
+function computeBehavioralHash(props: Record<string, unknown>): string {
+  const BEHAVIORAL_PROPS = ["given", "when", "then", "name"];
+  const behavioralData: Record<string, unknown> = {};
+  for (const key of BEHAVIORAL_PROPS) {
+    if (key in props) {
+      behavioralData[key] = props[key];
+    }
+  }
+  const str = JSON.stringify(behavioralData);
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -302,6 +332,18 @@ export async function runDiff(projectPath: string): Promise<DiffResult> {
       };
       if (CORRECTIVE_ACTIONS[entityType]) {
         change.corrective_action = CORRECTIVE_ACTIONS[entityType];
+      }
+      // For scenarios, determine if this is a behavioral change or metadata-only
+      if (entityType === "scenario") {
+        const currentBehavioralHash = computeBehavioralHash(entity.props || {});
+        const lockedBehavioralHash = lock.entities[id].behavioralHash;
+        // If we have a locked behavioral hash, compare it
+        if (lockedBehavioralHash) {
+          change.behavioral_change = currentBehavioralHash !== lockedBehavioralHash;
+        } else {
+          // No locked behavioral hash (old lock file format), assume behavioral change
+          change.behavioral_change = true;
+        }
       }
       changes.push(change);
     }

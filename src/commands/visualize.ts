@@ -1,0 +1,538 @@
+import { join, basename, dirname } from "path";
+import { readFile, writeFile } from "fs/promises";
+import * as yaml from "js-yaml";
+import { resolveAidePath } from "../aide/discovery";
+
+export interface VisualizeOptions {
+  aide?: string;
+  output?: string;
+}
+
+export interface VisualizeResult {
+  outputPath: string;
+  bytesWritten: number;
+}
+
+interface AideEntity {
+  display?: string;
+  parent?: string;
+  props?: Record<string, unknown>;
+}
+
+interface AideRelationship {
+  from: string;
+  to: string;
+  type: string;
+  cardinality: string;
+}
+
+interface AideTree {
+  entities: Record<string, AideEntity>;
+  relationships: AideRelationship[];
+}
+
+interface CUJ {
+  id: string;
+  name: string;
+  feature: string;
+  area: string;
+  scenarios: Scenario[];
+}
+
+interface Scenario {
+  id: string;
+  name: string;
+  given: string;
+  when: string;
+  then: string;
+  screen?: string;
+  invariants: string[];
+}
+
+interface Screen {
+  id: string;
+  name: string;
+  description?: string;
+  inferred: boolean;
+}
+
+interface Transition {
+  from: string;
+  to: string;
+  label: string;
+  scenarioId: string;
+}
+
+export async function runVisualize(
+  projectPath: string,
+  options: VisualizeOptions = {}
+): Promise<VisualizeResult> {
+  // Find aide file
+  const resolved = await resolveAidePath(projectPath, options.aide);
+  const aidePath = resolved.path;
+
+  // Parse aide file
+  const aideContent = await readFile(aidePath, "utf-8");
+  const aide = yaml.load(aideContent) as AideTree;
+
+  // Extract data from aide
+  const { cujs, screens, transitions, relationships } = extractVisualizerData(aide);
+
+  // Generate HTML
+  const html = generateVisualizerHtml(cujs, screens, transitions, relationships);
+
+  // Write output
+  const outputPath = options.output
+    ? join(projectPath, options.output)
+    : join(projectPath, "visualizer.html");
+
+  await writeFile(outputPath, html);
+
+  return {
+    outputPath,
+    bytesWritten: Buffer.byteLength(html, "utf-8"),
+  };
+}
+
+function extractVisualizerData(aide: AideTree): {
+  cujs: CUJ[];
+  screens: Screen[];
+  transitions: Transition[];
+  relationships: AideRelationship[];
+} {
+  const entities = aide.entities || {};
+  const relationships = aide.relationships || [];
+
+  // Build protected_by lookup
+  const protectedBy = new Map<string, string[]>();
+  for (const rel of relationships) {
+    if (rel.type === "protected_by") {
+      const existing = protectedBy.get(rel.from) || [];
+      existing.push(rel.to);
+      protectedBy.set(rel.from, existing);
+    }
+  }
+
+  // Find CUJ container (entity with id 'cujs' or similar pattern)
+  const cujContainer = Object.entries(entities).find(
+    ([id, entity]) => id === "cujs" || entity.props?.title === "Critical User Journeys"
+  );
+  const cujContainerId = cujContainer?.[0];
+
+  // Extract CUJs (entities that are children of CUJ container and start with cuj_)
+  const cujs: CUJ[] = [];
+  const cujMap = new Map<string, CUJ>();
+
+  for (const [id, entity] of Object.entries(entities)) {
+    if (id.startsWith("cuj_") && entity.parent === cujContainerId) {
+      const cuj: CUJ = {
+        id,
+        name: String(entity.props?.feature || id),
+        feature: String(entity.props?.feature || id),
+        area: String(entity.props?.area || "default"),
+        scenarios: [],
+      };
+      cujs.push(cuj);
+      cujMap.set(id, cuj);
+    }
+  }
+
+  // Extract scenarios (entities that start with sc_ and are children of CUJs)
+  for (const [id, entity] of Object.entries(entities)) {
+    if (id.startsWith("sc_") && entity.parent) {
+      const parentCuj = cujMap.get(entity.parent);
+      if (parentCuj) {
+        const scenario: Scenario = {
+          id,
+          name: String(entity.props?.name || id),
+          given: String(entity.props?.given || ""),
+          when: String(entity.props?.when || ""),
+          then: String(entity.props?.then || ""),
+          screen: entity.props?.screen as string | undefined,
+          invariants: protectedBy.get(id) || [],
+        };
+        parentCuj.scenarios.push(scenario);
+      }
+    }
+  }
+
+  // Extract explicit screens (entities that start with screen_)
+  const explicitScreens: Screen[] = [];
+  for (const [id, entity] of Object.entries(entities)) {
+    if (id.startsWith("screen_")) {
+      explicitScreens.push({
+        id,
+        name: String(entity.props?.name || id.replace("screen_", "")),
+        description: entity.props?.description as string | undefined,
+        inferred: false,
+      });
+    }
+  }
+
+  // If no explicit screens, infer from scenarios
+  let screens: Screen[];
+  if (explicitScreens.length > 0) {
+    screens = explicitScreens;
+  } else {
+    screens = inferScreensFromScenarios(cujs);
+  }
+
+  // Extract transitions from scenarios
+  const transitions = extractTransitions(cujs, screens);
+
+  return { cujs, screens, transitions, relationships };
+}
+
+function inferScreensFromScenarios(cujs: CUJ[]): Screen[] {
+  const screenNames = new Set<string>();
+
+  for (const cuj of cujs) {
+    for (const scenario of cuj.scenarios) {
+      // Extract screen-like terms from given/then
+      const givenScreens = extractScreenTerms(scenario.given);
+      const thenScreens = extractScreenTerms(scenario.then);
+
+      for (const s of [...givenScreens, ...thenScreens]) {
+        screenNames.add(s);
+      }
+    }
+  }
+
+  return Array.from(screenNames).map((name) => ({
+    id: `screen_${name.toLowerCase().replace(/\s+/g, "_")}`,
+    name,
+    inferred: true,
+  }));
+}
+
+function extractScreenTerms(text: string): string[] {
+  const terms: string[] = [];
+
+  // Look for common patterns like "on X page", "X displayed", "sees X"
+  const patterns = [
+    /(?:on|viewing|at)\s+(?:the\s+)?(\w+)/gi,
+    /(\w+)\s+(?:displayed|shown|visible)/gi,
+    /sees?\s+(?:the\s+)?(\w+)/gi,
+    /(\w+)\s+(?:page|screen|form|view)/gi,
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const term = match[1];
+      // Filter out common non-screen words
+      if (!["user", "the", "a", "an", "is", "are", "has", "have", "with"].includes(term.toLowerCase())) {
+        terms.push(capitalize(term));
+      }
+    }
+  }
+
+  return terms;
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+function extractTransitions(cujs: CUJ[], screens: Screen[]): Transition[] {
+  const transitions: Transition[] = [];
+  const screenNameMap = new Map(screens.map((s) => [s.name.toLowerCase(), s.id]));
+
+  for (const cuj of cujs) {
+    for (let i = 0; i < cuj.scenarios.length; i++) {
+      const scenario = cuj.scenarios[i];
+      const nextScenario = cuj.scenarios[i + 1];
+
+      if (nextScenario) {
+        // Try to find screen transitions
+        const fromScreen = findScreenForText(scenario.given, screenNameMap) ||
+                          findScreenForText(scenario.then, screenNameMap);
+        const toScreen = findScreenForText(nextScenario.given, screenNameMap) ||
+                        findScreenForText(nextScenario.then, screenNameMap);
+
+        if (fromScreen && toScreen && fromScreen !== toScreen) {
+          transitions.push({
+            from: fromScreen,
+            to: toScreen,
+            label: scenario.name,
+            scenarioId: scenario.id,
+          });
+        }
+      }
+    }
+  }
+
+  return transitions;
+}
+
+function findScreenForText(text: string, screenMap: Map<string, string>): string | null {
+  const lowerText = text.toLowerCase();
+  for (const [name, id] of screenMap) {
+    if (lowerText.includes(name)) {
+      return id;
+    }
+  }
+  return null;
+}
+
+function generateVisualizerHtml(
+  cujs: CUJ[],
+  screens: Screen[],
+  transitions: Transition[],
+  relationships: AideRelationship[]
+): string {
+  // Generate data for embedding in HTML
+  const cujsData = JSON.stringify(
+    Object.fromEntries(
+      cujs.map((cuj) => [
+        cuj.id,
+        {
+          name: cuj.feature,
+          area: cuj.area,
+          scenarios: cuj.scenarios.map((s) => ({
+            id: s.id,
+            name: s.name,
+            given: s.given,
+            when: s.when,
+            then: s.then,
+            screen: s.screen || "default",
+            invs: s.invariants,
+          })),
+        },
+      ])
+    )
+  );
+
+  const screensData = JSON.stringify(screens);
+  const transitionsData = JSON.stringify(transitions);
+
+  // Generate screen HTML for map view
+  const screenHtml = screens
+    .map((screen, i) => {
+      const x = 80 + (i % 4) * 320;
+      const y = 80 + Math.floor(i / 4) * 560;
+      return `
+    <div class="screen" id="node-${screen.id}" style="left:${x}px;top:${y}px;">
+      <div class="s-tag">${screen.id}</div>
+      <div class="s-head"><span>${screen.name}</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          ${screen.description || (screen.inferred ? "(Inferred from scenarios)" : "")}
+        </div>
+      </div>
+    </div>`;
+    })
+    .join("\n");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aide Visualizer</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #FAFAFA; --fg: #292929; --mt: #757575; --bd: rgba(0,0,0,0.08); --hint: #999;
+  --accent: #1A8917; --blue: #2563eb; --green: #1A8917; --purple: #7c3aed; --amber: #f59e0b; --coral: #e8593c;
+  --grid: 20px;
+  --serif: Charter, Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1a1a1a; --fg:#e8e6e1; --bd:rgba(255,255,255,0.08); --mt:#888; --hint:#666;
+}}
+
+body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
+
+.mode-bar { display:flex; gap:2px; padding:8px 12px; background:var(--bg); border-bottom:1px solid var(--bd); font-family:monospace; font-size:11px; }
+.mode-btn { padding:4px 14px; border:1px solid var(--bd); border-radius:6px; background:none; color:var(--mt); cursor:pointer; font-family:inherit; font-size:inherit; }
+.mode-btn.active { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+
+/* MAP */
+.viewport { width:100%; height:680px; position:relative; overflow:hidden; border:1px solid var(--bd); border-top:none; }
+.pan-layer { position:absolute; width:4000px; height:3000px; transform-origin:0 0; background-image:radial-gradient(circle,var(--bd) 1px,transparent 1px); background-size:var(--grid) var(--grid); }
+.screen { position:absolute; width:220px; min-height:200px; background:var(--bg); border:1px solid var(--bd); border-radius:10px; overflow:visible; font-family:var(--sans); font-size:11px; color:var(--fg); box-shadow:0 2px 10px rgba(0,0,0,0.08); cursor:grab; user-select:none; z-index:3; display:flex; flex-direction:column; transition:box-shadow 0.15s; }
+@media(prefers-color-scheme:dark){ .screen { box-shadow:0 2px 12px rgba(0,0,0,0.5); } }
+.screen.dragging { z-index:10; cursor:grabbing; box-shadow:0 6px 24px rgba(0,0,0,0.18); transition:none; }
+.s-head { padding:5px 10px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; font-size:10px; color:var(--mt); font-family:monospace; border-radius:10px 10px 0 0; }
+.s-body { padding:8px 10px; flex:1; font-family:var(--serif); }
+.s-tag { position:absolute; top:-20px; left:0; font-size:9px; font-family:monospace; color:var(--accent); white-space:nowrap; pointer-events:none; }
+
+.toolbar { position:absolute; top:12px; right:12px; z-index:30; display:flex; flex-direction:column; gap:2px; background:var(--bg); border:1px solid var(--bd); border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+.toolbar button { width:36px; height:36px; border:none; background:var(--bg); color:var(--fg); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--bd); font-family:monospace; }
+.toolbar button:last-child { border-bottom:none; }
+.toolbar button:hover { background:var(--bd); }
+.zoom-label { position:absolute; top:12px; left:12px; z-index:20; font-size:10px; font-family:monospace; color:var(--hint); background:var(--bg); border:1px solid var(--bd); border-radius:4px; padding:2px 8px; }
+
+/* WALKTHROUGH */
+.walk-view { display:none; width:100%; border:1px solid var(--bd); border-top:none; }
+.walk-view.active { display:flex; flex-direction:column; }
+.walk-picker { padding:10px 16px; border-bottom:1px solid var(--bd); display:flex; gap:4px; flex-wrap:wrap; }
+.walk-picker button { padding:4px 10px; border:1px solid var(--bd); border-radius:16px; background:none; color:var(--mt); cursor:pointer; font-family:var(--sans); font-size:10px; transition:all 0.15s; }
+.walk-picker button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.walk-picker button:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
+.walk-main { display:flex; flex:1; min-height:480px; }
+.walk-screen-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--bd); position:relative; }
+.walk-screen { width:280px; min-height:300px; background:var(--bg); border:1px solid var(--bd); border-radius:16px; overflow:hidden; font-family:var(--sans); font-size:13px; color:var(--fg); box-shadow:0 4px 24px rgba(0,0,0,0.12); display:flex; flex-direction:column; transition:opacity 0.2s,transform 0.2s; }
+.walk-screen.transitioning { opacity:0; transform:translateX(24px); }
+.ws-head { padding:8px 14px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; font-size:12px; color:var(--mt); font-family:monospace; }
+.ws-body { padding:10px 14px; flex:1; }
+
+.walk-panel { width:300px; border-left:1px solid var(--bd); padding:16px; display:flex; flex-direction:column; }
+.walk-progress { display:flex; gap:3px; margin-bottom:12px; flex-wrap:wrap; }
+.walk-dot { width:8px; height:8px; border-radius:4px; background:var(--bd); transition:background 0.2s; }
+.walk-dot.done { background:var(--accent); }
+.walk-dot.current { background:var(--blue); transform:scale(1.3); }
+.walk-step-counter { font-size:10px; font-family:monospace; color:var(--hint); margin-bottom:6px; }
+.walk-scenario-name { font-size:15px; font-weight:600; color:var(--fg); margin-bottom:4px; line-height:1.3; font-family:var(--serif); }
+.walk-scenario-id { font-size:9px; font-family:monospace; color:var(--accent); margin-bottom:12px; }
+.walk-gherkin { font-family:monospace; font-size:11px; line-height:1.8; margin-bottom:16px; }
+.walk-gherkin .kw { color:var(--accent); font-weight:600; }
+.walk-invariants { margin-bottom:16px; }
+.walk-inv-title { font-size:9px; font-family:monospace; color:var(--hint); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.walk-inv-item { font-size:9px; font-family:monospace; color:var(--coral); margin-bottom:2px; }
+.walk-nav-btns { display:flex; gap:8px; margin-top:auto; }
+.walk-nav-btns button { flex:1; padding:10px; border:1px solid var(--bd); border-radius:8px; background:none; color:var(--fg); cursor:pointer; font-family:var(--sans); font-size:12px; transition:all 0.15s; }
+.walk-nav-btns button:hover { background:var(--bd); }
+.walk-nav-btns button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.walk-nav-btns button.primary:hover { opacity:0.9; }
+.walk-nav-btns button:disabled { opacity:0.3; cursor:default; }
+</style>
+</head>
+<body>
+
+<div class="mode-bar">
+  <button class="mode-btn active" id="mode-map" onclick="setMode('map')">Map</button>
+  <button class="mode-btn" id="mode-walk" onclick="setMode('walk')">Walkthrough</button>
+</div>
+
+<!-- MAP -->
+<div class="viewport" id="viewport">
+  <div class="pan-layer" id="pan-layer">
+    <svg id="arrows" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible;"></svg>
+    ${screenHtml}
+  </div>
+
+  <div class="toolbar">
+    <button id="zoom-in">+</button>
+    <button id="zoom-out">-</button>
+    <button id="zoom-fit">◻</button>
+    <button id="zoom-reset">1:1</button>
+  </div>
+  <div class="zoom-label" id="zoom-label">100%</div>
+</div>
+
+<!-- WALKTHROUGH -->
+<div class="walk-view" id="walk-view">
+  <div class="walk-picker" id="walk-picker"></div>
+  <div class="walk-main">
+    <div class="walk-screen-wrap"><div class="walk-screen" id="walk-screen"></div></div>
+    <div class="walk-panel">
+      <div class="walk-progress" id="walk-progress"></div>
+      <div class="walk-step-counter" id="walk-step-counter"></div>
+      <div class="walk-scenario-name" id="walk-scenario-name"></div>
+      <div class="walk-scenario-id" id="walk-scenario-id"></div>
+      <div class="walk-gherkin" id="walk-gherkin"></div>
+      <div class="walk-invariants" id="walk-invariants"></div>
+      <div class="walk-nav-btns">
+        <button id="walk-prev" onclick="walkStep(-1)">← Back</button>
+        <button id="walk-next" class="primary" onclick="walkStep(1)">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cujs = ${cujsData};
+const screens = ${screensData};
+const transitions = ${transitionsData};
+
+/* MODE */
+function setMode(m){
+  document.getElementById('mode-map').classList.toggle('active',m==='map');
+  document.getElementById('mode-walk').classList.toggle('active',m==='walk');
+  document.getElementById('viewport').style.display=m==='map'?'block':'none';
+  document.getElementById('walk-view').classList.toggle('active',m==='walk');
+  if(m==='walk')initWalk();
+  if(m==='map')requestAnimationFrame(()=>requestAnimationFrame(drawArrows));
+}
+
+/* WALKTHROUGH */
+let curCuj=null,curStep=0;
+function initWalk(){
+  const p=document.getElementById('walk-picker');p.innerHTML='';
+  Object.entries(cujs).forEach(([id,c])=>{
+    const b=document.createElement('button');b.textContent=c.name;b.onclick=()=>selectCuj(id);p.appendChild(b);
+  });
+  selectCuj(curCuj||Object.keys(cujs)[0]);
+}
+function selectCuj(id){curCuj=id;curStep=0;document.querySelectorAll('.walk-picker button').forEach((b,i)=>b.classList.toggle('active',Object.keys(cujs)[i]===id));renderStep();}
+function walkStep(d){const sc=cujs[curCuj].scenarios,n=curStep+d;if(n<0||n>=sc.length)return;curStep=n;renderStep();}
+function renderStep(){
+  const c=cujs[curCuj],sc=c.scenarios[curStep],tot=c.scenarios.length;
+  const w=document.getElementById('walk-screen');
+  w.innerHTML=\`<div class="ws-head"><span>\${sc.screen||'default'}</span></div><div class="ws-body" style="padding:20px;text-align:center;color:var(--hint);">\${sc.name}</div>\`;
+  document.getElementById('walk-progress').innerHTML=c.scenarios.map((_,i)=>\`<div class="walk-dot \${i<curStep?'done':''} \${i===curStep?'current':''}"></div>\`).join('');
+  document.getElementById('walk-step-counter').textContent=\`Step \${curStep+1} of \${tot}\`;
+  document.getElementById('walk-scenario-name').textContent=sc.name;
+  document.getElementById('walk-scenario-id').textContent=sc.id;
+  document.getElementById('walk-gherkin').innerHTML=\`<div><span class="kw">Given </span>\${sc.given}</div><div><span class="kw">When </span>\${sc.when}</div><div><span class="kw">Then </span>\${sc.then}</div>\`;
+  const iv=document.getElementById('walk-invariants');iv.innerHTML=sc.invs.length?\`<div class="walk-inv-title">Protected by</div>\`+sc.invs.map(i=>\`<div class="walk-inv-item">\${i}</div>\`).join(''):'';
+  document.getElementById('walk-prev').disabled=curStep===0;document.getElementById('walk-next').disabled=curStep===tot-1;
+}
+document.addEventListener('keydown',e=>{if(!document.getElementById('walk-view').classList.contains('active'))return;if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();walkStep(1);}if(e.key==='ArrowLeft'){e.preventDefault();walkStep(-1);}});
+
+/* MAP: zoom/pan/drag */
+const viewport=document.getElementById('viewport'),panLayer=document.getElementById('pan-layer'),svg=document.getElementById('arrows'),GRID=20;
+let zoom=0.5,panX=0,panY=0,isPanning=false,panStart={x:0,y:0};
+function applyTransform(){panLayer.style.transform=\`translate(\${panX}px,\${panY}px) scale(\${zoom})\`;document.getElementById('zoom-label').textContent=Math.round(zoom*100)+'%';}
+document.getElementById('zoom-in').onclick=()=>{zoom=Math.min(2,zoom+0.1);applyTransform();drawArrows();};
+document.getElementById('zoom-out').onclick=()=>{zoom=Math.max(0.15,zoom-0.1);applyTransform();drawArrows();};
+document.getElementById('zoom-reset').onclick=()=>{zoom=1;panX=0;panY=0;applyTransform();drawArrows();};
+document.getElementById('zoom-fit').onclick=()=>{const ns=document.querySelectorAll('#pan-layer .screen');let x1=Infinity,y1=Infinity,x2=0,y2=0;ns.forEach(n=>{const l=parseInt(n.style.left),t=parseInt(n.style.top);x1=Math.min(x1,l);y1=Math.min(y1,t);x2=Math.max(x2,l+220);y2=Math.max(y2,t+n.offsetHeight);});const w=x2-x1+160,h=y2-y1+160,vw=viewport.clientWidth,vh=viewport.clientHeight;zoom=Math.min(vw/w,vh/h,1);panX=(vw-w*zoom)/2-x1*zoom+60;panY=(vh-h*zoom)/2-y1*zoom+60;applyTransform();drawArrows();};
+viewport.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(0.15,Math.min(2,zoom+(e.deltaY>0?-0.05:0.05)));applyTransform();drawArrows();},{passive:false});
+viewport.addEventListener('mousedown',e=>{if(e.target.closest('.screen,.toolbar'))return;isPanning=true;panStart={x:e.clientX-panX,y:e.clientY-panY};viewport.style.cursor='grabbing';e.preventDefault();});
+window.addEventListener('mousemove',e=>{if(isPanning){panX=e.clientX-panStart.x;panY=e.clientY-panStart.y;applyTransform();drawArrows();}});
+window.addEventListener('mouseup',()=>{if(isPanning){isPanning=false;viewport.style.cursor='default';}});
+
+function snap(v){return Math.round(v/GRID)*GRID;}
+let dragNode=null,dragOff={x:0,y:0};
+document.querySelectorAll('#pan-layer .screen').forEach(el=>{el.addEventListener('mousedown',e=>{dragNode=el;dragOff={x:e.clientX/zoom-(parseInt(el.style.left)||0),y:e.clientY/zoom-(parseInt(el.style.top)||0)};el.classList.add('dragging');e.preventDefault();e.stopPropagation();});});
+window.addEventListener('mousemove',e=>{if(!dragNode)return;dragNode.style.left=snap(e.clientX/zoom-dragOff.x)+'px';dragNode.style.top=snap(e.clientY/zoom-dragOff.y)+'px';drawArrows();});
+window.addEventListener('mouseup',()=>{if(dragNode){dragNode.classList.remove('dragging');dragNode=null;}});
+
+function getAnchor(el,side){const lr=panLayer.getBoundingClientRect(),er=el.getBoundingClientRect();const cx=(er.left-lr.left)/zoom+er.width/(2*zoom),cy=(er.top-lr.top)/zoom+er.height/(2*zoom),w=er.width/zoom,h=er.height/zoom;switch(side){case'right':return{x:cx+w/2,y:cy};case'left':return{x:cx-w/2,y:cy};case'top':return{x:cx,y:cy-h/2};case'bottom':return{x:cx,y:cy+h/2};default:return{x:cx,y:cy};}}
+
+function drawEdge(fEl,fS,tEl,tS,label,color){
+  const a=getAnchor(fEl,fS),b=getAnchor(tEl,tS),pull=70;
+  let c1={...a},c2={...b};
+  if(fS==='right')c1.x+=pull;else if(fS==='left')c1.x-=pull;else if(fS==='bottom')c1.y+=pull;else if(fS==='top')c1.y-=pull;
+  if(tS==='right')c2.x+=pull;else if(tS==='left')c2.x-=pull;else if(tS==='bottom')c2.y+=pull;else if(tS==='top')c2.y-=pull;
+  const path=\`M\${a.x},\${a.y} C\${c1.x},\${c1.y} \${c2.x},\${c2.y} \${b.x},\${b.y}\`;
+  const mid='ah-'+Math.random().toString(36).slice(2,8);
+  let s=\`<defs><marker id="\${mid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="\${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>\`;
+  s+=\`<path d="\${path}" fill="none" stroke="\${color}" stroke-width="1.5" marker-end="url(#\${mid})"/>\`;
+  if(label){const t=0.5,mt=1-t;const lx=mt**3*a.x+3*mt**2*t*c1.x+3*mt*t**2*c2.x+t**3*b.x;const ly=mt**3*a.y+3*mt**2*t*c1.y+3*mt*t**2*c2.y+t**3*b.y-10;const tw=label.length*5.2+12;s+=\`<rect x="\${lx-tw/2}" y="\${ly-9}" width="\${tw}" height="16" rx="3" fill="var(--bg)" fill-opacity="0.92" stroke="var(--bd)" stroke-width="0.5"/>\`;s+=\`<text x="\${lx}" y="\${ly+2}" text-anchor="middle" font-size="8" font-family="monospace" fill="\${color}">\${label}</text>\`;}
+  return s;
+}
+
+function drawArrows(){
+  let s='';
+  transitions.forEach(t=>{
+    const fromEl=document.getElementById('node-'+t.from);
+    const toEl=document.getElementById('node-'+t.to);
+    if(fromEl&&toEl){
+      s+=drawEdge(fromEl,'right',toEl,'left',t.label,'var(--accent)');
+    }
+  });
+  svg.innerHTML=s;
+}
+
+applyTransform();
+requestAnimationFrame(()=>requestAnimationFrame(()=>document.getElementById('zoom-fit').click()));
+window.addEventListener('resize',()=>document.getElementById('zoom-fit').click());
+</script>
+</body>
+</html>`;
+}

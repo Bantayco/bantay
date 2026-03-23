@@ -131,15 +131,30 @@ export async function runTasks(
       .map((c) => c.entity_id);
 
     // Find new/modified scenarios and group by parent CUJ
+    // Skip MODIFIED scenarios that only have metadata changes (not behavioral)
     for (const change of diffResult.changes) {
-      if (change.type === "scenario" && (change.action === "ADDED" || change.action === "MODIFIED")) {
-        const parentCuj = change.parent;
-        if (parentCuj && parentCuj.startsWith("cuj_")) {
-          if (!changedScenarios.has(parentCuj)) {
-            changedScenarios.set(parentCuj, []);
+      if (change.type === "scenario") {
+        if (change.action === "ADDED") {
+          // Always include ADDED scenarios
+          const parentCuj = change.parent;
+          if (parentCuj && parentCuj.startsWith("cuj_")) {
+            if (!changedScenarios.has(parentCuj)) {
+              changedScenarios.set(parentCuj, []);
+            }
+            changedScenarios.get(parentCuj)!.push(change.entity_id);
           }
-          changedScenarios.get(parentCuj)!.push(change.entity_id);
+        } else if (change.action === "MODIFIED" && change.behavioral_change !== false) {
+          // Include MODIFIED scenarios only if they have behavioral changes
+          // (behavioral_change === true or undefined for backwards compatibility)
+          const parentCuj = change.parent;
+          if (parentCuj && parentCuj.startsWith("cuj_")) {
+            if (!changedScenarios.has(parentCuj)) {
+              changedScenarios.set(parentCuj, []);
+            }
+            changedScenarios.get(parentCuj)!.push(change.entity_id);
+          }
         }
+        // Skip MODIFIED scenarios where behavioral_change === false (metadata-only)
       }
     }
 

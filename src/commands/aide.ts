@@ -622,7 +622,17 @@ function generateLockFile(tree: AideTree): string {
   for (const id of sortedIds) {
     const entity = tree.entities[id];
     const hash = computeEntityHash(id, entity);
-    lines.push(`  ${id}: ${hash}`);
+    // Include parent and behavioral hash for scenarios
+    const parts = [`${id}: ${hash}`];
+    if (entity.parent) {
+      parts.push(`parent:${entity.parent}`);
+    }
+    // For scenarios (sc_*), include behavioral hash
+    if (id.startsWith("sc_")) {
+      const bhash = computeBehavioralHash(entity.props || {});
+      parts.push(`bh:${bhash}`);
+    }
+    lines.push(`  ${parts.join(" ")}`);
   }
 
   lines.push("");
@@ -638,6 +648,28 @@ function generateLockFile(tree: AideTree): string {
 function computeEntityHash(id: string, entity: { display?: string; parent?: string; props?: Record<string, unknown> }): string {
   // Simple hash for now - could use crypto.subtle for real hash
   const str = JSON.stringify({ id, ...entity });
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).padStart(8, "0");
+}
+
+/**
+ * Compute hash of behavioral props only (given, when, then, name).
+ * Used to distinguish behavioral changes from metadata-only changes in scenarios.
+ */
+function computeBehavioralHash(props: Record<string, unknown>): string {
+  const BEHAVIORAL_PROPS = ["given", "when", "then", "name"];
+  const behavioralData: Record<string, unknown> = {};
+  for (const key of BEHAVIORAL_PROPS) {
+    if (key in props) {
+      behavioralData[key] = props[key];
+    }
+  }
+  const str = JSON.stringify(behavioralData);
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -869,8 +901,9 @@ function parseLockFile(content: string): LockFile {
 
     // Parse content based on section
     if (section === "entities") {
-      // Format: "  entity_id: hash"
-      const match = trimmed.match(/^(\w+):\s*(\w+)$/);
+      // Format: "entity_id: hash [parent:parent_id] [bh:behavioral_hash]"
+      // We only need the entity ID and hash for aide diff
+      const match = trimmed.match(/^(\w+):\s*(\w+)/);
       if (match) {
         result.entities[match[1]] = match[2];
       }

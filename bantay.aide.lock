@@ -1,124 +1,147 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-21T16:44:47.046Z
+# Generated: 2026-03-23T17:24:08.588Z
 
 entities:
   bantay_cli: 40c228db
-  con_bin_field: 4d0eef2b
-  con_bun_runtime: 49175926
-  con_checker_interface: 1ac7b8fd
-  con_checker_registry: 6b298813
-  con_invariants_md_is_truth: 47877d6b
-  con_json_audit_output: 7286bda3
-  con_no_inline_shell: 0dce8b55
-  con_prompts_as_files: 6716a3a2
-  con_section_markers: 4886de9b
-  con_stack_detection_plugins: 30c073fe
-  con_static_analysis_only: 5d63d448
-  con_three_tier_checkers: 0f14e65e
-  constraints: 7fdc499f
-  cuj_aide: 77512f4d
-  cuj_check: 7a10da07
-  cuj_checkers: 072d1c3c
-  cuj_ci: 6f639b53
-  cuj_export: 5c436567
-  cuj_init: 770a755a
-  cuj_orchestrate: 0f1088f0
-  cuj_tasks: 68f341d8
-  cujs: 6dd382da
-  found_accumulates: 70afe3fb
-  found_deterministic: 55b7d600
-  found_dogfood: 46a9c37c
-  found_not_advice: 767735bd
-  found_offline: 2e91a161
-  found_one_file: 745e4581
-  found_same_interface: 1b198dc4
-  foundations: 61b8c932
-  inv_bun_available: 15ff125e
-  inv_check_speed: 5e9f58a6
-  inv_checker_interface_uniform: 4aeb9d69
-  inv_checker_sandboxed: 38855215
-  inv_ci_output_parseable: 5ad08564
-  inv_cli_invocable: 69f51b7d
-  inv_diff_subset: 041e295d
-  inv_exit_code: 03f7c404
-  inv_export_all_success: 2c15aef6
-  inv_export_idempotent: 7bca4b8f
-  inv_init_no_overwrite: 4363bad4
-  inv_no_clobber: 5bdcc536
-  inv_no_code_execution: 298a7a56
-  inv_no_false_negatives: 37441005
-  inv_no_inline_shell: 261b8229
-  inv_no_network: 2ef2eec3
-  inv_no_source_modification: 23376c16
-  inv_plan_validated: 24b9b744
-  inv_stable_ids: 71049810
-  invariants: 27615c59
-  sc_aide_diff: 31242108
-  sc_aide_discovery: 3668c60f
-  sc_aide_init: 44c8677d
-  sc_check_diff: 1b3bfd5d
-  sc_check_full: 0c8eb03e
-  sc_check_no_execution: 5e0def01
-  sc_check_no_invariants: 32064486
-  sc_check_single: 52f52f62
-  sc_check_speed: 48d0cfd4
-  sc_check_unparseable_invariant: 6e5adace
-  sc_checker_builtin: 2912859f
-  sc_checker_community: 00087071
-  sc_checker_interface: 51cc54cc
-  sc_checker_missing: 66281c3c
-  sc_checker_project: 6f2c8748
-  sc_checker_sandboxed: 06165fde
-  sc_ci_audit_output: 45ac14ea
-  sc_ci_existing_workflow: 56614f81
-  sc_ci_generic: 41e9e290
-  sc_ci_github: 01821dd6
-  sc_ci_gitlab: 7c40b2c0
-  sc_diff_classified: 659a7870
-  sc_diff_design_token: 2c50555b
-  sc_export_claude: 68ea5984
-  sc_export_codex: 7121ff43
-  sc_export_cursor: 1768a732
-  sc_export_idempotent: 15a866e9
-  sc_export_no_clobber: 59a23a2e
-  sc_init_already_initialized: 07e41832
-  sc_init_binary: 48928fe5
-  sc_init_detect_stack: 2d1ece62
-  sc_init_generate_config: 6f4b80f1
-  sc_init_generate_invariants: 71cf2776
-  sc_init_no_project: 247d51b9
-  sc_init_prerequisites: 4fe816e2
-  sc_init_speed: 1de396b0
-  sc_orchestrate_plan: 0d9a1054
-  sc_orchestrate_spawn: 3f36aa44
-  sc_orchestrate_validate_plan: 052156b0
-  sc_tasks_all: 6ca85866
-  sc_tasks_all_entity_types: 4d0e6452
-  sc_tasks_design_token: 4eb26532
-  sc_tasks_diff: 601d4270
-  sc_tasks_entity_level: 635169f8
-  sc_tasks_output: 06fcfa94
-  sc_tasks_phases: 7f46468a
-  wis_1: 5ebe435b
-  wis_agent_context_is_free: 7acd91af
-  wis_agent_team_limits: 76873f2c
-  wis_aide_naming: 6373e31f
-  wis_bun_distribution: 13c54e6b
-  wis_ci_is_wedge: 45047669
-  wis_cli_binary: 7494e45f
-  wis_complete_interview: 77838dfc
-  wis_dogfood_checker_package: 414a0d9f
-  wis_false_negatives_kill_trust: 7d4188bd
-  wis_implicit_prerequisites: 231365e6
-  wis_invariant_to_aide: 0980ba31
-  wis_no_inline_shell: 27225ff6
-  wis_not_another_linter: 2630a6a0
-  wis_plan_danger: 7d937b06
-  wis_registry_is_moat: 1abbe92f
-  wis_spec_kit_completes: 59f0fdf0
-  wis_start_structural: 73e414cf
-  wisdom: 0d9fe2cb
+  con_bin_field: 4d0eef2b parent:constraints
+  con_bun_runtime: 49175926 parent:constraints
+  con_checker_interface: 1ac7b8fd parent:constraints
+  con_checker_registry: 6b298813 parent:constraints
+  con_invariants_md_is_truth: 47877d6b parent:constraints
+  con_json_audit_output: 7286bda3 parent:constraints
+  con_no_inline_shell: 0dce8b55 parent:constraints
+  con_prompts_as_files: 6716a3a2 parent:constraints
+  con_section_markers: 4886de9b parent:constraints
+  con_stack_detection_plugins: 30c073fe parent:constraints
+  con_static_analysis_only: 5d63d448 parent:constraints
+  con_three_tier_checkers: 0f14e65e parent:constraints
+  con_visualize_mode_toggle: 77875365 parent:constraints
+  constraints: 7fdc499f parent:bantay_cli
+  cuj_aide: 77512f4d parent:cujs
+  cuj_check: 7a10da07 parent:cujs
+  cuj_checkers: 072d1c3c parent:cujs
+  cuj_ci: 6f639b53 parent:cujs
+  cuj_export: 5c436567 parent:cujs
+  cuj_init: 770a755a parent:cujs
+  cuj_orchestrate: 0f1088f0 parent:cujs
+  cuj_tasks: 68f341d8 parent:cujs
+  cuj_visualize_generate: 7d1822d8 parent:cujs
+  cuj_visualize_map: 1b76c7fa parent:cujs
+  cuj_visualize_walkthrough: 7cc601ac parent:cujs
+  cujs: 6dd382da parent:bantay_cli
+  found_accumulates: 70afe3fb parent:foundations
+  found_deterministic: 55b7d600 parent:foundations
+  found_dogfood: 46a9c37c parent:foundations
+  found_not_advice: 767735bd parent:foundations
+  found_offline: 2e91a161 parent:foundations
+  found_one_file: 745e4581 parent:foundations
+  found_same_interface: 1b198dc4 parent:foundations
+  foundations: 61b8c932 parent:bantay_cli
+  inv_bun_available: 15ff125e parent:invariants
+  inv_check_speed: 5e9f58a6 parent:invariants
+  inv_checker_interface_uniform: 4aeb9d69 parent:invariants
+  inv_checker_sandboxed: 38855215 parent:invariants
+  inv_ci_output_parseable: 5ad08564 parent:invariants
+  inv_cli_invocable: 69f51b7d parent:invariants
+  inv_diff_subset: 041e295d parent:invariants
+  inv_exit_code: 03f7c404 parent:invariants
+  inv_export_all_success: 2c15aef6 parent:invariants
+  inv_export_idempotent: 7bca4b8f parent:invariants
+  inv_init_no_overwrite: 4363bad4 parent:invariants
+  inv_no_clobber: 5bdcc536 parent:invariants
+  inv_no_code_execution: 298a7a56 parent:invariants
+  inv_no_false_negatives: 37441005 parent:invariants
+  inv_no_inline_shell: 261b8229 parent:invariants
+  inv_no_network: 2ef2eec3 parent:invariants
+  inv_no_source_modification: 23376c16 parent:invariants
+  inv_plan_validated: 24b9b744 parent:invariants
+  inv_stable_ids: 71049810 parent:invariants
+  inv_visualize_aide_agnostic: 5ceab0b2 parent:invariants
+  inv_visualize_self_contained: 0f624e09 parent:invariants
+  invariants: 27615c59 parent:bantay_cli
+  sc_aide_diff: 31242108 parent:cuj_aide bh:010ed11d
+  sc_aide_discovery: 3668c60f parent:cuj_aide bh:6ba7a183
+  sc_aide_init: 44c8677d parent:cuj_aide bh:55f5754f
+  sc_check_diff: 1b3bfd5d parent:cuj_check bh:5c957bbe
+  sc_check_full: 0c8eb03e parent:cuj_check bh:76890e1b
+  sc_check_no_execution: 5e0def01 parent:cuj_check bh:4ec6d393
+  sc_check_no_invariants: 32064486 parent:cuj_check bh:46a873b5
+  sc_check_single: 52f52f62 parent:cuj_check bh:4fbbfa0a
+  sc_check_speed: 48d0cfd4 parent:cuj_check bh:5f10c771
+  sc_check_unparseable_invariant: 6e5adace parent:cuj_check bh:79bc97f7
+  sc_checker_builtin: 2912859f parent:cuj_checkers bh:7cd3b74b
+  sc_checker_community: 00087071 parent:cuj_checkers bh:7fa3c83f
+  sc_checker_interface: 51cc54cc parent:cuj_checkers bh:4c7ad470
+  sc_checker_missing: 66281c3c parent:cuj_checkers bh:7435c35b
+  sc_checker_project: 6f2c8748 parent:cuj_checkers bh:17116646
+  sc_checker_sandboxed: 06165fde parent:cuj_checkers bh:6cf4e6c3
+  sc_ci_audit_output: 45ac14ea parent:cuj_ci bh:3b6ee5eb
+  sc_ci_existing_workflow: 56614f81 parent:cuj_ci bh:1e208022
+  sc_ci_generic: 41e9e290 parent:cuj_ci bh:7c0fca1f
+  sc_ci_github: 01821dd6 parent:cuj_ci bh:64a0e1c3
+  sc_ci_gitlab: 7c40b2c0 parent:cuj_ci bh:413875e9
+  sc_diff_classified: 659a7870 parent:cuj_check bh:2e9b71f0
+  sc_diff_design_token: 2c50555b parent:cuj_check bh:3370119e
+  sc_export_claude: 68ea5984 parent:cuj_export bh:4d23d0ca
+  sc_export_codex: 7121ff43 parent:cuj_export bh:22d6313c
+  sc_export_cursor: 1768a732 parent:cuj_export bh:782e02e8
+  sc_export_idempotent: 15a866e9 parent:cuj_export bh:3c8cb104
+  sc_export_no_clobber: 59a23a2e parent:cuj_export bh:105a8885
+  sc_init_already_initialized: 07e41832 parent:cuj_init bh:7e9c24ff
+  sc_init_binary: 48928fe5 parent:cuj_init bh:38040c72
+  sc_init_detect_stack: 2d1ece62 parent:cuj_init bh:6ffd66d2
+  sc_init_generate_config: 6f4b80f1 parent:cuj_init bh:27453833
+  sc_init_generate_invariants: 71cf2776 parent:cuj_init bh:4007591d
+  sc_init_no_project: 247d51b9 parent:cuj_init bh:02eae540
+  sc_init_prerequisites: 4fe816e2 parent:cuj_init bh:1917cbb7
+  sc_init_speed: 1de396b0 parent:cuj_init bh:5c59ba55
+  sc_map_arrows_component_level: 0cc44f64 parent:cuj_visualize_map bh:49833116
+  sc_map_drag_screen: 1851b7e5 parent:cuj_visualize_map bh:6a90ca7b
+  sc_map_external_labels: 333f5742 parent:cuj_visualize_map bh:6a1b0f02
+  sc_map_pan: 1fa5e29d parent:cuj_visualize_map bh:6820fd1d
+  sc_map_self_loops: 4e770947 parent:cuj_visualize_map bh:76c60e16
+  sc_map_view_screens: 2d929139 parent:cuj_visualize_map bh:4d6ca415
+  sc_map_zoom: 76985469 parent:cuj_visualize_map bh:05faafc3
+  sc_orchestrate_plan: 0d9a1054 parent:cuj_orchestrate bh:400c2b0f
+  sc_orchestrate_spawn: 3f36aa44 parent:cuj_orchestrate bh:7d062e13
+  sc_orchestrate_validate_plan: 052156b0 parent:cuj_orchestrate bh:18d29900
+  sc_tasks_all: 6ca85866 parent:cuj_tasks bh:63ad8dd7
+  sc_tasks_all_entity_types: 4d0e6452 parent:cuj_tasks bh:4c8eb41f
+  sc_tasks_design_token: 4eb26532 parent:cuj_tasks bh:7dfb5286
+  sc_tasks_diff: 601d4270 parent:cuj_tasks bh:6bb4147f
+  sc_tasks_entity_level: 635169f8 parent:cuj_tasks bh:0af02dc4
+  sc_tasks_metadata_only: 1cc7ae63 parent:cuj_tasks bh:7ec63d0d
+  sc_tasks_output: 06fcfa94 parent:cuj_tasks bh:177a514f
+  sc_tasks_phases: 7f46468a parent:cuj_tasks bh:6f4e714e
+  sc_visualize_output_file: 02b9d3dd parent:cuj_visualize_generate bh:6dba2a83
+  sc_visualize_with_screens: 2d3b3091 parent:cuj_visualize_generate bh:2a2d542b
+  sc_visualize_without_screens: 7cf22656 parent:cuj_visualize_generate bh:0fb6dec6
+  sc_walk_invariants_shown: 1338cd54 parent:cuj_visualize_walkthrough bh:4d6e0c19
+  sc_walk_pick_cuj: 20d66b81 parent:cuj_visualize_walkthrough bh:3f385379
+  sc_walk_progress_dots: 73f9d643 parent:cuj_visualize_walkthrough bh:019e3541
+  sc_walk_screen_transition: 4ee103ea parent:cuj_visualize_walkthrough bh:71f2e934
+  sc_walk_step_back: 044e21e5 parent:cuj_visualize_walkthrough bh:70400dd3
+  sc_walk_step_forward: 3ae0fd95 parent:cuj_visualize_walkthrough bh:451a8a07
+  wis_1: 5ebe435b parent:wisdom
+  wis_agent_context_is_free: 7acd91af parent:wisdom
+  wis_agent_team_limits: 76873f2c parent:wisdom
+  wis_aide_naming: 6373e31f parent:wisdom
+  wis_bun_distribution: 13c54e6b parent:wisdom
+  wis_ci_is_wedge: 45047669 parent:wisdom
+  wis_cli_binary: 7494e45f parent:wisdom
+  wis_complete_interview: 77838dfc parent:wisdom
+  wis_dogfood_checker_package: 414a0d9f parent:wisdom
+  wis_false_negatives_kill_trust: 7d4188bd parent:wisdom
+  wis_implicit_prerequisites: 231365e6 parent:wisdom
+  wis_invariant_to_aide: 0980ba31 parent:wisdom
+  wis_no_inline_shell: 27225ff6 parent:wisdom
+  wis_not_another_linter: 2630a6a0 parent:wisdom
+  wis_plan_danger: 7d937b06 parent:wisdom
+  wis_registry_is_moat: 1abbe92f parent:wisdom
+  wis_spec_kit_completes: 59f0fdf0 parent:wisdom
+  wis_start_structural: 73e414cf parent:wisdom
+  wisdom: 0d9fe2cb parent:bantay_cli
 
 relationships:
   - sc_init_prerequisites:inv_bun_available:protected_by: 27c59236
@@ -156,3 +179,9 @@ relationships:
   - cuj_orchestrate:cuj_tasks:depends_on: 27e0f78f
   - sc_orchestrate_validate_plan:inv_plan_validated:protected_by: 359f1dba
   - sc_orchestrate_plan:inv_plan_validated:protected_by: 138b1a15
+  - cuj_visualize_generate:cuj_aide:depends_on: 63804c9c
+  - cuj_visualize_map:cuj_visualize_generate:depends_on: 5bf494ec
+  - cuj_visualize_walkthrough:cuj_visualize_generate:depends_on: 47142f6c
+  - sc_visualize_output_file:inv_visualize_self_contained:protected_by: 5204fac9
+  - sc_visualize_with_screens:inv_visualize_aide_agnostic:protected_by: 71d13447
+  - sc_visualize_without_screens:inv_visualize_aide_agnostic:protected_by: 5d9ed867

@@ -28,6 +28,8 @@ Rules this project must never break. Generated from bantay.aide.
   - Threat: Spurious git diffs after export
 - [ ] **inv_no_clobber**: bantay export never modifies content outside its delimited section
   - Threat: User content in CLAUDE.md altered after export
+- [ ] **inv_visualize_aide_agnostic**: The visualizer engine must render any valid aide, not just spout or bantay
+  - Threat: Hardcoded screen names, CUJ IDs, or product-specific content in the engine
 
 ## Orchestration
 
@@ -38,6 +40,11 @@ Rules this project must never break. Generated from bantay.aide.
 
 - [ ] **inv_check_speed**: bantay check --diff completes in under 5 seconds for diffs under 500 lines with 50 invariants
   - Threat: Developers skip bantay check because it's slower than their linter
+
+## Portability
+
+- [ ] **inv_visualize_self_contained**: Generated visualizer HTML must be a single file with zero external dependencies
+  - Threat: External CSS, JS, or font imports that fail offline
 
 ## Prerequisites
 

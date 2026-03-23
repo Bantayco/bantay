@@ -853,6 +853,162 @@ entities:
       given: bantay diff reports any entity change (constraint, foundation, invariant, design_token, wisdom, relationship)
       when: bantay tasks reads the diff
       then: "Corrective action generated per entity type: design_token → apply tokens to code, constraint → enforce in codebase, foundation → apply to project, invariant → write checker, wisdom → update exports"
+  cuj_visualize_map:
+    parent: cujs
+    props:
+      feature: Developer views the full screen map with draggable screens, transition arrows, and zoom/pan controls
+      tier: primary
+      area: visualize
+  cuj_visualize_walkthrough:
+    parent: cujs
+    props:
+      feature: Developer steps through a CUJ scenario by scenario with screen preview and given/when/then details
+      tier: primary
+      area: visualize
+  cuj_visualize_generate:
+    parent: cujs
+    props:
+      feature: Developer runs bantay visualize to generate an HTML screen map from any aide
+      tier: primary
+      area: visualize
+  sc_visualize_with_screens:
+    parent: cuj_visualize_generate
+    props:
+      name: Generate visualizer from aide with screen entities
+      given: Aide file has screen and component entities
+      when: Developer runs bantay visualize
+      then: HTML file generated with screen wireframes composed from components and design tokens
+  sc_visualize_without_screens:
+    parent: cuj_visualize_generate
+    props:
+      name: Generate visualizer from aide without screen entities
+      given: Aide file has CUJs and scenarios but no screen entities
+      when: Developer runs bantay visualize
+      then: Screens inferred from scenario given/then states, rendered as placeholder cards
+  sc_visualize_output_file:
+    parent: cuj_visualize_generate
+    props:
+      name: Output is a single self-contained HTML file
+      given: Developer runs bantay visualize
+      when: Generation completes
+      then: Single HTML file with zero external dependencies written to project root
+  sc_map_view_screens:
+    parent: cuj_visualize_map
+    props:
+      name: View all screens on canvas
+      given: Developer opens the visualizer
+      when: Map mode loads
+      then: All screens rendered as cards on a pannable canvas with transition arrows between them
+  sc_map_drag_screen:
+    parent: cuj_visualize_map
+    props:
+      name: Drag screen to reposition
+      given: Developer viewing the map
+      when: Developer drags a screen card
+      then: Screen snaps to 20px grid, all connected arrows update live
+  sc_map_zoom:
+    parent: cuj_visualize_map
+    props:
+      name: Zoom in and out
+      given: Developer viewing the map
+      when: Developer uses scroll wheel or toolbar buttons
+      then: Canvas zooms with percentage displayed, fit-all and reset buttons available
+  sc_map_pan:
+    parent: cuj_visualize_map
+    props:
+      name: Pan the canvas
+      given: Developer viewing the map
+      when: Developer clicks and drags on empty canvas
+      then: Canvas pans, screens and arrows move together
+  sc_map_arrows_component_level:
+    parent: cuj_visualize_map
+    props:
+      name: Arrows connect to specific components
+      given: A scenario transitions between screens via a specific component
+      when: Map renders the transition
+      then: Arrow starts from the specific component element, not the screen card edge
+  sc_map_self_loops:
+    parent: cuj_visualize_map
+    props:
+      name: Same-screen actions shown as self-loops
+      given: Multiple scenarios stay on the same screen
+      when: Map renders transitions
+      then: Self-loop arc above the screen with action label
+  sc_map_external_labels:
+    parent: cuj_visualize_map
+    props:
+      name: Screen IDs and invariants shown as external labels
+      given: Screen has an ID and linked invariants
+      when: Map renders the screen
+      then: Screen ID floats above the card, invariant IDs float below
+  sc_walk_pick_cuj:
+    parent: cuj_visualize_walkthrough
+    props:
+      name: Pick a CUJ to walk through
+      given: Developer switches to walkthrough mode
+      when: Developer selects a CUJ from the picker
+      then: First scenario displayed with screen preview and given/when/then
+  sc_walk_step_forward:
+    parent: cuj_visualize_walkthrough
+    props:
+      name: Step forward through scenarios
+      given: Developer viewing a scenario
+      when: Developer clicks Next or presses arrow right
+      then: Next scenario displayed, screen transitions if screen changes
+  sc_walk_step_back:
+    parent: cuj_visualize_walkthrough
+    props:
+      name: Step backward through scenarios
+      given: Developer past the first scenario
+      when: Developer clicks Back or presses arrow left
+      then: Previous scenario displayed
+  sc_walk_progress_dots:
+    parent: cuj_visualize_walkthrough
+    props:
+      name: Progress dots show position in journey
+      given: Developer walking through a CUJ
+      when: Each step renders
+      then: Dots show completed, current, and remaining steps
+  sc_walk_screen_transition:
+    parent: cuj_visualize_walkthrough
+    props:
+      name: Screen transitions animate on navigation change
+      given: Current scenario is on screen A
+      when: Next scenario is on screen B
+      then: Screen preview animates from A to B with slide transition
+  sc_walk_invariants_shown:
+    parent: cuj_visualize_walkthrough
+    props:
+      name: Invariants displayed for each scenario
+      given: Scenario has protected_by relationships
+      when: Scenario step renders
+      then: Linked invariants shown in the detail panel
+  inv_visualize_self_contained:
+    parent: invariants
+    props:
+      statement: Generated visualizer HTML must be a single file with zero external dependencies
+      category: portability
+      threat_signal: External CSS, JS, or font imports that fail offline
+      test: tests/visualize-command.test.ts
+  inv_visualize_aide_agnostic:
+    parent: invariants
+    props:
+      statement: The visualizer engine must render any valid aide, not just spout or bantay
+      category: integrity
+      threat_signal: Hardcoded screen names, CUJ IDs, or product-specific content in the engine
+      test: tests/visualize-command.test.ts
+  con_visualize_mode_toggle:
+    parent: constraints
+    props:
+      text: "Visualizer has two modes toggled via a bar at the top: Map and Walkthrough. Map is the default view."
+      domain: visualize
+  sc_tasks_metadata_only:
+    parent: cuj_tasks
+    props:
+      name: Metadata-only changes do not trigger implementation tasks
+      given: A scenario was modified but only non-behavioral props changed (e.g. screen prop added)
+      when: bantay tasks reads the classified diff
+      then: No implementation task generated for that scenario, only metadata update tasks if applicable
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
@@ -992,5 +1148,29 @@ relationships:
     cardinality: many_to_many
   - from: sc_orchestrate_plan
     to: inv_plan_validated
+    type: protected_by
+    cardinality: many_to_many
+  - from: cuj_visualize_generate
+    to: cuj_aide
+    type: depends_on
+    cardinality: many_to_many
+  - from: cuj_visualize_map
+    to: cuj_visualize_generate
+    type: depends_on
+    cardinality: many_to_many
+  - from: cuj_visualize_walkthrough
+    to: cuj_visualize_generate
+    type: depends_on
+    cardinality: many_to_many
+  - from: sc_visualize_output_file
+    to: inv_visualize_self_contained
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_visualize_with_screens
+    to: inv_visualize_aide_agnostic
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_visualize_without_screens
+    to: inv_visualize_aide_agnostic
     type: protected_by
     cardinality: many_to_many

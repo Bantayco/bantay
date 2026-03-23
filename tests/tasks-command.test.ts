@@ -646,6 +646,342 @@ relationships:
     });
   });
 
+  // @scenario sc_tasks_metadata_only
+  describe("Metadata-only changes do not trigger implementation tasks", () => {
+    test("scenario with only screen prop added does not generate implementation task", async () => {
+      // Step 1: Create an aide file WITHOUT the screen prop
+      const initialAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_metadata_change:
+    parent: cuj_existing
+    props:
+      name: Scenario with metadata
+      given: Precondition
+      when: Action
+      then: Result
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), initialAideContent);
+
+      // Step 2: Generate lock file with bantay aide lock
+      await runCli(["aide", "lock"]);
+
+      // Step 3: Modify aide file to ADD the screen prop (metadata-only change)
+      const modifiedAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_metadata_change:
+    parent: cuj_existing
+    props:
+      name: Scenario with metadata
+      given: Precondition
+      when: Action
+      then: Result
+      screen: login
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), modifiedAideContent);
+
+      // Step 4: Run bantay tasks
+      const { exitCode } = await runCli(["tasks"]);
+
+      expect(exitCode).toBe(0);
+
+      const tasksContent = await readFile(join(tempDir, "tasks.md"), "utf-8");
+      // Should NOT include implementation task for metadata-only change
+      expect(tasksContent).not.toContain("sc_metadata_change");
+      expect(tasksContent).not.toContain("Scenario with metadata");
+    });
+
+    test("scenario with only tier/area prop changed does not generate implementation task", async () => {
+      // Step 1: Create an aide file WITHOUT tier/area props on scenario
+      const initialAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_tier_change:
+    parent: cuj_existing
+    props:
+      name: Scenario with tier change
+      given: Precondition
+      when: Action
+      then: Result
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), initialAideContent);
+
+      // Step 2: Generate lock file
+      await runCli(["aide", "lock"]);
+
+      // Step 3: Modify aide file to ADD tier/area props
+      const modifiedAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_tier_change:
+    parent: cuj_existing
+    props:
+      name: Scenario with tier change
+      given: Precondition
+      when: Action
+      then: Result
+      tier: secondary
+      area: new_area
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), modifiedAideContent);
+
+      const { exitCode } = await runCli(["tasks"]);
+
+      expect(exitCode).toBe(0);
+
+      const tasksContent = await readFile(join(tempDir, "tasks.md"), "utf-8");
+      // Should NOT include implementation task for metadata-only change
+      expect(tasksContent).not.toContain("sc_tier_change");
+    });
+
+    test("scenario with only underscore-prefixed prop changed does not generate implementation task", async () => {
+      // Step 1: Create an aide file WITHOUT the underscore prop
+      const initialAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_underscore_change:
+    parent: cuj_existing
+    props:
+      name: Scenario with underscore prop
+      given: Precondition
+      when: Action
+      then: Result
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), initialAideContent);
+
+      // Step 2: Generate lock file
+      await runCli(["aide", "lock"]);
+
+      // Step 3: Modify aide file to ADD underscore prop
+      const modifiedAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_underscore_change:
+    parent: cuj_existing
+    props:
+      name: Scenario with underscore prop
+      given: Precondition
+      when: Action
+      then: Result
+      _internal_note: "Some internal note"
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), modifiedAideContent);
+
+      const { exitCode } = await runCli(["tasks"]);
+
+      expect(exitCode).toBe(0);
+
+      const tasksContent = await readFile(join(tempDir, "tasks.md"), "utf-8");
+      // Should NOT include implementation task for underscore prop change
+      expect(tasksContent).not.toContain("sc_underscore_change");
+    });
+
+    test("scenario with behavioral prop (given) changed DOES generate implementation task", async () => {
+      // Step 1: Create an aide file with original given value
+      const initialAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_given_change:
+    parent: cuj_existing
+    props:
+      name: Scenario with given change
+      given: OLD precondition
+      when: Action
+      then: Result
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), initialAideContent);
+
+      // Step 2: Generate lock file
+      await runCli(["aide", "lock"]);
+
+      // Step 3: Modify aide file to CHANGE the given prop (behavioral change)
+      const modifiedAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_given_change:
+    parent: cuj_existing
+    props:
+      name: Scenario with given change
+      given: NEW precondition changed
+      when: Action
+      then: Result
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), modifiedAideContent);
+
+      const { exitCode } = await runCli(["tasks"]);
+
+      expect(exitCode).toBe(0);
+
+      const tasksContent = await readFile(join(tempDir, "tasks.md"), "utf-8");
+      // SHOULD include implementation task for behavioral prop change
+      expect(tasksContent).toContain("sc_given_change");
+      expect(tasksContent).toContain("NEW precondition changed");
+    });
+
+    test("scenario with behavioral prop (name) changed DOES generate implementation task", async () => {
+      // Step 1: Create an aide file with original name value
+      const initialAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_name_change:
+    parent: cuj_existing
+    props:
+      name: OLD scenario name
+      given: Precondition
+      when: Action
+      then: Result
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), initialAideContent);
+
+      // Step 2: Generate lock file
+      await runCli(["aide", "lock"]);
+
+      // Step 3: Modify aide file to CHANGE the name prop (behavioral change)
+      const modifiedAideContent = `entities:
+  myapp:
+    display: page
+    props:
+      title: My App
+  cujs:
+    display: table
+    parent: myapp
+  cuj_existing:
+    parent: cujs
+    props:
+      feature: Existing journey
+      tier: primary
+      area: core
+  sc_name_change:
+    parent: cuj_existing
+    props:
+      name: NEW scenario name changed
+      given: Precondition
+      when: Action
+      then: Result
+relationships: []
+`;
+      await writeFile(join(tempDir, "myapp.aide"), modifiedAideContent);
+
+      const { exitCode } = await runCli(["tasks"]);
+
+      expect(exitCode).toBe(0);
+
+      const tasksContent = await readFile(join(tempDir, "tasks.md"), "utf-8");
+      // SHOULD include implementation task for name change
+      expect(tasksContent).toContain("sc_name_change");
+      expect(tasksContent).toContain("NEW scenario name changed");
+    });
+  });
+
   describe("Edge cases", () => {
     test("errors when no aide file found", async () => {
       const { stderr, exitCode } = await runCli(["tasks"]);

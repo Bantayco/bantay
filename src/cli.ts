@@ -19,6 +19,7 @@ import { runStatus, formatStatus } from "./commands/status";
 import { runCi, type CiOptions } from "./commands/ci";
 import { runTasks, formatTasks } from "./commands/tasks";
 import { handleDiff } from "./commands/diff";
+import { runVisualize } from "./commands/visualize";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -48,6 +49,8 @@ async function main() {
     await handleTasks(args.slice(1));
   } else if (command === "diff") {
     await handleDiff(args.slice(1));
+  } else if (command === "visualize") {
+    await handleVisualize(args.slice(1));
   } else {
     console.error(`Unknown command: ${command}`);
     console.error('Run "bantay help" for usage information.');
@@ -86,6 +89,7 @@ Commands:
   export    Export invariants to agent context files
   status    Show scenario implementation status
   tasks     Generate task list from aide CUJs
+  visualize Generate interactive HTML screen map from aide
 
 Options:
   -h, --help    Show this help message
@@ -108,6 +112,8 @@ Examples:
   bantay status --json       Output as JSON
   bantay tasks               Generate tasks for changed CUJs (requires lock)
   bantay tasks --all         Generate tasks for all CUJs
+  bantay visualize           Generate visualizer from aide
+  bantay visualize --output docs/map.html   Custom output path
 
 Run "bantay aide help" for aide subcommand details.
 `);
@@ -396,6 +402,38 @@ async function handleTasks(args: string[]) {
       console.error(`Error: ${error.message}`);
     } else {
       console.error("Error running tasks:", error);
+    }
+    process.exit(1);
+  }
+}
+
+async function handleVisualize(args: string[]) {
+  const projectPath = process.cwd();
+
+  // Parse options
+  const aideIndex = args.indexOf("--aide");
+  const outputIndex = args.indexOf("--output");
+
+  const options: { aide?: string; output?: string } = {};
+
+  if (aideIndex !== -1 && args[aideIndex + 1]) {
+    options.aide = args[aideIndex + 1];
+  }
+
+  if (outputIndex !== -1 && args[outputIndex + 1]) {
+    options.output = args[outputIndex + 1];
+  }
+
+  try {
+    const result = await runVisualize(projectPath, options);
+    console.error(`Generated visualizer: ${result.outputPath}`);
+    console.error(`  ${result.bytesWritten} bytes written`);
+    process.exit(0);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error running visualize:", error);
     }
     process.exit(1);
   }

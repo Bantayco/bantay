@@ -109,6 +109,10 @@ Use bun:test. Every invariant from bantay.aide becomes a test:
 - **con_bin_field**: package.json bin field maps 'bantay' to src/cli.ts. Bun runs TypeScript directly — no build step.
   - *Rationale*: A CLI that can't be invoked by its name isn't a CLI. The bin field is what makes bunx @bantay/cli init, bun link, and npm global install work. Without it the user types bun run src/cli.ts which is not a product.
 
+#### Visualize
+
+- **con_visualize_mode_toggle**: Visualizer has two modes toggled via a bar at the top: Map and Walkthrough. Map is the default view.
+
 ### Invariants (Rules You Must Follow)
 
 #### Auditability
@@ -128,6 +132,7 @@ Use bun:test. Every invariant from bantay.aide becomes a test:
 
 - **inv_export_idempotent**: Running bantay export twice produces identical output
 - **inv_no_clobber**: bantay export never modifies content outside its delimited section
+- **inv_visualize_aide_agnostic**: The visualizer engine must render any valid aide, not just spout or bantay
 
 #### Orchestration
 
@@ -136,6 +141,10 @@ Use bun:test. Every invariant from bantay.aide becomes a test:
 #### Performance
 
 - **inv_check_speed**: bantay check --diff completes in under 5 seconds for diffs under 500 lines with 50 invariants
+
+#### Portability
+
+- **inv_visualize_self_contained**: Generated visualizer HTML must be a single file with zero external dependencies
 
 #### Prerequisites
 
