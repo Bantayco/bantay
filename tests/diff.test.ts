@@ -830,4 +830,164 @@ relationships: []
       }
     });
   });
+
+  describe("behavioral_change flag for modified scenarios", () => {
+    test("behavioral_change is false when only metadata prop (screen) added", async () => {
+      const testDir = await createTestDir();
+
+      try {
+        // Step 1: Create scenario with behavioral props only
+        const initialAideContent = `entities:
+  cujs:
+    display: table
+    props:
+      title: CUJs
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test feature
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: User is logged in
+      when: User clicks button
+      then: Action happens
+relationships: []
+`;
+        await writeFile(join(testDir, "bantay.aide"), initialAideContent);
+
+        // Step 2: Generate lock file
+        await spawn({
+          cmd: [process.execPath, "run", cliPath, "aide", "lock"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        }).exited;
+
+        // Step 3: Modify scenario to add screen prop (metadata-only change)
+        const modifiedAideContent = `entities:
+  cujs:
+    display: table
+    props:
+      title: CUJs
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test feature
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: User is logged in
+      when: User clicks button
+      then: Action happens
+      screen: login_screen
+relationships: []
+`;
+        await writeFile(join(testDir, "bantay.aide"), modifiedAideContent);
+
+        // Step 4: Run diff with JSON output
+        const proc = spawn({
+          cmd: [process.execPath, "run", cliPath, "diff", "--json"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+
+        const [, stdout] = await Promise.all([
+          proc.exited,
+          new Response(proc.stdout).text(),
+        ]);
+
+        const output = JSON.parse(stdout);
+        const scenarioChange = output.changes.find((c: { entity_id: string }) => c.entity_id === "sc_test");
+
+        expect(scenarioChange).toBeDefined();
+        expect(scenarioChange.action).toBe("MODIFIED");
+        expect(scenarioChange.behavioral_change).toBe(false);
+      } finally {
+        await rm(testDir, { recursive: true, force: true });
+      }
+    });
+
+    test("behavioral_change is true when behavioral prop (then) changed", async () => {
+      const testDir = await createTestDir();
+
+      try {
+        // Step 1: Create scenario with behavioral props
+        const initialAideContent = `entities:
+  cujs:
+    display: table
+    props:
+      title: CUJs
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test feature
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: User is logged in
+      when: User clicks button
+      then: Original action
+relationships: []
+`;
+        await writeFile(join(testDir, "bantay.aide"), initialAideContent);
+
+        // Step 2: Generate lock file
+        await spawn({
+          cmd: [process.execPath, "run", cliPath, "aide", "lock"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        }).exited;
+
+        // Step 3: Modify scenario to change then prop AND add screen prop
+        const modifiedAideContent = `entities:
+  cujs:
+    display: table
+    props:
+      title: CUJs
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test feature
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: User is logged in
+      when: User clicks button
+      then: Different action happens
+      screen: login_screen
+relationships: []
+`;
+        await writeFile(join(testDir, "bantay.aide"), modifiedAideContent);
+
+        // Step 4: Run diff with JSON output
+        const proc = spawn({
+          cmd: [process.execPath, "run", cliPath, "diff", "--json"],
+          cwd: testDir,
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+
+        const [, stdout] = await Promise.all([
+          proc.exited,
+          new Response(proc.stdout).text(),
+        ]);
+
+        const output = JSON.parse(stdout);
+        const scenarioChange = output.changes.find((c: { entity_id: string }) => c.entity_id === "sc_test");
+
+        expect(scenarioChange).toBeDefined();
+        expect(scenarioChange.action).toBe("MODIFIED");
+        expect(scenarioChange.behavioral_change).toBe(true);
+      } finally {
+        await rm(testDir, { recursive: true, force: true });
+      }
+    });
+  });
 });
