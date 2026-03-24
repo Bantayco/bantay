@@ -459,6 +459,34 @@ function generateVisualizerHtml(
   const screensData = JSON.stringify(screens);
   const transitionsData = JSON.stringify(transitions);
 
+  // Build screenHtmlMap for walkthrough mode - pre-rendered HTML for each screen
+  const screenHtmlMapObj: Record<string, string> = {};
+  for (const screen of screens) {
+    let bodyHtml: string;
+    if (screen.components && screen.components.length > 0) {
+      bodyHtml = screen.components
+        .map((comp) => {
+          const content = comp.wireframeHtml
+            ? comp.wireframeHtml
+            : `<div class="comp-desc">${comp.description || comp.name}</div>`;
+          return `<div class="comp-box"><div class="comp-label">${comp.id}</div>${content}</div>`;
+        })
+        .join("");
+    } else {
+      bodyHtml = `<div style="padding:20px;text-align:center;color:var(--hint);">${screen.description || screen.name}</div>`;
+    }
+
+    let navHtml = "";
+    if (screen.nav === "none") {
+      navHtml = '<div class="nav-footer">no nav — immersive</div>';
+    } else if (screen.nav && screen.nav !== "") {
+      navHtml = '<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>';
+    }
+
+    screenHtmlMapObj[screen.id] = bodyHtml + navHtml;
+  }
+  const screenHtmlMapData = JSON.stringify(screenHtmlMapObj);
+
   // Generate screen HTML for map view
   const screenHtml = screens
     .map((screen, i) => {
@@ -656,6 +684,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 const cujs = ${cujsData};
 const screens = ${screensData};
 const transitions = ${transitionsData};
+const screenHtmlMap = ${screenHtmlMapData};
 
 /* MODE */
 function setMode(m){
@@ -684,22 +713,9 @@ function renderStep(){
   // Find the screen entity for this scenario's screen prop
   const screenId='screen_'+sc.screen;
   const screenData=screens.find(s=>s.id===screenId||s.name.toLowerCase()===sc.screen);
-  let bodyHtml='';
-  let navHtml='';
-  if(screenData&&screenData.components&&screenData.components.length>0){
-    bodyHtml=screenData.components.map(comp=>{
-      const content=comp.wireframeHtml?comp.wireframeHtml:\`<div class="comp-desc">\${comp.description||comp.name}</div>\`;
-      return \`<div class="comp-box"><div class="comp-label">\${comp.id}</div>\${content}</div>\`;
-    }).join('');
-  }else{
-    bodyHtml=\`<div style="padding:20px;text-align:center;color:var(--hint);">\${sc.name}</div>\`;
-  }
-  if(screenData&&screenData.nav==='none'){
-    navHtml='<div class="nav-footer">no nav — immersive</div>';
-  }else if(screenData&&screenData.nav){
-    navHtml='<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>';
-  }
-  w.innerHTML=\`<div class="ws-head"><span>\${sc.screen||'default'}</span></div><div class="ws-body">\${bodyHtml}</div>\${navHtml}\`;
+  // Use pre-rendered HTML from screenHtmlMap
+  let bodyContent=screenHtmlMap[screenId]||screenHtmlMap[screenData?.id]||\`<div style="padding:20px;text-align:center;color:var(--hint);">\${sc.name}</div>\`;
+  w.innerHTML=\`<div class="ws-head"><span>\${sc.screen||'default'}</span></div><div class="ws-body">\${bodyContent}</div>\`;
   document.getElementById('walk-progress').innerHTML=c.scenarios.map((_,i)=>\`<div class="walk-dot \${i<curStep?'done':''} \${i===curStep?'current':''}"></div>\`).join('');
   document.getElementById('walk-step-counter').textContent=\`Step \${curStep+1} of \${tot}\`;
   document.getElementById('walk-scenario-name').textContent=sc.name;

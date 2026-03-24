@@ -1285,6 +1285,175 @@ relationships: []
     });
   });
 
+  describe("walkthrough mode renders wireframe screens", () => {
+    test("walkthrough has screenHtmlMap with pre-rendered screen HTML", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+      components: comp_header,comp_content
+  components:
+    parent: my_project
+  comp_header:
+    parent: components
+    props:
+      name: Header
+      description: Site header
+  comp_content:
+    parent: components
+    props:
+      name: Content
+      description: Main content area
+  cujs:
+    display: table
+    parent: my_project
+  cuj_browse:
+    parent: cujs
+    props:
+      feature: Browse content
+  sc_view_home:
+    parent: cuj_browse
+    props:
+      name: View home
+      given: User opens app
+      when: Home loads
+      then: Home displayed
+      screen: home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      // Create wireframes
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_header.html"),
+        `<div class="header-wireframe">Header Content</div>`
+      );
+      await writeFile(
+        join(testDir, "wireframes", "comp_content.html"),
+        `<div class="content-wireframe">Main Content</div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Walkthrough should have a screenHtmlMap object with pre-rendered HTML
+      expect(html).toContain("const screenHtmlMap");
+      // The pre-rendered HTML should include wireframe content
+      expect(html).toContain("header-wireframe");
+      expect(html).toContain("content-wireframe");
+    });
+
+    test("renderStep uses screenHtmlMap to inject pre-rendered HTML", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_editor:
+    parent: screens
+    props:
+      name: Editor
+      components: comp_toolbar
+  components:
+    parent: my_project
+  comp_toolbar:
+    parent: components
+    props:
+      name: Toolbar
+      description: Editor toolbar
+  cujs:
+    display: table
+    parent: my_project
+  cuj_edit:
+    parent: cujs
+    props:
+      feature: Edit content
+  sc_open_editor:
+    parent: cuj_edit
+    props:
+      name: Open editor
+      given: User on home
+      when: User clicks edit
+      then: Editor opens
+      screen: editor
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // renderStep should look up from screenHtmlMap
+      expect(html).toContain("screenHtmlMap[screenId]");
+    });
+
+    test("screenHtmlMap includes same content as map view screens", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_profile:
+    parent: screens
+    props:
+      name: Profile
+      components: comp_avatar
+  components:
+    parent: my_project
+  comp_avatar:
+    parent: components
+    props:
+      name: Avatar
+      description: User avatar
+  cujs:
+    display: table
+    parent: my_project
+  cuj_profile:
+    parent: cujs
+    props:
+      feature: View profile
+  sc_view_profile:
+    parent: cuj_profile
+    props:
+      name: View profile
+      given: User logged in
+      when: User clicks profile
+      then: Profile shown
+      screen: profile
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_avatar.html"),
+        `<img src="avatar.png" class="avatar-img" />`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // The screenHtmlMap should contain the same content as map view
+      expect(html).toContain("avatar-img");
+      // Map view should have comp_avatar
+      expect(html).toContain("comp_avatar");
+      // screenHtmlMap should be keyed by screen_profile
+      expect(html).toContain("screen_profile");
+    });
+  });
+
   describe("component box styling", () => {
     test("component boxes have no dashed border", async () => {
       const aideContent = `
