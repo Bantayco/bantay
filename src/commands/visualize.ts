@@ -9,8 +9,41 @@ interface DesignToken {
   value: string;
 }
 
+interface TokenVar {
+  name: string;
+  value: string;
+}
+
 interface WireframeMap {
   [compId: string]: string;
+}
+
+/**
+ * Extract CSS variables from entities with props.type === "token".
+ * Each prop (except "type" and "text" description) becomes a CSS variable.
+ * Pattern: --{entity_id}-{prop_key}: {prop_value};
+ */
+function extractTokenTypeVars(aide: AideTree): TokenVar[] {
+  const vars: TokenVar[] = [];
+  const entities = aide.entities || {};
+
+  for (const [id, entity] of Object.entries(entities)) {
+    if (entity.props?.type === "token") {
+      // For each prop except "type", generate a CSS variable
+      for (const [key, value] of Object.entries(entity.props)) {
+        // Skip the "type" prop itself and "text" which is typically a description
+        if (key === "type") continue;
+
+        const varName = `--${id.replace(/_/g, "-")}-${key.replace(/_/g, "-")}`;
+        vars.push({
+          name: varName,
+          value: String(value),
+        });
+      }
+    }
+  }
+
+  return vars;
 }
 
 export interface VisualizeOptions {
@@ -94,8 +127,11 @@ export async function runVisualize(
   const aideContent = await readFile(aidePath, "utf-8");
   const aide = yaml.load(aideContent) as AideTree;
 
-  // Extract design tokens
+  // Extract design tokens (entities under design_system with value prop)
   const designTokens = extractDesignTokens(aide as any);
+
+  // Extract tokens from type=token entities
+  const tokenTypeVars = extractTokenTypeVars(aide);
 
   // Load wireframe HTML files
   const wireframes = await loadWireframes(projectPath);
@@ -104,7 +140,7 @@ export async function runVisualize(
   const { cujs, screens, transitions, relationships } = extractVisualizerData(aide, wireframes);
 
   // Generate HTML
-  const html = generateVisualizerHtml(cujs, screens, transitions, relationships, designTokens, wireframes);
+  const html = generateVisualizerHtml(cujs, screens, transitions, relationships, designTokens, wireframes, tokenTypeVars);
 
   // Write output
   const outputPath = options.output
@@ -361,7 +397,8 @@ function generateVisualizerHtml(
   transitions: Transition[],
   relationships: AideRelationship[],
   designTokens: DesignToken[] = [],
-  wireframes: WireframeMap = {}
+  wireframes: WireframeMap = {},
+  tokenTypeVars: TokenVar[] = []
 ): string {
   // Generate data for embedding in HTML
   const cujsData = JSON.stringify(
@@ -436,10 +473,18 @@ function generateVisualizerHtml(
     })
     .join("\n");
 
-  // Generate CSS variables from design tokens
-  const tokenCssVars = designTokens
+  // Generate CSS variables from design tokens (entities with value prop under design_system)
+  const designTokenCssVars = designTokens
     .map((token) => `  ${tokenIdToCssVar(token.id)}: ${token.value};`)
     .join("\n");
+
+  // Generate CSS variables from type=token entities
+  const tokenTypeCssVars = tokenTypeVars
+    .map((tv) => `  ${tv.name}: ${tv.value};`)
+    .join("\n");
+
+  // Combine both token sources
+  const tokenCssVars = [designTokenCssVars, tokenTypeCssVars].filter(Boolean).join("\n");
 
   return `<!DOCTYPE html>
 <html lang="en">

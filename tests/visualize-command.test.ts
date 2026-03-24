@@ -1048,7 +1048,74 @@ relationships: []
 
   // sc_visualize_injects_tokens: Visualizer injects CSS variables into generated HTML
   describe("sc_visualize_injects_tokens", () => {
-    test("embeds CSS variables from design token entities in style block", async () => {
+    test("embeds CSS variables from type=token entities in style block", async () => {
+      // This tests the pattern where entities have props.type="token"
+      // and each other prop becomes a CSS variable
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+    props:
+      title: My Project
+  design_system:
+    parent: my_project
+    props:
+      title: Design System
+  ds_colors:
+    parent: design_system
+    props:
+      type: token
+      text: "#292929"
+      accent: "#1A8917"
+      background: "#FAFAFA"
+  ds_typography:
+    parent: design_system
+    props:
+      type: token
+      serif: "Charter, Georgia, serif"
+      sans: "-apple-system, BlinkMacSystemFont, sans-serif"
+  ds_spacing:
+    parent: design_system
+    props:
+      type: token
+      base: 8px
+      sm: 4px
+      lg: 16px
+  cujs:
+    display: table
+    parent: my_project
+    props:
+      title: Critical User Journeys
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      tier: primary
+      area: test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have CSS variables from ds_colors entity
+      expect(html).toContain("--ds-colors-text: #292929");
+      expect(html).toContain("--ds-colors-accent: #1A8917");
+      expect(html).toContain("--ds-colors-background: #FAFAFA");
+
+      // Should have CSS variables from ds_typography entity
+      expect(html).toContain("--ds-typography-serif: Charter, Georgia, serif");
+      expect(html).toContain("--ds-typography-sans: -apple-system, BlinkMacSystemFont, sans-serif");
+
+      // Should have CSS variables from ds_spacing entity
+      expect(html).toContain("--ds-spacing-base: 8px");
+      expect(html).toContain("--ds-spacing-sm: 4px");
+      expect(html).toContain("--ds-spacing-lg: 16px");
+    });
+
+    test("embeds CSS variables from design token entities with value prop", async () => {
       const aideContent = `
 entities:
   my_project:
