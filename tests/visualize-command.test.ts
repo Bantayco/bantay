@@ -1171,6 +1171,85 @@ relationships: []
       expect(html).toContain("--ds-spacing-base: 8px");
     });
 
+    test("embeds dark mode CSS variables from type=token-dark entities", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  design_system:
+    parent: my_project
+  ds_colors:
+    parent: design_system
+    props:
+      type: token
+      text: "#292929"
+      background: "#FAFAFA"
+  ds_colors_dark:
+    parent: design_system
+    props:
+      type: token-dark
+      text: "#e8e6e1"
+      background: "#1a1a1a"
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have light mode variables in :root
+      expect(html).toContain("--ds-colors-text: #292929");
+      expect(html).toContain("--ds-colors-background: #FAFAFA");
+
+      // Should have dark mode variables in @media block
+      expect(html).toContain("@media(prefers-color-scheme:dark)");
+      expect(html).toContain("--ds-colors-text: #e8e6e1");
+      expect(html).toContain("--ds-colors-background: #1a1a1a");
+    });
+
+    test("dark mode entity ID suffix stripped for variable namespace", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  design_system:
+    parent: my_project
+  ds_spacing_dark:
+    parent: design_system
+    props:
+      type: token-dark
+      base: 8px
+      lg: 16px
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // ds_spacing_dark should generate --ds-spacing-* variables (not --ds-spacing-dark-*)
+      expect(html).toContain("--ds-spacing-base: 8px");
+      expect(html).toContain("--ds-spacing-lg: 16px");
+      // Should be inside dark mode block
+      expect(html).toMatch(/@media\(prefers-color-scheme:dark\)[^}]*:root[^}]*--ds-spacing-base/);
+    });
+
     test("wireframes can reference token CSS variables", async () => {
       const aideContent = `
 entities:
@@ -1203,6 +1282,105 @@ relationships: []
 
       // Should be able to use var(--ds-colors-primary) in CSS
       expect(html).toContain("--ds-colors-primary: #2563eb");
+    });
+  });
+
+  describe("component box styling", () => {
+    test("component boxes have no dashed border", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+      components: comp_header
+  components:
+    parent: my_project
+  comp_header:
+    parent: components
+    props:
+      name: Header
+      description: Site header
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: User on home
+      when: User views
+      then: Header shown
+      screen: home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Component boxes should NOT have dashed borders
+      expect(html).not.toContain(".comp-box { border:1px dashed");
+      expect(html).not.toContain("border-style:dashed");
+      // Should have no border on comp-box
+      expect(html).toContain(".comp-box {");
+      expect(html).not.toMatch(/\.comp-box\s*\{[^}]*border:\s*1px\s+dashed/);
+    });
+
+    test("component label is 8px with low opacity", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+      components: comp_nav
+  components:
+    parent: my_project
+  comp_nav:
+    parent: components
+    props:
+      name: Navigation
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test
+      given: Given
+      when: When
+      then: Then
+      screen: home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Component label should be 8px
+      expect(html).toMatch(/\.comp-label\s*\{[^}]*font-size:\s*8px/);
+      // Component label should have low opacity
+      expect(html).toMatch(/\.comp-label\s*\{[^}]*opacity:\s*0\.[4-6]/);
     });
   });
 

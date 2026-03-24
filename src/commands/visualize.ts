@@ -46,6 +46,36 @@ function extractTokenTypeVars(aide: AideTree): TokenVar[] {
   return vars;
 }
 
+/**
+ * Extract dark mode CSS variables from entities with props.type === "token-dark".
+ * The entity ID suffix "_dark" is stripped to get the variable namespace.
+ * Pattern: ds_colors_dark prop text → --ds-colors-text (in dark block)
+ */
+function extractDarkModeTokenVars(aide: AideTree): TokenVar[] {
+  const vars: TokenVar[] = [];
+  const entities = aide.entities || {};
+
+  for (const [id, entity] of Object.entries(entities)) {
+    if (entity.props?.type === "token-dark") {
+      // Strip _dark suffix from entity ID to get the namespace
+      const namespace = id.replace(/_dark$/, "");
+
+      // For each prop except "type", generate a CSS variable
+      for (const [key, value] of Object.entries(entity.props)) {
+        if (key === "type") continue;
+
+        const varName = `--${namespace.replace(/_/g, "-")}-${key.replace(/_/g, "-")}`;
+        vars.push({
+          name: varName,
+          value: String(value),
+        });
+      }
+    }
+  }
+
+  return vars;
+}
+
 export interface VisualizeOptions {
   aide?: string;
   output?: string;
@@ -133,6 +163,9 @@ export async function runVisualize(
   // Extract tokens from type=token entities
   const tokenTypeVars = extractTokenTypeVars(aide);
 
+  // Extract dark mode tokens from type=token-dark entities
+  const darkModeTokenVars = extractDarkModeTokenVars(aide);
+
   // Load wireframe HTML files
   const wireframes = await loadWireframes(projectPath);
 
@@ -140,7 +173,7 @@ export async function runVisualize(
   const { cujs, screens, transitions, relationships } = extractVisualizerData(aide, wireframes);
 
   // Generate HTML
-  const html = generateVisualizerHtml(cujs, screens, transitions, relationships, designTokens, wireframes, tokenTypeVars);
+  const html = generateVisualizerHtml(cujs, screens, transitions, relationships, designTokens, wireframes, tokenTypeVars, darkModeTokenVars);
 
   // Write output
   const outputPath = options.output
@@ -398,7 +431,8 @@ function generateVisualizerHtml(
   relationships: AideRelationship[],
   designTokens: DesignToken[] = [],
   wireframes: WireframeMap = {},
-  tokenTypeVars: TokenVar[] = []
+  tokenTypeVars: TokenVar[] = [],
+  darkModeTokenVars: TokenVar[] = []
 ): string {
   // Generate data for embedding in HTML
   const cujsData = JSON.stringify(
@@ -486,6 +520,11 @@ function generateVisualizerHtml(
   // Combine both token sources
   const tokenCssVars = [designTokenCssVars, tokenTypeCssVars].filter(Boolean).join("\n");
 
+  // Generate dark mode CSS variables from type=token-dark entities
+  const darkModeCssVars = darkModeTokenVars
+    .map((tv) => `  ${tv.name}: ${tv.value};`)
+    .join("\n");
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -504,6 +543,7 @@ ${tokenCssVars}
 }
 @media(prefers-color-scheme:dark){:root{
   --bg:#1a1a1a; --fg:#e8e6e1; --bd:rgba(255,255,255,0.08); --mt:#888; --hint:#666;
+${darkModeCssVars}
 }}
 
 body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
@@ -522,8 +562,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 .s-body { padding:8px 10px; flex:1; font-family:var(--serif); }
 .s-tag { position:absolute; top:-20px; left:0; font-size:9px; font-family:monospace; color:var(--accent); white-space:nowrap; pointer-events:none; }
 
-.comp-box { border:1px dashed var(--bd); border-radius:6px; padding:8px; margin-bottom:6px; }
-.comp-label { font-size:9px; font-family:monospace; color:var(--accent); margin-bottom:2px; }
+.comp-box { padding:4px 0; margin-bottom:2px; }
+.comp-label { font-size:8px; font-family:monospace; color:var(--accent); opacity:0.5; margin-bottom:2px; }
 .comp-desc { font-size:10px; color:var(--hint); }
 .nav-bar { display:flex; justify-content:space-around; padding:8px; border-top:1px solid var(--bd); font-size:9px; color:var(--mt); }
 .nav-footer { padding:6px 10px; border-top:1px solid var(--bd); font-size:9px; color:var(--hint); text-align:center; font-style:italic; }
