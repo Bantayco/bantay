@@ -14,7 +14,7 @@ import {
   handleAideDiff,
   printAideHelp,
 } from "./commands/aide";
-import { exportInvariants, exportClaude, exportCursor, exportCodex, exportAll } from "./export";
+import { exportInvariants, exportClaude, exportCursor, exportCodex, exportCss, exportAll } from "./export";
 import { runStatus, formatStatus } from "./commands/status";
 import { runCi, type CiOptions } from "./commands/ci";
 import { runTasks, formatTasks } from "./commands/tasks";
@@ -257,16 +257,18 @@ async function handleExport(args: string[]) {
     console.error("Usage: bantay export <target>");
     console.error("");
     console.error("Targets:");
-    console.error("  all         Export all targets (invariants, claude, cursor, codex)");
+    console.error("  all         Export all targets (invariants, claude, cursor, codex, css)");
     console.error("  invariants  Generate invariants.md from bantay.aide");
     console.error("  claude      Export to CLAUDE.md with section markers");
     console.error("  cursor      Export to .cursorrules with section markers");
     console.error("  codex       Export to AGENTS.md with section markers");
+    console.error("  css         Export design tokens to bantay-tokens.css");
     console.error("");
     console.error("Examples:");
     console.error("  bantay export invariants");
     console.error("  bantay export claude");
     console.error("  bantay export codex");
+    console.error("  bantay export css");
     console.error("  bantay export --target cursor");
     process.exit(1);
   }
@@ -296,9 +298,13 @@ async function handleExport(args: string[]) {
       const result = await exportCodex(projectPath, { dryRun });
       console.log(`Exported to ${result.outputPath}`);
       console.log(`  ${result.bytesWritten} bytes written`);
+    } else if (target === "css") {
+      const result = await exportCss(projectPath, { dryRun });
+      console.log(`Exported to ${result.outputPath}`);
+      console.log(`  ${result.bytesWritten} bytes written`);
     } else {
       console.error(`Unknown export target: ${target}`);
-      console.error('Valid targets: all, invariants, claude, cursor, codex');
+      console.error('Valid targets: all, invariants, claude, cursor, codex, css');
       process.exit(1);
     }
 

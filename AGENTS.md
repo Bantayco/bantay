@@ -74,6 +74,10 @@
 - **inv_checker_interface_uniform**: All checkers — built-in, community, and project — implement the same interface and return the same result shape
 - **inv_export_all_success**: bantay export all generates every output file without error
 
+#### Design Integrity
+
+- **inv_wireframe_per_component**: Every component entity in the aide must have a corresponding wireframe file at wireframes/<comp_id>.html
+
 #### Integrity
 
 - **inv_export_idempotent**: Running bantay export twice produces identical output

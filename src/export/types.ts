@@ -42,7 +42,7 @@ export interface ExtractedWisdom {
 /**
  * Export target types
  */
-export type ExportTarget = "invariants" | "claude" | "cursor" | "codex";
+export type ExportTarget = "invariants" | "claude" | "cursor" | "codex" | "css";
 
 /**
  * Options for export commands

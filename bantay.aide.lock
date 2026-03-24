@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-23T17:28:17.776Z
+# Generated: 2026-03-24T16:55:58.332Z
 
 entities:
   bantay_cli: 40c228db
@@ -23,6 +23,7 @@ entities:
   cuj_checkers: 072d1c3c parent:cujs
   cuj_ci: 6f639b53 parent:cujs
   cuj_export: 5c436567 parent:cujs
+  cuj_export_css: 47884cc6 parent:cujs
   cuj_init: 770a755a parent:cujs
   cuj_orchestrate: 0f1088f0 parent:cujs
   cuj_tasks: 68f341d8 parent:cujs
@@ -59,6 +60,7 @@ entities:
   inv_stable_ids: 71049810 parent:invariants
   inv_visualize_aide_agnostic: 5ceab0b2 parent:invariants
   inv_visualize_self_contained: 0f624e09 parent:invariants
+  inv_wireframe_per_component: 60f0aedf parent:invariants
   invariants: 27615c59 parent:bantay_cli
   sc_aide_diff: 31242108 parent:cuj_aide bh:010ed11d
   sc_aide_discovery: 3668c60f parent:cuj_aide bh:6ba7a183
@@ -70,6 +72,7 @@ entities:
   sc_check_single: 52f52f62 parent:cuj_check bh:4fbbfa0a
   sc_check_speed: 48d0cfd4 parent:cuj_check bh:5f10c771
   sc_check_unparseable_invariant: 6e5adace parent:cuj_check bh:79bc97f7
+  sc_check_wireframe_exists: 6dc3a59e parent:cuj_check bh:5d811adf
   sc_checker_builtin: 2912859f parent:cuj_checkers bh:7cd3b74b
   sc_checker_community: 00087071 parent:cuj_checkers bh:7fa3c83f
   sc_checker_interface: 51cc54cc parent:cuj_checkers bh:4c7ad470
@@ -85,6 +88,8 @@ entities:
   sc_diff_design_token: 2c50555b parent:cuj_check bh:3370119e
   sc_export_claude: 68ea5984 parent:cuj_export bh:4d23d0ca
   sc_export_codex: 7121ff43 parent:cuj_export bh:22d6313c
+  sc_export_css_from_tokens: 5cf3a2e3 parent:cuj_export_css bh:2cbe2d0a
+  sc_export_css_idempotent: 5f088864 parent:cuj_export_css bh:3f6694e9
   sc_export_cursor: 1768a732 parent:cuj_export bh:782e02e8
   sc_export_idempotent: 15a866e9 parent:cuj_export bh:3c8cb104
   sc_export_no_clobber: 59a23a2e parent:cuj_export bh:105a8885
@@ -114,7 +119,10 @@ entities:
   sc_tasks_metadata_only: 1cc7ae63 parent:cuj_tasks bh:7ec63d0d
   sc_tasks_output: 06fcfa94 parent:cuj_tasks bh:177a514f
   sc_tasks_phases: 7f46468a parent:cuj_tasks bh:6f4e714e
+  sc_visualize_fallback: 0e61a8c1 parent:cuj_visualize_generate bh:5e9697b1
+  sc_visualize_injects_tokens: 36ec108c parent:cuj_visualize_generate bh:08e83c27
   sc_visualize_output_file: 02b9d3dd parent:cuj_visualize_generate bh:6dba2a83
+  sc_visualize_renders_wireframes: 19c2e117 parent:cuj_visualize_generate bh:14428404
   sc_visualize_with_screens: 2d3b3091 parent:cuj_visualize_generate bh:2a2d542b
   sc_visualize_without_screens: 7cf22656 parent:cuj_visualize_generate bh:0fb6dec6
   sc_walk_invariants_shown: 1338cd54 parent:cuj_visualize_walkthrough bh:4d6e0c19
@@ -185,3 +193,6 @@ relationships:
   - sc_visualize_output_file:inv_visualize_self_contained:protected_by: 5204fac9
   - sc_visualize_with_screens:inv_visualize_aide_agnostic:protected_by: 71d13447
   - sc_visualize_without_screens:inv_visualize_aide_agnostic:protected_by: 5d9ed867
+  - cuj_export_css:cuj_aide:depends_on: 0a05861c
+  - sc_visualize_injects_tokens:cuj_export_css:depends_on: 388ebb2b
+  - sc_check_wireframe_exists:inv_wireframe_per_component:protected_by: 40b67a33

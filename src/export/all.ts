@@ -6,10 +6,11 @@ import { exportInvariants } from "./invariants";
 import { exportClaude } from "./claude";
 import { exportCursor } from "./cursor";
 import { exportCodex } from "./codex";
+import { exportCss } from "./css";
 import type { ExportOptions, ExportResult } from "./types";
 
 /**
- * Export all targets: invariants.md, CLAUDE.md, .cursorrules, AGENTS.md
+ * Export all targets: invariants.md, CLAUDE.md, .cursorrules, AGENTS.md, bantay-tokens.css
  */
 export async function exportAll(
   projectPath: string,
@@ -28,6 +29,9 @@ export async function exportAll(
 
   // Export AGENTS.md
   results.push(await exportCodex(projectPath, options));
+
+  // Export bantay-tokens.css
+  results.push(await exportCss(projectPath, options));
 
   return results;
 }

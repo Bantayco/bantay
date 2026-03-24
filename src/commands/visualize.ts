@@ -2,6 +2,16 @@ import { join, basename, dirname } from "path";
 import { readFile, writeFile } from "fs/promises";
 import * as yaml from "js-yaml";
 import { resolveAidePath } from "../aide/discovery";
+import { extractDesignTokens, tokenIdToCssVar } from "../export/css";
+
+interface DesignToken {
+  id: string;
+  value: string;
+}
+
+interface WireframeMap {
+  [compId: string]: string;
+}
 
 export interface VisualizeOptions {
   aide?: string;
@@ -49,11 +59,20 @@ interface Scenario {
   invariants: string[];
 }
 
+interface Component {
+  id: string;
+  name: string;
+  description?: string;
+  wireframeHtml?: string;
+}
+
 interface Screen {
   id: string;
   name: string;
   description?: string;
   inferred: boolean;
+  components?: Component[];
+  nav?: string;
 }
 
 interface Transition {
@@ -75,11 +94,17 @@ export async function runVisualize(
   const aideContent = await readFile(aidePath, "utf-8");
   const aide = yaml.load(aideContent) as AideTree;
 
+  // Extract design tokens
+  const designTokens = extractDesignTokens(aide as any);
+
+  // Load wireframe HTML files
+  const wireframes = await loadWireframes(projectPath);
+
   // Extract data from aide
-  const { cujs, screens, transitions, relationships } = extractVisualizerData(aide);
+  const { cujs, screens, transitions, relationships } = extractVisualizerData(aide, wireframes);
 
   // Generate HTML
-  const html = generateVisualizerHtml(cujs, screens, transitions, relationships);
+  const html = generateVisualizerHtml(cujs, screens, transitions, relationships, designTokens, wireframes);
 
   // Write output
   const outputPath = options.output
@@ -94,7 +119,34 @@ export async function runVisualize(
   };
 }
 
-function extractVisualizerData(aide: AideTree): {
+/**
+ * Load wireframe HTML files from wireframes/ directory
+ */
+async function loadWireframes(projectPath: string): Promise<WireframeMap> {
+  const wireframes: WireframeMap = {};
+  const wireframesDir = join(projectPath, "wireframes");
+
+  try {
+    const files = await Bun.file(wireframesDir).exists() ? [] : [];
+    // Use readdir to list files
+    const { readdir } = await import("fs/promises");
+    const entries = await readdir(wireframesDir).catch(() => []);
+
+    for (const entry of entries) {
+      if (entry.endsWith(".html")) {
+        const compId = entry.replace(".html", "");
+        const content = await readFile(join(wireframesDir, entry), "utf-8");
+        wireframes[compId] = content;
+      }
+    }
+  } catch {
+    // wireframes directory doesn't exist, return empty map
+  }
+
+  return wireframes;
+}
+
+function extractVisualizerData(aide: AideTree, wireframes: WireframeMap = {}): {
   cujs: CUJ[];
   screens: Screen[];
   transitions: Transition[];
@@ -156,15 +208,43 @@ function extractVisualizerData(aide: AideTree): {
     }
   }
 
+  // Extract component entities (entities that start with comp_)
+  const componentMap = new Map<string, Component>();
+  for (const [id, entity] of Object.entries(entities)) {
+    if (id.startsWith("comp_")) {
+      componentMap.set(id, {
+        id,
+        name: String(entity.props?.name || id.replace("comp_", "")),
+        description: entity.props?.description as string | undefined,
+        wireframeHtml: wireframes[id],
+      });
+    }
+  }
+
   // Extract explicit screens (entities that start with screen_)
   const explicitScreens: Screen[] = [];
   for (const [id, entity] of Object.entries(entities)) {
     if (id.startsWith("screen_")) {
+      // Parse components prop (comma-separated string of component IDs)
+      const componentsStr = entity.props?.components as string | undefined;
+      const screenComponents: Component[] = [];
+      if (componentsStr) {
+        const compIds = componentsStr.split(",").map((s) => s.trim());
+        for (const compId of compIds) {
+          const comp = componentMap.get(compId);
+          if (comp) {
+            screenComponents.push(comp);
+          }
+        }
+      }
+
       explicitScreens.push({
         id,
         name: String(entity.props?.name || id.replace("screen_", "")),
         description: entity.props?.description as string | undefined,
         inferred: false,
+        components: screenComponents.length > 0 ? screenComponents : undefined,
+        nav: entity.props?.nav as string | undefined,
       });
     }
   }
@@ -279,7 +359,9 @@ function generateVisualizerHtml(
   cujs: CUJ[],
   screens: Screen[],
   transitions: Transition[],
-  relationships: AideRelationship[]
+  relationships: AideRelationship[],
+  designTokens: DesignToken[] = [],
+  wireframes: WireframeMap = {}
 ): string {
   // Generate data for embedding in HTML
   const cujsData = JSON.stringify(
@@ -311,17 +393,52 @@ function generateVisualizerHtml(
     .map((screen, i) => {
       const x = 80 + (i % 4) * 320;
       const y = 80 + Math.floor(i / 4) * 560;
+
+      // Render component boxes if screen has components
+      let bodyContent: string;
+      if (screen.components && screen.components.length > 0) {
+        bodyContent = screen.components
+          .map(
+            (comp) => {
+              // Use wireframe HTML if available, otherwise fall back to description
+              const content = comp.wireframeHtml
+                ? comp.wireframeHtml
+                : `<div class="comp-desc">${comp.description || comp.name}</div>`;
+              return `
+        <div class="comp-box">
+          <div class="comp-label">${comp.id}</div>
+          ${content}
+        </div>`;
+            }
+          )
+          .join("");
+      } else {
+        bodyContent = `
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          ${screen.description || (screen.inferred ? "(Inferred from scenarios)" : "")}
+        </div>`;
+      }
+
+      // Render nav bar
+      let navContent = "";
+      if (screen.nav === "none") {
+        navContent = `<div class="nav-footer">no nav — immersive</div>`;
+      } else if (screen.nav && screen.nav !== "") {
+        navContent = `<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>`;
+      }
+
       return `
     <div class="screen" id="node-${screen.id}" style="left:${x}px;top:${y}px;">
       <div class="s-tag">${screen.id}</div>
       <div class="s-head"><span>${screen.name}</span></div>
-      <div class="s-body">
-        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
-          ${screen.description || (screen.inferred ? "(Inferred from scenarios)" : "")}
-        </div>
-      </div>
+      <div class="s-body">${bodyContent}</div>${navContent}
     </div>`;
     })
+    .join("\n");
+
+  // Generate CSS variables from design tokens
+  const tokenCssVars = designTokens
+    .map((token) => `  ${tokenIdToCssVar(token.id)}: ${token.value};`)
     .join("\n");
 
   return `<!DOCTYPE html>
@@ -338,6 +455,7 @@ function generateVisualizerHtml(
   --grid: 20px;
   --serif: Charter, Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, sans-serif;
+${tokenCssVars}
 }
 @media(prefers-color-scheme:dark){:root{
   --bg:#1a1a1a; --fg:#e8e6e1; --bd:rgba(255,255,255,0.08); --mt:#888; --hint:#666;
@@ -358,6 +476,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 .s-head { padding:5px 10px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; font-size:10px; color:var(--mt); font-family:monospace; border-radius:10px 10px 0 0; }
 .s-body { padding:8px 10px; flex:1; font-family:var(--serif); }
 .s-tag { position:absolute; top:-20px; left:0; font-size:9px; font-family:monospace; color:var(--accent); white-space:nowrap; pointer-events:none; }
+
+.comp-box { border:1px dashed var(--bd); border-radius:6px; padding:8px; margin-bottom:6px; }
+.comp-label { font-size:9px; font-family:monospace; color:var(--accent); margin-bottom:2px; }
+.comp-desc { font-size:10px; color:var(--hint); }
+.nav-bar { display:flex; justify-content:space-around; padding:8px; border-top:1px solid var(--bd); font-size:9px; color:var(--mt); }
+.nav-footer { padding:6px 10px; border-top:1px solid var(--bd); font-size:9px; color:var(--hint); text-align:center; font-style:italic; }
 
 .toolbar { position:absolute; top:12px; right:12px; z-index:30; display:flex; flex-direction:column; gap:2px; background:var(--bg); border:1px solid var(--bd); border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
 .toolbar button { width:36px; height:36px; border:none; background:var(--bg); color:var(--fg); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--bd); font-family:monospace; }
@@ -472,7 +596,25 @@ function walkStep(d){const sc=cujs[curCuj].scenarios,n=curStep+d;if(n<0||n>=sc.l
 function renderStep(){
   const c=cujs[curCuj],sc=c.scenarios[curStep],tot=c.scenarios.length;
   const w=document.getElementById('walk-screen');
-  w.innerHTML=\`<div class="ws-head"><span>\${sc.screen||'default'}</span></div><div class="ws-body" style="padding:20px;text-align:center;color:var(--hint);">\${sc.name}</div>\`;
+  // Find the screen entity for this scenario's screen prop
+  const screenId='screen_'+sc.screen;
+  const screenData=screens.find(s=>s.id===screenId||s.name.toLowerCase()===sc.screen);
+  let bodyHtml='';
+  let navHtml='';
+  if(screenData&&screenData.components&&screenData.components.length>0){
+    bodyHtml=screenData.components.map(comp=>{
+      const content=comp.wireframeHtml?comp.wireframeHtml:\`<div class="comp-desc">\${comp.description||comp.name}</div>\`;
+      return \`<div class="comp-box"><div class="comp-label">\${comp.id}</div>\${content}</div>\`;
+    }).join('');
+  }else{
+    bodyHtml=\`<div style="padding:20px;text-align:center;color:var(--hint);">\${sc.name}</div>\`;
+  }
+  if(screenData&&screenData.nav==='none'){
+    navHtml='<div class="nav-footer">no nav — immersive</div>';
+  }else if(screenData&&screenData.nav){
+    navHtml='<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>';
+  }
+  w.innerHTML=\`<div class="ws-head"><span>\${sc.screen||'default'}</span></div><div class="ws-body">\${bodyHtml}</div>\${navHtml}\`;
   document.getElementById('walk-progress').innerHTML=c.scenarios.map((_,i)=>\`<div class="walk-dot \${i<curStep?'done':''} \${i===curStep?'current':''}"></div>\`).join('');
   document.getElementById('walk-step-counter').textContent=\`Step \${curStep+1} of \${tot}\`;
   document.getElementById('walk-scenario-name').textContent=sc.name;

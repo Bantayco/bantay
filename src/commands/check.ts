@@ -2,10 +2,10 @@ import { readFile, access } from "fs/promises";
 import { spawn } from "bun";
 import { join } from "path";
 import { parseInvariants, type Invariant } from "../generators/invariants";
-import { runChecker, hasChecker } from "../checkers/registry";
+import { runChecker, hasChecker, runStructuralCheckers } from "../checkers/registry";
 import { loadConfig } from "../config";
 import { getGitDiff, shouldCheckInvariant } from "../diff";
-import type { CheckResult, CheckerContext } from "../checkers/types";
+import type { CheckResult, CheckerContext, StructuralCheckResult } from "../checkers/types";
 import { read as readAide, tryResolveAidePath } from "../aide";
 
 export interface CheckOptions {
@@ -21,6 +21,7 @@ export interface CheckSummary {
   enforced: number;
   total: number;
   results: CheckResult[];
+  structuralResults: StructuralCheckResult[];
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -225,15 +226,22 @@ export async function runCheck(
     }
   }
 
-  // Calculate summary
+  // Run structural checkers (independent of invariants)
+  const structuralResults = await runStructuralCheckers(context);
+
+  // Calculate summary - include structural results in pass/fail counts
+  const structuralPassed = structuralResults.filter((r) => r.status === "pass").length;
+  const structuralFailed = structuralResults.filter((r) => r.status === "fail").length;
+
   const summary: CheckSummary = {
-    passed: results.filter((r) => r.status === "pass").length,
-    failed: results.filter((r) => r.status === "fail").length,
+    passed: results.filter((r) => r.status === "pass").length + structuralPassed,
+    failed: results.filter((r) => r.status === "fail").length + structuralFailed,
     skipped: results.filter((r) => r.status === "skipped").length,
     tested: results.filter((r) => r.status === "tested").length,
     enforced: results.filter((r) => r.status === "enforced").length,
-    total: results.length,
+    total: results.length + structuralResults.length,
     results,
+    structuralResults,
   };
 
   return summary;
@@ -245,6 +253,16 @@ export interface JsonCheckOutput {
   results: Array<{
     id: string;
     status: "pass" | "fail" | "skipped" | "tested" | "enforced";
+    message?: string;
+    violations?: Array<{
+      file: string;
+      line?: number;
+      message: string;
+    }>;
+  }>;
+  structuralResults: Array<{
+    name: string;
+    status: "pass" | "fail";
     message?: string;
     violations?: Array<{
       file: string;
@@ -307,6 +325,19 @@ export async function formatCheckResultsJson(
             }))
           : undefined,
     })),
+    structuralResults: (summary.structuralResults || []).map((result) => ({
+      name: result.name,
+      status: result.status,
+      message: result.message,
+      violations:
+        result.violations.length > 0
+          ? result.violations.map((v) => ({
+              file: v.filePath,
+              line: v.line,
+              message: v.message,
+            }))
+          : undefined,
+    })),
     summary: {
       passed: summary.passed,
       failed: summary.failed,
@@ -348,6 +379,33 @@ export function formatCheckResults(summary: CheckSummary): string {
     }
 
     lines.push("");
+  }
+
+  // Display structural check results
+  if (summary.structuralResults && summary.structuralResults.length > 0) {
+    lines.push("Structural Checks");
+    lines.push("-----------------");
+    lines.push("");
+
+    for (const result of summary.structuralResults) {
+      const statusIcon = result.status === "pass" ? "✓" : "✗";
+      const statusText = result.status.toUpperCase();
+
+      lines.push(`${statusIcon} [${result.name}] ${statusText}`);
+
+      if (result.message) {
+        lines.push(`  Note: ${result.message}`);
+      }
+
+      for (const violation of result.violations) {
+        const location = violation.line
+          ? `${violation.filePath}:${violation.line}`
+          : violation.filePath;
+        lines.push(`  - ${location}: ${violation.message}`);
+      }
+
+      lines.push("");
+    }
   }
 
   lines.push("Summary");

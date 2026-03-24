@@ -823,4 +823,558 @@ relationships: []
       expect(htmlExists).toBe(true);
     });
   });
+
+  describe("Component wireframes", () => {
+    test("MAP VIEW renders component boxes from screen's components prop", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+    props:
+      title: My Project
+  screens:
+    display: list
+    parent: my_project
+  screen_flow:
+    parent: screens
+    props:
+      name: Flow Screen
+      components: comp_timer,comp_editor
+      nav: standard
+  components:
+    display: list
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+      description: Countdown timer with pause button
+  comp_editor:
+    parent: components
+    props:
+      name: Editor
+      description: Writing surface with serif font
+  cujs:
+    display: table
+    parent: my_project
+  cuj_flow:
+    parent: cujs
+    props:
+      feature: Flow writing
+      tier: primary
+      area: writing
+  sc_start_flow:
+    parent: cuj_flow
+    props:
+      name: Start flow session
+      given: User on flow screen
+      when: User starts timer
+      then: Timer begins countdown
+      screen: flow
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have comp-box CSS
+      expect(html).toContain(".comp-box");
+      expect(html).toContain(".comp-label");
+      expect(html).toContain(".comp-desc");
+
+      // Should render component boxes in MAP view
+      expect(html).toContain("comp_timer");
+      expect(html).toContain("comp_editor");
+      expect(html).toContain("Countdown timer");
+      expect(html).toContain("Writing surface");
+    });
+
+    test("MAP VIEW renders nav bar when nav prop is standard", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    display: list
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+      components: comp_feed
+      nav: standard
+  components:
+    display: list
+    parent: my_project
+  comp_feed:
+    parent: components
+    props:
+      name: Feed
+      description: Content feed
+  cujs:
+    display: table
+    parent: my_project
+  cuj_browse:
+    parent: cujs
+    props:
+      feature: Browse content
+  sc_view:
+    parent: cuj_browse
+    props:
+      name: View feed
+      given: User on home
+      when: User scrolls
+      then: Feed loads
+      screen: home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should render nav bar
+      expect(html).toContain("nav-bar");
+    });
+
+    test("MAP VIEW renders immersive footer when nav is none", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    display: list
+    parent: my_project
+  screen_immersive:
+    parent: screens
+    props:
+      name: Immersive
+      components: comp_content
+      nav: none
+  components:
+    display: list
+    parent: my_project
+  comp_content:
+    parent: components
+    props:
+      name: Content
+      description: Full screen content
+  cujs:
+    display: table
+    parent: my_project
+  cuj_view:
+    parent: cujs
+    props:
+      feature: View content
+  sc_view:
+    parent: cuj_view
+    props:
+      name: View immersive
+      given: User viewing
+      when: User focuses
+      then: Immersive mode
+      screen: immersive
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should show immersive indicator
+      expect(html).toContain("immersive");
+    });
+
+    test("WALKTHROUGH VIEW renders component boxes", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    display: list
+    parent: my_project
+  screen_editor:
+    parent: screens
+    props:
+      name: Editor Screen
+      components: comp_toolbar,comp_canvas
+      nav: standard
+  components:
+    display: list
+    parent: my_project
+  comp_toolbar:
+    parent: components
+    props:
+      name: Toolbar
+      description: Drawing tools
+  comp_canvas:
+    parent: components
+    props:
+      name: Canvas
+      description: Drawing surface
+  cujs:
+    display: table
+    parent: my_project
+  cuj_draw:
+    parent: cujs
+    props:
+      feature: Draw content
+  sc_draw:
+    parent: cuj_draw
+    props:
+      name: Draw on canvas
+      given: User on editor
+      when: User draws
+      then: Content appears
+      screen: editor
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // The walkthrough JS should include component rendering
+      // Check that screen data includes components
+      expect(html).toContain("comp_toolbar");
+      expect(html).toContain("comp_canvas");
+    });
+  });
+
+  // sc_visualize_injects_tokens: Visualizer injects CSS variables into generated HTML
+  describe("sc_visualize_injects_tokens", () => {
+    test("embeds CSS variables from design token entities in style block", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+    props:
+      title: My Project
+  design_system:
+    parent: my_project
+    props:
+      title: Design System
+  ds_colors:
+    parent: design_system
+    props:
+      type: colors
+  ds_colors_text:
+    parent: ds_colors
+    props:
+      value: "#292929"
+  ds_colors_accent:
+    parent: ds_colors
+    props:
+      value: "#1A8917"
+  ds_spacing:
+    parent: design_system
+    props:
+      type: spacing
+  ds_spacing_base:
+    parent: ds_spacing
+    props:
+      value: 8px
+  cujs:
+    display: table
+    parent: my_project
+    props:
+      title: Critical User Journeys
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      tier: primary
+      area: test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have CSS variables embedded in style block
+      expect(html).toContain("--ds-colors-text: #292929");
+      expect(html).toContain("--ds-colors-accent: #1A8917");
+      expect(html).toContain("--ds-spacing-base: 8px");
+    });
+
+    test("wireframes can reference token CSS variables", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  design_system:
+    parent: my_project
+  ds_colors:
+    parent: design_system
+    props:
+      type: colors
+  ds_colors_primary:
+    parent: ds_colors
+    props:
+      value: "#2563eb"
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should be able to use var(--ds-colors-primary) in CSS
+      expect(html).toContain("--ds-colors-primary: #2563eb");
+    });
+  });
+
+  // sc_visualize_renders_wireframes: Visualizer renders wireframe HTML files inside component boxes
+  describe("sc_visualize_renders_wireframes", () => {
+    test("injects wireframe HTML from wireframes/<comp_id>.html into component box", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    display: list
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+      components: comp_header,comp_content
+  components:
+    display: list
+    parent: my_project
+  comp_header:
+    parent: components
+    props:
+      name: Header
+      description: Top navigation
+  comp_content:
+    parent: components
+    props:
+      name: Content
+      description: Main content area
+  cujs:
+    display: table
+    parent: my_project
+  cuj_browse:
+    parent: cujs
+    props:
+      feature: Browse content
+  sc_view:
+    parent: cuj_browse
+    props:
+      name: View home
+      given: User opens app
+      when: Home loads
+      then: Home displayed
+      screen: home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      // Create wireframes directory with HTML files
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_header.html"),
+        `<div class="header-wireframe"><span>Logo</span><nav>Menu</nav></div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should inject the wireframe HTML for comp_header
+      expect(html).toContain("header-wireframe");
+      expect(html).toContain("<span>Logo</span>");
+      expect(html).toContain("<nav>Menu</nav>");
+    });
+
+    test("wireframe HTML replaces description text in component box", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    display: list
+    parent: my_project
+  screen_editor:
+    parent: screens
+    props:
+      name: Editor
+      components: comp_toolbar
+  components:
+    display: list
+    parent: my_project
+  comp_toolbar:
+    parent: components
+    props:
+      name: Toolbar
+      description: This description should be replaced
+  cujs:
+    display: table
+    parent: my_project
+  cuj_edit:
+    parent: cujs
+    props:
+      feature: Edit
+  sc_edit:
+    parent: cuj_edit
+    props:
+      name: Edit content
+      given: User on editor
+      when: User edits
+      then: Content saved
+      screen: editor
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_toolbar.html"),
+        `<div class="toolbar-buttons"><button>Bold</button><button>Italic</button></div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have wireframe content
+      expect(html).toContain("toolbar-buttons");
+      expect(html).toContain("<button>Bold</button>");
+    });
+  });
+
+  // sc_visualize_fallback: Visualizer falls back to description when no wireframe file exists
+  describe("sc_visualize_fallback", () => {
+    test("shows component name and description when no wireframe file exists", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    display: list
+    parent: my_project
+  screen_settings:
+    parent: screens
+    props:
+      name: Settings
+      components: comp_form
+  components:
+    display: list
+    parent: my_project
+  comp_form:
+    parent: components
+    props:
+      name: Settings Form
+      description: User preference settings form
+  cujs:
+    display: table
+    parent: my_project
+  cuj_settings:
+    parent: cujs
+    props:
+      feature: Settings
+  sc_view_settings:
+    parent: cuj_settings
+    props:
+      name: View settings
+      given: User on settings
+      when: Settings load
+      then: Form displayed
+      screen: settings
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      // No wireframes directory created
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should fall back to showing description
+      expect(html).toContain("comp_form");
+      expect(html).toContain("User preference settings form");
+    });
+
+    test("uses description fallback when wireframes dir exists but file is missing", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    display: list
+    parent: my_project
+  screen_profile:
+    parent: screens
+    props:
+      name: Profile
+      components: comp_avatar,comp_bio
+  components:
+    display: list
+    parent: my_project
+  comp_avatar:
+    parent: components
+    props:
+      name: Avatar
+      description: User profile picture
+  comp_bio:
+    parent: components
+    props:
+      name: Bio
+      description: User biography text
+  cujs:
+    display: table
+    parent: my_project
+  cuj_profile:
+    parent: cujs
+    props:
+      feature: Profile
+  sc_view_profile:
+    parent: cuj_profile
+    props:
+      name: View profile
+      given: User on profile
+      when: Profile loads
+      then: Profile displayed
+      screen: profile
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      // Create wireframes directory with only one of the components
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_avatar.html"),
+        `<img src="avatar.png" alt="User Avatar" />`
+      );
+      // Note: comp_bio.html is NOT created
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // comp_avatar should have wireframe
+      expect(html).toContain('alt="User Avatar"');
+
+      // comp_bio should fall back to description
+      expect(html).toContain("comp_bio");
+      expect(html).toContain("User biography text");
+    });
+  });
 });

@@ -1009,6 +1009,60 @@ entities:
       given: A scenario was modified but only non-behavioral props changed (e.g. screen prop added)
       when: bantay tasks reads the classified diff
       then: No implementation task generated for that scenario, only metadata update tasks if applicable
+  cuj_export_css:
+    parent: cujs
+    props:
+      feature: Bantay exports CSS variables from structured design token entities in the aide
+      tier: primary
+      area: export
+  sc_export_css_from_tokens:
+    parent: cuj_export_css
+    props:
+      name: Generate CSS variables from design token entities
+      given: Aide has entities under design_system with typed token props (colors, spacing, typography)
+      when: Developer runs bantay export css
+      then: CSS file generated with :root variables matching token names and values
+  sc_export_css_idempotent:
+    parent: cuj_export_css
+    props:
+      name: CSS export is idempotent
+      given: CSS file already exists
+      when: Developer runs bantay export css again
+      then: Output is byte-identical if tokens haven't changed
+  sc_visualize_injects_tokens:
+    parent: cuj_visualize_generate
+    props:
+      name: Visualizer injects CSS variables into generated HTML
+      given: Aide has design token entities
+      when: bantay visualize generates the HTML
+      then: CSS variables from tokens are embedded in a style block so wireframes can reference them
+  sc_visualize_renders_wireframes:
+    parent: cuj_visualize_generate
+    props:
+      name: Visualizer renders wireframe HTML files inside component boxes
+      given: wireframes/<comp_id>.html exists for a component
+      when: bantay visualize renders a screen containing that component
+      then: Wireframe HTML injected into the component box instead of description text
+  sc_visualize_fallback:
+    parent: cuj_visualize_generate
+    props:
+      name: Visualizer falls back to description when no wireframe file exists
+      given: No wireframes/<comp_id>.html exists for a component
+      when: bantay visualize renders a screen containing that component
+      then: Component box shows comp name and description text (current behavior)
+  inv_wireframe_per_component:
+    parent: invariants
+    props:
+      statement: Every component entity in the aide must have a corresponding wireframe file at wireframes/<comp_id>.html
+      category: design_integrity
+      threat_signal: Component added to aide without wireframe file, visualizer falls back to text description instead of rendering actual wireframe
+  sc_check_wireframe_exists:
+    parent: cuj_check
+    props:
+      name: Checker verifies wireframe file exists for each component
+      given: Aide has component entities (comp_*)
+      when: bantay check runs
+      then: Each component entity checked for wireframes/<comp_id>.html, missing files reported as failures
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
@@ -1172,5 +1226,17 @@ relationships:
     cardinality: many_to_many
   - from: sc_visualize_without_screens
     to: inv_visualize_aide_agnostic
+    type: protected_by
+    cardinality: many_to_many
+  - from: cuj_export_css
+    to: cuj_aide
+    type: depends_on
+    cardinality: many_to_many
+  - from: sc_visualize_injects_tokens
+    to: cuj_export_css
+    type: depends_on
+    cardinality: many_to_many
+  - from: sc_check_wireframe_exists
+    to: inv_wireframe_per_component
     type: protected_by
     cardinality: many_to_many

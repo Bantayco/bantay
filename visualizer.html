@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aide Visualizer</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #FAFAFA; --fg: #292929; --mt: #757575; --bd: rgba(0,0,0,0.08); --hint: #999;
+  --accent: #1A8917; --blue: #2563eb; --green: #1A8917; --purple: #7c3aed; --amber: #f59e0b; --coral: #e8593c;
+  --grid: 20px;
+  --serif: Charter, Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1a1a1a; --fg:#e8e6e1; --bd:rgba(255,255,255,0.08); --mt:#888; --hint:#666;
+}}
+
+body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
+
+.mode-bar { display:flex; gap:2px; padding:8px 12px; background:var(--bg); border-bottom:1px solid var(--bd); font-family:monospace; font-size:11px; }
+.mode-btn { padding:4px 14px; border:1px solid var(--bd); border-radius:6px; background:none; color:var(--mt); cursor:pointer; font-family:inherit; font-size:inherit; }
+.mode-btn.active { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+
+/* MAP */
+.viewport { width:100%; height:680px; position:relative; overflow:hidden; border:1px solid var(--bd); border-top:none; }
+.pan-layer { position:absolute; width:4000px; height:3000px; transform-origin:0 0; background-image:radial-gradient(circle,var(--bd) 1px,transparent 1px); background-size:var(--grid) var(--grid); }
+.screen { position:absolute; width:220px; min-height:200px; background:var(--bg); border:1px solid var(--bd); border-radius:10px; overflow:visible; font-family:var(--sans); font-size:11px; color:var(--fg); box-shadow:0 2px 10px rgba(0,0,0,0.08); cursor:grab; user-select:none; z-index:3; display:flex; flex-direction:column; transition:box-shadow 0.15s; }
+@media(prefers-color-scheme:dark){ .screen { box-shadow:0 2px 12px rgba(0,0,0,0.5); } }
+.screen.dragging { z-index:10; cursor:grabbing; box-shadow:0 6px 24px rgba(0,0,0,0.18); transition:none; }
+.s-head { padding:5px 10px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; font-size:10px; color:var(--mt); font-family:monospace; border-radius:10px 10px 0 0; }
+.s-body { padding:8px 10px; flex:1; font-family:var(--serif); }
+.s-tag { position:absolute; top:-20px; left:0; font-size:9px; font-family:monospace; color:var(--accent); white-space:nowrap; pointer-events:none; }
+
+.toolbar { position:absolute; top:12px; right:12px; z-index:30; display:flex; flex-direction:column; gap:2px; background:var(--bg); border:1px solid var(--bd); border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+.toolbar button { width:36px; height:36px; border:none; background:var(--bg); color:var(--fg); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--bd); font-family:monospace; }
+.toolbar button:last-child { border-bottom:none; }
+.toolbar button:hover { background:var(--bd); }
+.zoom-label { position:absolute; top:12px; left:12px; z-index:20; font-size:10px; font-family:monospace; color:var(--hint); background:var(--bg); border:1px solid var(--bd); border-radius:4px; padding:2px 8px; }
+
+/* WALKTHROUGH */
+.walk-view { display:none; width:100%; border:1px solid var(--bd); border-top:none; }
+.walk-view.active { display:flex; flex-direction:column; }
+.walk-picker { padding:10px 16px; border-bottom:1px solid var(--bd); display:flex; gap:4px; flex-wrap:wrap; }
+.walk-picker button { padding:4px 10px; border:1px solid var(--bd); border-radius:16px; background:none; color:var(--mt); cursor:pointer; font-family:var(--sans); font-size:10px; transition:all 0.15s; }
+.walk-picker button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.walk-picker button:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
+.walk-main { display:flex; flex:1; min-height:480px; }
+.walk-screen-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--bd); position:relative; }
+.walk-screen { width:280px; min-height:300px; background:var(--bg); border:1px solid var(--bd); border-radius:16px; overflow:hidden; font-family:var(--sans); font-size:13px; color:var(--fg); box-shadow:0 4px 24px rgba(0,0,0,0.12); display:flex; flex-direction:column; transition:opacity 0.2s,transform 0.2s; }
+.walk-screen.transitioning { opacity:0; transform:translateX(24px); }
+.ws-head { padding:8px 14px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; font-size:12px; color:var(--mt); font-family:monospace; }
+.ws-body { padding:10px 14px; flex:1; }
+
+.walk-panel { width:300px; border-left:1px solid var(--bd); padding:16px; display:flex; flex-direction:column; }
+.walk-progress { display:flex; gap:3px; margin-bottom:12px; flex-wrap:wrap; }
+.walk-dot { width:8px; height:8px; border-radius:4px; background:var(--bd); transition:background 0.2s; }
+.walk-dot.done { background:var(--accent); }
+.walk-dot.current { background:var(--blue); transform:scale(1.3); }
+.walk-step-counter { font-size:10px; font-family:monospace; color:var(--hint); margin-bottom:6px; }
+.walk-scenario-name { font-size:15px; font-weight:600; color:var(--fg); margin-bottom:4px; line-height:1.3; font-family:var(--serif); }
+.walk-scenario-id { font-size:9px; font-family:monospace; color:var(--accent); margin-bottom:12px; }
+.walk-gherkin { font-family:monospace; font-size:11px; line-height:1.8; margin-bottom:16px; }
+.walk-gherkin .kw { color:var(--accent); font-weight:600; }
+.walk-invariants { margin-bottom:16px; }
+.walk-inv-title { font-size:9px; font-family:monospace; color:var(--hint); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.walk-inv-item { font-size:9px; font-family:monospace; color:var(--coral); margin-bottom:2px; }
+.walk-nav-btns { display:flex; gap:8px; margin-top:auto; }
+.walk-nav-btns button { flex:1; padding:10px; border:1px solid var(--bd); border-radius:8px; background:none; color:var(--fg); cursor:pointer; font-family:var(--sans); font-size:12px; transition:all 0.15s; }
+.walk-nav-btns button:hover { background:var(--bd); }
+.walk-nav-btns button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.walk-nav-btns button.primary:hover { opacity:0.9; }
+.walk-nav-btns button:disabled { opacity:0.3; cursor:default; }
+</style>
+</head>
+<body>
+
+<div class="mode-bar">
+  <button class="mode-btn active" id="mode-map" onclick="setMode('map')">Map</button>
+  <button class="mode-btn" id="mode-walk" onclick="setMode('walk')">Walkthrough</button>
+</div>
+
+<!-- MAP -->
+<div class="viewport" id="viewport">
+  <div class="pan-layer" id="pan-layer">
+    <svg id="arrows" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible;"></svg>
+    
+    <div class="screen" id="node-screen_maps" style="left:80px;top:80px;">
+      <div class="s-tag">screen_maps</div>
+      <div class="s-head"><span>Maps</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_results" style="left:400px;top:80px;">
+      <div class="s-tag">screen_results</div>
+      <div class="s-head"><span>Results</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_no" style="left:720px;top:80px;">
+      <div class="s-tag">screen_no</div>
+      <div class="s-head"><span>No</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_warning" style="left:1040px;top:80px;">
+      <div class="s-tag">screen_warning</div>
+      <div class="s-head"><span>Warning</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_already" style="left:80px;top:640px;">
+      <div class="s-tag">screen_already</div>
+      <div class="s-head"><span>Already</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_init" style="left:400px;top:640px;">
+      <div class="s-tag">screen_init</div>
+      <div class="s-head"><span>Init</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_to" style="left:720px;top:640px;">
+      <div class="s-tag">screen_to</div>
+      <div class="s-head"><span>To</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_could" style="left:1040px;top:640px;">
+      <div class="s-tag">screen_could</div>
+      <div class="s-head"><span>Could</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_would" style="left:80px;top:1200px;">
+      <div class="s-tag">screen_would</div>
+      <div class="s-head"><span>Would</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_full" style="left:400px;top:1200px;">
+      <div class="s-tag">screen_full</div>
+      <div class="s-head"><span>Full</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_isn" style="left:720px;top:1200px;">
+      <div class="s-tag">screen_isn</div>
+      <div class="s-head"><span>Isn</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_patterns" style="left:1040px;top:1200px;">
+      <div class="s-tag">screen_patterns</div>
+      <div class="s-head"><span>Patterns</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_every" style="left:80px;top:1760px;">
+      <div class="s-tag">screen_every</div>
+      <div class="s-head"><span>Every</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_github" style="left:400px;top:1760px;">
+      <div class="s-tag">screen_github</div>
+      <div class="s-head"><span>Github</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_output" style="left:720px;top:1760px;">
+      <div class="s-tag">screen_output</div>
+      <div class="s-head"><span>Output</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_appended" style="left:1040px;top:1760px;">
+      <div class="s-tag">screen_appended</div>
+      <div class="s-head"><span>Appended</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_invariants" style="left:80px;top:2320px;">
+      <div class="s-tag">screen_invariants</div>
+      <div class="s-head"><span>Invariants</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_expected" style="left:400px;top:2320px;">
+      <div class="s-tag">screen_expected</div>
+      <div class="s-head"><span>Expected</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_reads" style="left:720px;top:2320px;">
+      <div class="s-tag">screen_reads</div>
+      <div class="s-head"><span>Reads</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_exists" style="left:1040px;top:2320px;">
+      <div class="s-tag">screen_exists</div>
+      <div class="s-head"><span>Exists</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_end" style="left:80px;top:2880px;">
+      <div class="s-tag">screen_end</div>
+      <div class="s-head"><span>End</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_section" style="left:400px;top:2880px;">
+      <div class="s-tag">screen_section</div>
+      <div class="s-head"><span>Section</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_flag" style="left:720px;top:2880px;">
+      <div class="s-tag">screen_flag</div>
+      <div class="s-head"><span>Flag</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_structure" style="left:1040px;top:2880px;">
+      <div class="s-tag">screen_structure</div>
+      <div class="s-head"><span>Structure</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_file" style="left:80px;top:3440px;">
+      <div class="s-tag">screen_file</div>
+      <div class="s-head"><span>File</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_relationships" style="left:400px;top:3440px;">
+      <div class="s-tag">screen_relationships</div>
+      <div class="s-head"><span>Relationships</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_completes" style="left:720px;top:3440px;">
+      <div class="s-tag">screen_completes</div>
+      <div class="s-head"><span>Completes</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_checklist" style="left:1040px;top:3440px;">
+      <div class="s-tag">screen_checklist</div>
+      <div class="s-head"><span>Checklist</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_run" style="left:80px;top:4000px;">
+      <div class="s-tag">screen_run</div>
+      <div class="s-head"><span>Run</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_generated" style="left:400px;top:4000px;">
+      <div class="s-tag">screen_generated</div>
+      <div class="s-head"><span>Generated</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_50" style="left:720px;top:4000px;">
+      <div class="s-tag">screen_50</div>
+      <div class="s-head"><span>50</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_80" style="left:1040px;top:4000px;">
+      <div class="s-tag">screen_80</div>
+      <div class="s-head"><span>80</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_steps" style="left:80px;top:4560px;">
+      <div class="s-tag">screen_steps</div>
+      <div class="s-head"><span>Steps</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_arrows" style="left:400px;top:4560px;">
+      <div class="s-tag">screen_arrows</div>
+      <div class="s-head"><span>Arrows</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_all" style="left:720px;top:4560px;">
+      <div class="s-tag">screen_all</div>
+      <div class="s-head"><span>All</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_map" style="left:1040px;top:4560px;">
+      <div class="s-tag">screen_map</div>
+      <div class="s-head"><span>Map</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_developer" style="left:80px;top:5120px;">
+      <div class="s-tag">screen_developer</div>
+      <div class="s-head"><span>Developer</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_percentage" style="left:400px;top:5120px;">
+      <div class="s-tag">screen_percentage</div>
+      <div class="s-head"><span>Percentage</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_between" style="left:720px;top:5120px;">
+      <div class="s-tag">screen_between</div>
+      <div class="s-head"><span>Between</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_same" style="left:1040px;top:5120px;">
+      <div class="s-tag">screen_same</div>
+      <div class="s-head"><span>Same</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_label" style="left:80px;top:5680px;">
+      <div class="s-tag">screen_label</div>
+      <div class="s-head"><span>Label</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_below" style="left:400px;top:5680px;">
+      <div class="s-tag">screen_below</div>
+      <div class="s-head"><span>Below</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_scenario" style="left:720px;top:5680px;">
+      <div class="s-tag">screen_scenario</div>
+      <div class="s-head"><span>Scenario</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_if" style="left:1040px;top:5680px;">
+      <div class="s-tag">screen_if</div>
+      <div class="s-head"><span>If</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_screen" style="left:80px;top:6240px;">
+      <div class="s-tag">screen_screen</div>
+      <div class="s-head"><span>Screen</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="node-screen_on" style="left:400px;top:6240px;">
+      <div class="s-tag">screen_on</div>
+      <div class="s-head"><span>On</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button id="zoom-in">+</button>
+    <button id="zoom-out">-</button>
+    <button id="zoom-fit">◻</button>
+    <button id="zoom-reset">1:1</button>
+  </div>
+  <div class="zoom-label" id="zoom-label">100%</div>
+</div>
+
+<!-- WALKTHROUGH -->
+<div class="walk-view" id="walk-view">
+  <div class="walk-picker" id="walk-picker"></div>
+  <div class="walk-main">
+    <div class="walk-screen-wrap"><div class="walk-screen" id="walk-screen"></div></div>
+    <div class="walk-panel">
+      <div class="walk-progress" id="walk-progress"></div>
+      <div class="walk-step-counter" id="walk-step-counter"></div>
+      <div class="walk-scenario-name" id="walk-scenario-name"></div>
+      <div class="walk-scenario-id" id="walk-scenario-id"></div>
+      <div class="walk-gherkin" id="walk-gherkin"></div>
+      <div class="walk-invariants" id="walk-invariants"></div>
+      <div class="walk-nav-btns">
+        <button id="walk-prev" onclick="walkStep(-1)">← Back</button>
+        <button id="walk-next" class="primary" onclick="walkStep(1)">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cujs = {"cuj_init":{"name":"Developer initializes Bantay in an existing project","area":"init","scenarios":[{"id":"sc_init_prerequisites","name":"Verify prerequisites before init","given":"Developer runs bantay init","when":"Bantay checks the environment","then":"Bun runtime availability verified,If Bun not found, clear error with install instructions (link to bun.sh),No silent fallback to Node,Prerequisite check runs before any file system scanning","screen":"default","invs":["inv_bun_available"]},{"id":"sc_init_binary","name":"CLI is invocable by name","given":"Developer has installed Bantay via bun link, bunx, or npm","when":"Developer types bantay init","then":"Command resolves to the CLI entry point,bin field in package.json maps \"bantay\" to src/cli.ts,bunx @bantay/cli init works without global install,npx @bantay/cli init works for Node users","screen":"default","invs":["inv_cli_invocable"]},{"id":"sc_init_detect_stack","name":"Detect project stack","given":"Developer runs bantay init in a project directory","when":"Bantay scans the project","then":"Framework detected (Next.js, Express, Django, Rails, FastAPI, etc.),ORM detected (Prisma, Drizzle, SQLAlchemy, ActiveRecord, etc.),Auth library detected (Clerk, Auth.js, Supabase Auth, Passport, etc.),Detection results displayed to developer,If confidence is low for any detection, marked [manual] not guessed","screen":"default","invs":["inv_no_network"]},{"id":"sc_init_generate_invariants","name":"Generate starter invariants.md","given":"Stack detection is complete","when":"Bantay generates the invariants file","then":"invariants.md created with stack-appropriate defaults,Next.js + Prisma gets auth-on-routes, timestamps-on-tables, soft-deletes, no-raw-sql,Django + PostgreSQL gets different defaults than Next.js + Prisma,Each invariant has a unique stable ID,Each invariant has a category,Invariants reference built-in checkers by name where available,File is human-readable markdown with enough structure for bantay check to parse","screen":"default","invs":[]},{"id":"sc_init_generate_config","name":"Generate bantay.config.yml","given":"Stack detection is complete","when":"Bantay generates the config","then":"bantay.config.yml created with paths to source dirs, schema files, route definitions,Config references detected locations, not hardcoded paths,Developer can edit config to correct any misdetection","screen":"default","invs":[]},{"id":"sc_init_no_project","name":"Init in empty directory","given":"Developer runs bantay init in a directory with no recognizable project","when":"Bantay scans and finds nothing","then":"Warning displayed that no framework was detected,Minimal invariants.md generated with universal defaults only,Config generated with placeholder paths,Developer guided to edit both files","screen":"default","invs":[]},{"id":"sc_init_already_initialized","name":"Init when invariants.md already exists","given":"Developer runs bantay init in a project that already has invariants.md","when":"Bantay detects existing file","then":"Existing invariants.md is NOT overwritten,Developer warned that init was already run,Option to regenerate config only","screen":"default","invs":["inv_init_no_overwrite"]},{"id":"sc_init_speed","name":"Init completes quickly","given":"Project has up to 10,000 files","when":"Bantay scans","then":"Init completes in under 10 seconds,Scanning uses file system metadata and pattern matching, not full AST parsing","screen":"default","invs":[]}]},"cuj_check":{"name":"Developer checks invariants against their codebase","area":"check","scenarios":[{"id":"sc_check_full","name":"Full invariant check","given":"invariants.md and bantay.config.yml exist","when":"Developer runs bantay check","then":"Every invariant in invariants.md is evaluated against the codebase,Checker resolved for each invariant (built-in, community, or project),Each invariant reports PASS or FAIL,Failed invariants include file path and line number of violation,Summary shows total passed, total failed, total skipped,Exit code 0 if all pass, non-zero if any fail","screen":"default","invs":["inv_no_false_negatives","inv_exit_code","inv_no_source_modification"]},{"id":"sc_check_diff","name":"Diff-aware check","given":"Developer has uncommitted or recent changes","when":"Developer runs bantay check --diff HEAD~1","then":"Only invariants that could be affected by the diff are checked,Changed a route file — auth invariants run,Changed a migration — schema invariants run,Changed a log statement — PII invariants run,Results are a strict subset of full check,Any invariant that would fail on full check and is affected by the diff also fails here","screen":"default","invs":["inv_diff_subset","inv_check_speed"]},{"id":"sc_check_single","name":"Check single invariant","given":"Developer wants to verify one specific invariant","when":"Developer runs bantay check --id INV-003","then":"Only the specified invariant is checked,Result shows PASS or FAIL with details","screen":"default","invs":[]},{"id":"sc_check_no_invariants","name":"Check with no invariants file","given":"invariants.md does not exist","when":"Developer runs bantay check","then":"Clear error message suggesting bantay init,Exit code non-zero","screen":"default","invs":[]},{"id":"sc_check_unparseable_invariant","name":"Invariant with no checker available","given":"An invariant in invariants.md references no checker or a checker that isn't installed","when":"bantay check runs","then":"Invariant reported as SKIPPED, not PASS,Warning displayed that no checker was found,Skipped invariants do not cause non-zero exit code","screen":"default","invs":[]},{"id":"sc_check_speed","name":"Diff check completes quickly","given":"Diff is 500 lines or fewer, project has 50 invariants","when":"Developer runs bantay check --diff","then":"Check completes in under 5 seconds","screen":"default","invs":[]},{"id":"sc_check_no_execution","name":"Check never executes project code","given":"Project contains arbitrary code","when":"bantay check runs","then":"No project code is imported, required, or eval'd by bantay core,Built-in checkers use static analysis only,Project checkers run in sandboxed subprocess with no access to bantay internals,A malicious project cannot compromise the developer's machine through bantay check","screen":"default","invs":["inv_no_code_execution"]},{"id":"sc_diff_classified","name":"bantay diff classifies aide changes by entity type","given":"Aide has changed since lock","when":"Developer runs bantay diff","then":"Each change from aide diff is tagged with entity type and implied corrective action","screen":"default","invs":[]},{"id":"sc_diff_design_token","name":"bantay diff classifies design token changes","given":"A design_system child entity changed since lock","when":"Developer runs bantay diff","then":"Change classified as type: design_token with corrective action: screenshot diff + human review","screen":"default","invs":[]}]},"cuj_checkers":{"name":"Developer extends invariant checking with custom or community checkers","area":"checkers","scenarios":[{"id":"sc_checker_builtin","name":"Built-in checkers ship with Bantay","given":"Developer installs @bantay/cli","when":"bantay check runs against a standard invariant category","then":"Built-in checkers available for auth, schema, logging, and other common patterns,No additional install required,Checkers are stack-aware (Next.js auth checker differs from Express auth checker),invariants.md generated by bantay init references built-in checkers by default","screen":"default","invs":[]},{"id":"sc_checker_community","name":"Install community checker from npm","given":"Developer needs a checker Bantay doesn't ship with","when":"Developer installs a community checker package","then":"bun add -d @bantay/checker-stripe installs the package,Invariant in invariants.md references it by package name,Format: checker: @bantay/checker-stripe/webhook-signature,bantay check discovers and runs it automatically,Community checker follows the same interface as built-in checkers","screen":"default","invs":[]},{"id":"sc_checker_project","name":"Write a project-specific checker","given":"Developer has an invariant unique to their codebase","when":"Developer creates a checker in .bantay/checkers/","then":".bantay/checkers/my-check.ts exports a check() function,Invariant in invariants.md references it: checker: ./my-check,bantay check discovers and runs it,Project checker follows the same interface as built-in checkers","screen":"default","invs":[]},{"id":"sc_checker_sandboxed","name":"Project checkers run sandboxed","given":"A project checker exists in .bantay/checkers/","when":"bantay check executes the checker","then":"Checker runs in a sandboxed subprocess,Checker cannot access bantay internals,Checker cannot modify files outside its output,Checker receives config (source paths, schema paths) as read-only input,Checker returns structured result (pass/fail, violations with file paths)","screen":"default","invs":["inv_checker_sandboxed"]},{"id":"sc_checker_interface","name":"All checkers follow a common interface","given":"A checker is built-in, community, or project","when":"bantay check loads the checker","then":"Checker exports: { name, description, check(config) → CheckResult },CheckResult: { pass: boolean, violations: Array<{file, line, message}> },Same interface regardless of where the checker comes from,Checker receives bantay.config.yml paths and invariant statement as input","screen":"default","invs":["inv_checker_interface_uniform"]},{"id":"sc_checker_missing","name":"Referenced checker not found","given":"An invariant references a checker that isn't installed or doesn't exist","when":"bantay check attempts to load the checker","then":"Invariant reported as SKIPPED,Warning names the missing checker and suggests install command,For npm: bun add -d @bantay/checker-foo,For project: create .bantay/checkers/foo.ts","screen":"default","invs":[]}]},"cuj_ci":{"name":"Developer adds Bantay as a required check on every PR","area":"ci","scenarios":[{"id":"sc_ci_github","name":"Generate GitHub Actions workflow","given":"Developer runs bantay ci --github-actions","when":"Bantay generates the workflow","then":".github/workflows/bantay.yml created,Workflow runs bantay check on every PR,Workflow installs Bantay via bunx,Workflow installs community checker packages if referenced in invariants.md,Status check reports pass/fail summary,Workflow file is valid YAML that GitHub Actions accepts","screen":"default","invs":[]},{"id":"sc_ci_gitlab","name":"Generate GitLab CI config","given":"Developer runs bantay ci --gitlab","when":"Bantay generates the config","then":".gitlab-ci.yml updated with bantay stage,If file already exists, Bantay stage is appended, existing stages untouched","screen":"default","invs":[]},{"id":"sc_ci_generic","name":"Generic CI instructions","given":"Developer runs bantay ci with no flag or unsupported CI","when":"Bantay cannot generate a specific config","then":"Prints the shell commands needed to run bantay check in any CI,Developer copies into their CI config manually","screen":"default","invs":[]},{"id":"sc_ci_existing_workflow","name":"CI generation when workflow already exists","given":".github/workflows/bantay.yml already exists","when":"Developer runs bantay ci --github-actions","then":"Existing file is NOT overwritten,Developer warned and given option to overwrite with --force","screen":"default","invs":[]},{"id":"sc_ci_audit_output","name":"CI produces audit-ready output","given":"CI check runs on a PR","when":"All invariants are evaluated","then":"JSON output includes timestamp, commit SHA, invariant IDs checked, pass/fail per invariant,Each result includes which checker was used (built-in, community package name, or project path),Output is machine-parseable for future dashboard ingestion,This is the seed of the compliance evidence trail","screen":"default","invs":["inv_ci_output_parseable"]}]},"cuj_export":{"name":"Developer exports invariants into agent context files","area":"export","scenarios":[{"id":"sc_export_claude","name":"Export to CLAUDE.md","given":"Developer runs bantay export --target claude","when":"Bantay writes to CLAUDE.md","then":"Invariants section appended/replaced in CLAUDE.md,Section has clear start/end markers,Content outside markers is untouched,Invariants formatted as rules the agent must follow,File is valid markdown","screen":"default","invs":[]},{"id":"sc_export_cursor","name":"Export to .cursorrules","given":"Developer runs bantay export --target cursor","when":"Bantay writes to .cursorrules","then":"Invariants section appended/replaced in .cursorrules,Follows Cursor's expected format,Existing rules outside markers untouched","screen":"default","invs":[]},{"id":"sc_export_codex","name":"Export to AGENTS.md","given":"Developer runs bantay export --target codex","when":"Bantay writes to AGENTS.md","then":"Invariants section appended/replaced in AGENTS.md,Works for Codex, Copilot, and any agent that reads AGENTS.md","screen":"default","invs":[]},{"id":"sc_export_idempotent","name":"Export is idempotent","given":"Developer runs export twice without changing invariants.md","when":"Second export runs","then":"Output file is byte-identical to first export,No spurious git diffs","screen":"default","invs":["inv_export_idempotent"]},{"id":"sc_export_no_clobber","name":"Export never destroys user content","given":"CLAUDE.md has user-written content outside the Bantay section","when":"bantay export runs","then":"All content outside the delimited Bantay section is preserved exactly,If no Bantay section exists, it is appended at the end,If Bantay section exists, only that section is replaced","screen":"default","invs":["inv_no_clobber"]}]},"cuj_aide":{"name":"Developer manages project aide structure and tracks changes","area":"aide","scenarios":[{"id":"sc_aide_diff","name":"Compare aide against lock file","given":"Developer has bantay.aide and bantay.aide.lock files","when":"Developer runs bantay aide diff","then":"Shows entities ADDED (in aide but not lock),Shows entities REMOVED (in lock but not aide),Shows entities MODIFIED (hash differs),Shows relationship changes,Classifies entity types by ID prefix (cuj_, sc_, inv_, con_, found_, wis_),Exit code 0 if no changes, exit code 1 if changes,Supports --json flag for machine-readable output","screen":"default","invs":[]},{"id":"sc_aide_init","name":"Initialize a new aide file","given":"Developer runs bantay aide init in a project","when":"No .aide file exists","then":"<dirname>.aide created with skeleton structure","screen":"default","invs":[]},{"id":"sc_aide_discovery","name":"Auto-discover aide file","given":"Developer runs any bantay aide subcommand","when":"Exactly one .aide file exists in the directory","then":"That file is used without --aide flag","screen":"default","invs":[]}]},"cuj_tasks":{"name":"Developer generates a task list from the aide","area":"tasks","scenarios":[{"id":"sc_tasks_all","name":"Generate tasks for full aide","given":"Developer runs bantay tasks --all","when":"Bantay reads the full aide","then":"Task list generated for every CUJ, ordered by depends_on","screen":"default","invs":[]},{"id":"sc_tasks_diff","name":"Generate tasks from diff","given":"Aide has changed since lock","when":"Developer runs bantay tasks","then":"Tasks generated only for added or modified entities","screen":"default","invs":[]},{"id":"sc_tasks_phases","name":"Tasks ordered into phases by dependencies","given":"CUJs have depends_on relationships","when":"bantay tasks generates the list","then":"CUJs with no dependencies come first, dependent CUJs come after","screen":"default","invs":[]},{"id":"sc_tasks_output","name":"Tasks written to tasks.md","given":"Task generation completes","when":"bantay tasks finishes","then":"tasks.md created with phases, scenarios as acceptance criteria, and checklist format","screen":"default","invs":[]},{"id":"sc_tasks_entity_level","name":"Tasks generated for individual entity changes not just CUJ changes","given":"bantay diff reports a new or modified scenario under an existing CUJ","when":"bantay tasks reads the diff","then":"Task generated for the individual scenario even if the parent CUJ is unchanged","screen":"default","invs":[]},{"id":"sc_tasks_design_token","name":"bantay tasks routes design token changes to visual review","given":"bantay diff reports a design_token change","when":"bantay tasks generates the work plan","then":"Task generated: apply token change to components, run screenshot diff against baselines, flag for human review","screen":"default","invs":[]},{"id":"sc_tasks_all_entity_types","name":"Tasks generated for all entity types not just scenarios","given":"bantay diff reports any entity change (constraint, foundation, invariant, design_token, wisdom, relationship)","when":"bantay tasks reads the diff","then":"Corrective action generated per entity type: design_token → apply tokens to code, constraint → enforce in codebase, foundation → apply to project, invariant → write checker, wisdom → update exports","screen":"default","invs":[]}]},"cuj_orchestrate":{"name":"Developer orchestrates multi-agent builds from aide","area":"orchestrate","scenarios":[{"id":"sc_orchestrate_spawn","name":"Spawn teammates for CUJ phases","given":"Developer runs /bantay-orchestrate","when":"Bantay orchestrates the build","then":"Maximum 2 teammates spawned at a time. Each teammate monitors context usage after every scenario — compact at 50%, request restart at 80%.","screen":"default","invs":[]},{"id":"sc_orchestrate_plan","name":"Write plan before spawning teammates","given":"Lead is about to spawn teammates for a CUJ","when":"Lead prepares the CUJ work assignment","then":"Lead writes .bantay/plans/<cuj_id>.md with ordered implementation steps, then validates plan against aide, codebase, interfaces, dependencies, and invariants before committing","screen":"default","invs":["inv_plan_validated"]},{"id":"sc_orchestrate_validate_plan","name":"Validate plan before committing","given":"Lead has written a plan for a CUJ","when":"Lead runs the 5-point validation checklist","then":"Plan is verified against aide scenarios, file references, interface contracts, dependency order, and invariant coverage. Only committed after all checks pass.","screen":"default","invs":["inv_plan_validated"]}]},"cuj_visualize_map":{"name":"Developer views the full screen map with draggable screens, transition arrows, and zoom/pan controls","area":"visualize","scenarios":[{"id":"sc_map_view_screens","name":"View all screens on canvas","given":"Developer opens the visualizer","when":"Map mode loads","then":"All screens rendered as cards on a pannable canvas with transition arrows between them","screen":"default","invs":[]},{"id":"sc_map_drag_screen","name":"Drag screen to reposition","given":"Developer viewing the map","when":"Developer drags a screen card","then":"Screen snaps to 20px grid, all connected arrows update live","screen":"default","invs":[]},{"id":"sc_map_zoom","name":"Zoom in and out","given":"Developer viewing the map","when":"Developer uses scroll wheel or toolbar buttons","then":"Canvas zooms with percentage displayed, fit-all and reset buttons available","screen":"default","invs":[]},{"id":"sc_map_pan","name":"Pan the canvas","given":"Developer viewing the map","when":"Developer clicks and drags on empty canvas","then":"Canvas pans, screens and arrows move together","screen":"default","invs":[]},{"id":"sc_map_arrows_component_level","name":"Arrows connect to specific components","given":"A scenario transitions between screens via a specific component","when":"Map renders the transition","then":"Arrow starts from the specific component element, not the screen card edge","screen":"default","invs":[]},{"id":"sc_map_self_loops","name":"Same-screen actions shown as self-loops","given":"Multiple scenarios stay on the same screen","when":"Map renders transitions","then":"Self-loop arc above the screen with action label","screen":"default","invs":[]},{"id":"sc_map_external_labels","name":"Screen IDs and invariants shown as external labels","given":"Screen has an ID and linked invariants","when":"Map renders the screen","then":"Screen ID floats above the card, invariant IDs float below","screen":"default","invs":[]}]},"cuj_visualize_walkthrough":{"name":"Developer steps through a CUJ scenario by scenario with screen preview and given/when/then details","area":"visualize","scenarios":[{"id":"sc_walk_pick_cuj","name":"Pick a CUJ to walk through","given":"Developer switches to walkthrough mode","when":"Developer selects a CUJ from the picker","then":"First scenario displayed with screen preview and given/when/then","screen":"default","invs":[]},{"id":"sc_walk_step_forward","name":"Step forward through scenarios","given":"Developer viewing a scenario","when":"Developer clicks Next or presses arrow right","then":"Next scenario displayed, screen transitions if screen changes","screen":"default","invs":[]},{"id":"sc_walk_step_back","name":"Step backward through scenarios","given":"Developer past the first scenario","when":"Developer clicks Back or presses arrow left","then":"Previous scenario displayed","screen":"default","invs":[]},{"id":"sc_walk_progress_dots","name":"Progress dots show position in journey","given":"Developer walking through a CUJ","when":"Each step renders","then":"Dots show completed, current, and remaining steps","screen":"default","invs":[]},{"id":"sc_walk_screen_transition","name":"Screen transitions animate on navigation change","given":"Current scenario is on screen A","when":"Next scenario is on screen B","then":"Screen preview animates from A to B with slide transition","screen":"default","invs":[]},{"id":"sc_walk_invariants_shown","name":"Invariants displayed for each scenario","given":"Scenario has protected_by relationships","when":"Scenario step renders","then":"Linked invariants shown in the detail panel","screen":"default","invs":[]}]},"cuj_visualize_generate":{"name":"Developer runs bantay visualize to generate an HTML screen map from any aide","area":"visualize","scenarios":[{"id":"sc_visualize_with_screens","name":"Generate visualizer from aide with screen entities","given":"Aide file has screen and component entities","when":"Developer runs bantay visualize","then":"HTML file generated with screen wireframes composed from components and design tokens","screen":"default","invs":["inv_visualize_aide_agnostic"]},{"id":"sc_visualize_without_screens","name":"Generate visualizer from aide without screen entities","given":"Aide file has CUJs and scenarios but no screen entities","when":"Developer runs bantay visualize","then":"Screens inferred from scenario given/then states, rendered as placeholder cards","screen":"default","invs":["inv_visualize_aide_agnostic"]},{"id":"sc_visualize_output_file","name":"Output is a single self-contained HTML file","given":"Developer runs bantay visualize","when":"Generation completes","then":"Single HTML file with zero external dependencies written to project root","screen":"default","invs":["inv_visualize_self_contained"]}]}};
+const screens = [{"id":"screen_maps","name":"Maps","inferred":true},{"id":"screen_results","name":"Results","inferred":true},{"id":"screen_no","name":"No","inferred":true},{"id":"screen_warning","name":"Warning","inferred":true},{"id":"screen_already","name":"Already","inferred":true},{"id":"screen_init","name":"Init","inferred":true},{"id":"screen_to","name":"To","inferred":true},{"id":"screen_could","name":"Could","inferred":true},{"id":"screen_would","name":"Would","inferred":true},{"id":"screen_full","name":"Full","inferred":true},{"id":"screen_isn","name":"Isn","inferred":true},{"id":"screen_patterns","name":"Patterns","inferred":true},{"id":"screen_every","name":"Every","inferred":true},{"id":"screen_github","name":"Github","inferred":true},{"id":"screen_output","name":"Output","inferred":true},{"id":"screen_appended","name":"Appended","inferred":true},{"id":"screen_invariants","name":"Invariants","inferred":true},{"id":"screen_expected","name":"Expected","inferred":true},{"id":"screen_reads","name":"Reads","inferred":true},{"id":"screen_exists","name":"Exists","inferred":true},{"id":"screen_end","name":"End","inferred":true},{"id":"screen_section","name":"Section","inferred":true},{"id":"screen_flag","name":"Flag","inferred":true},{"id":"screen_structure","name":"Structure","inferred":true},{"id":"screen_file","name":"File","inferred":true},{"id":"screen_relationships","name":"Relationships","inferred":true},{"id":"screen_completes","name":"Completes","inferred":true},{"id":"screen_checklist","name":"Checklist","inferred":true},{"id":"screen_run","name":"Run","inferred":true},{"id":"screen_generated","name":"Generated","inferred":true},{"id":"screen_50","name":"50","inferred":true},{"id":"screen_80","name":"80","inferred":true},{"id":"screen_steps","name":"Steps","inferred":true},{"id":"screen_arrows","name":"Arrows","inferred":true},{"id":"screen_all","name":"All","inferred":true},{"id":"screen_map","name":"Map","inferred":true},{"id":"screen_developer","name":"Developer","inferred":true},{"id":"screen_percentage","name":"Percentage","inferred":true},{"id":"screen_between","name":"Between","inferred":true},{"id":"screen_same","name":"Same","inferred":true},{"id":"screen_label","name":"Label","inferred":true},{"id":"screen_below","name":"Below","inferred":true},{"id":"screen_scenario","name":"Scenario","inferred":true},{"id":"screen_if","name":"If","inferred":true},{"id":"screen_screen","name":"Screen","inferred":true},{"id":"screen_on","name":"On","inferred":true}];
+const transitions = [{"from":"screen_init","to":"screen_all","label":"Verify prerequisites before init","scenarioId":"sc_init_prerequisites"},{"from":"screen_all","to":"screen_init","label":"CLI is invocable by name","scenarioId":"sc_init_binary"},{"from":"screen_init","to":"screen_on","label":"Detect project stack","scenarioId":"sc_init_detect_stack"},{"from":"screen_on","to":"screen_no","label":"Generate bantay.config.yml","scenarioId":"sc_init_generate_config"},{"from":"screen_no","to":"screen_already","label":"Init in empty directory","scenarioId":"sc_init_no_project"},{"from":"screen_already","to":"screen_to","label":"Init when invariants.md already exists","scenarioId":"sc_init_already_initialized"},{"from":"screen_invariants","to":"screen_developer","label":"Full invariant check","scenarioId":"sc_check_full"},{"from":"screen_developer","to":"screen_to","label":"Diff-aware check","scenarioId":"sc_check_diff"},{"from":"screen_to","to":"screen_no","label":"Check single invariant","scenarioId":"sc_check_single"},{"from":"screen_no","to":"screen_invariants","label":"Invariant with no checker available","scenarioId":"sc_check_unparseable_invariant"},{"from":"screen_invariants","to":"screen_on","label":"Diff check completes quickly","scenarioId":"sc_check_speed"},{"from":"screen_on","to":"screen_if","label":"Check never executes project code","scenarioId":"sc_check_no_execution"},{"from":"screen_if","to":"screen_to","label":"bantay diff classifies aide changes by entity type","scenarioId":"sc_diff_classified"},{"from":"screen_all","to":"screen_developer","label":"Built-in checkers ship with Bantay","scenarioId":"sc_checker_builtin"},{"from":"screen_developer","to":"screen_to","label":"Install community checker from npm","scenarioId":"sc_checker_community"},{"from":"screen_to","to":"screen_exists","label":"Write a project-specific checker","scenarioId":"sc_checker_project"},{"from":"screen_exists","to":"screen_file","label":"Project checkers run sandboxed","scenarioId":"sc_checker_sandboxed"},{"from":"screen_file","to":"screen_isn","label":"All checkers follow a common interface","scenarioId":"sc_checker_interface"},{"from":"screen_github","to":"screen_run","label":"Generate GitHub Actions workflow","scenarioId":"sc_ci_github"},{"from":"screen_run","to":"screen_no","label":"Generate GitLab CI config","scenarioId":"sc_ci_gitlab"},{"from":"screen_no","to":"screen_already","label":"Generic CI instructions","scenarioId":"sc_ci_generic"},{"from":"screen_already","to":"screen_run","label":"CI generation when workflow already exists","scenarioId":"sc_ci_existing_workflow"},{"from":"screen_run","to":"screen_invariants","label":"Export to AGENTS.md","scenarioId":"sc_export_codex"},{"from":"screen_invariants","to":"screen_section","label":"Export is idempotent","scenarioId":"sc_export_idempotent"},{"from":"screen_file","to":"screen_init","label":"Compare aide against lock file","scenarioId":"sc_aide_diff"},{"from":"screen_init","to":"screen_run","label":"Initialize a new aide file","scenarioId":"sc_aide_init"},{"from":"screen_run","to":"screen_generated","label":"Generate tasks for full aide","scenarioId":"sc_tasks_all"},{"from":"screen_generated","to":"screen_end","label":"Generate tasks from diff","scenarioId":"sc_tasks_diff"},{"from":"screen_end","to":"screen_completes","label":"Tasks ordered into phases by dependencies","scenarioId":"sc_tasks_phases"},{"from":"screen_completes","to":"screen_scenario","label":"Tasks written to tasks.md","scenarioId":"sc_tasks_output"},{"from":"screen_scenario","to":"screen_to","label":"Tasks generated for individual entity changes not just CUJ changes","scenarioId":"sc_tasks_entity_level"},{"from":"screen_run","to":"screen_to","label":"Spawn teammates for CUJ phases","scenarioId":"sc_orchestrate_spawn"},{"from":"screen_to","to":"screen_end","label":"Write plan before spawning teammates","scenarioId":"sc_orchestrate_plan"},{"from":"screen_developer","to":"screen_map","label":"View all screens on canvas","scenarioId":"sc_map_view_screens"},{"from":"screen_map","to":"screen_between","label":"Pan the canvas","scenarioId":"sc_map_pan"},{"from":"screen_between","to":"screen_same","label":"Arrows connect to specific components","scenarioId":"sc_map_arrows_component_level"},{"from":"screen_same","to":"screen_invariants","label":"Same-screen actions shown as self-loops","scenarioId":"sc_map_self_loops"},{"from":"screen_to","to":"screen_developer","label":"Pick a CUJ to walk through","scenarioId":"sc_walk_pick_cuj"},{"from":"screen_developer","to":"screen_scenario","label":"Progress dots show position in journey","scenarioId":"sc_walk_progress_dots"},{"from":"screen_scenario","to":"screen_relationships","label":"Screen transitions animate on navigation change","scenarioId":"sc_walk_screen_transition"},{"from":"screen_file","to":"screen_no","label":"Generate visualizer from aide with screen entities","scenarioId":"sc_visualize_with_screens"},{"from":"screen_no","to":"screen_run","label":"Generate visualizer from aide without screen entities","scenarioId":"sc_visualize_without_screens"}];
+
+/* MODE */
+function setMode(m){
+  document.getElementById('mode-map').classList.toggle('active',m==='map');
+  document.getElementById('mode-walk').classList.toggle('active',m==='walk');
+  document.getElementById('viewport').style.display=m==='map'?'block':'none';
+  document.getElementById('walk-view').classList.toggle('active',m==='walk');
+  if(m==='walk')initWalk();
+  if(m==='map')requestAnimationFrame(()=>requestAnimationFrame(drawArrows));
+}
+
+/* WALKTHROUGH */
+let curCuj=null,curStep=0;
+function initWalk(){
+  const p=document.getElementById('walk-picker');p.innerHTML='';
+  Object.entries(cujs).forEach(([id,c])=>{
+    const b=document.createElement('button');b.textContent=c.name;b.onclick=()=>selectCuj(id);p.appendChild(b);
+  });
+  selectCuj(curCuj||Object.keys(cujs)[0]);
+}
+function selectCuj(id){curCuj=id;curStep=0;document.querySelectorAll('.walk-picker button').forEach((b,i)=>b.classList.toggle('active',Object.keys(cujs)[i]===id));renderStep();}
+function walkStep(d){const sc=cujs[curCuj].scenarios,n=curStep+d;if(n<0||n>=sc.length)return;curStep=n;renderStep();}
+function renderStep(){
+  const c=cujs[curCuj],sc=c.scenarios[curStep],tot=c.scenarios.length;
+  const w=document.getElementById('walk-screen');
+  w.innerHTML=`<div class="ws-head"><span>${sc.screen||'default'}</span></div><div class="ws-body" style="padding:20px;text-align:center;color:var(--hint);">${sc.name}</div>`;
+  document.getElementById('walk-progress').innerHTML=c.scenarios.map((_,i)=>`<div class="walk-dot ${i<curStep?'done':''} ${i===curStep?'current':''}"></div>`).join('');
+  document.getElementById('walk-step-counter').textContent=`Step ${curStep+1} of ${tot}`;
+  document.getElementById('walk-scenario-name').textContent=sc.name;
+  document.getElementById('walk-scenario-id').textContent=sc.id;
+  document.getElementById('walk-gherkin').innerHTML=`<div><span class="kw">Given </span>${sc.given}</div><div><span class="kw">When </span>${sc.when}</div><div><span class="kw">Then </span>${sc.then}</div>`;
+  const iv=document.getElementById('walk-invariants');iv.innerHTML=sc.invs.length?`<div class="walk-inv-title">Protected by</div>`+sc.invs.map(i=>`<div class="walk-inv-item">${i}</div>`).join(''):'';
+  document.getElementById('walk-prev').disabled=curStep===0;document.getElementById('walk-next').disabled=curStep===tot-1;
+}
+document.addEventListener('keydown',e=>{if(!document.getElementById('walk-view').classList.contains('active'))return;if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();walkStep(1);}if(e.key==='ArrowLeft'){e.preventDefault();walkStep(-1);}});
+
+/* MAP: zoom/pan/drag */
+const viewport=document.getElementById('viewport'),panLayer=document.getElementById('pan-layer'),svg=document.getElementById('arrows'),GRID=20;
+let zoom=0.5,panX=0,panY=0,isPanning=false,panStart={x:0,y:0};
+function applyTransform(){panLayer.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`;document.getElementById('zoom-label').textContent=Math.round(zoom*100)+'%';}
+document.getElementById('zoom-in').onclick=()=>{zoom=Math.min(2,zoom+0.1);applyTransform();drawArrows();};
+document.getElementById('zoom-out').onclick=()=>{zoom=Math.max(0.15,zoom-0.1);applyTransform();drawArrows();};
+document.getElementById('zoom-reset').onclick=()=>{zoom=1;panX=0;panY=0;applyTransform();drawArrows();};
+document.getElementById('zoom-fit').onclick=()=>{const ns=document.querySelectorAll('#pan-layer .screen');let x1=Infinity,y1=Infinity,x2=0,y2=0;ns.forEach(n=>{const l=parseInt(n.style.left),t=parseInt(n.style.top);x1=Math.min(x1,l);y1=Math.min(y1,t);x2=Math.max(x2,l+220);y2=Math.max(y2,t+n.offsetHeight);});const w=x2-x1+160,h=y2-y1+160,vw=viewport.clientWidth,vh=viewport.clientHeight;zoom=Math.min(vw/w,vh/h,1);panX=(vw-w*zoom)/2-x1*zoom+60;panY=(vh-h*zoom)/2-y1*zoom+60;applyTransform();drawArrows();};
+viewport.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(0.15,Math.min(2,zoom+(e.deltaY>0?-0.05:0.05)));applyTransform();drawArrows();},{passive:false});
+viewport.addEventListener('mousedown',e=>{if(e.target.closest('.screen,.toolbar'))return;isPanning=true;panStart={x:e.clientX-panX,y:e.clientY-panY};viewport.style.cursor='grabbing';e.preventDefault();});
+window.addEventListener('mousemove',e=>{if(isPanning){panX=e.clientX-panStart.x;panY=e.clientY-panStart.y;applyTransform();drawArrows();}});
+window.addEventListener('mouseup',()=>{if(isPanning){isPanning=false;viewport.style.cursor='default';}});
+
+function snap(v){return Math.round(v/GRID)*GRID;}
+let dragNode=null,dragOff={x:0,y:0};
+document.querySelectorAll('#pan-layer .screen').forEach(el=>{el.addEventListener('mousedown',e=>{dragNode=el;dragOff={x:e.clientX/zoom-(parseInt(el.style.left)||0),y:e.clientY/zoom-(parseInt(el.style.top)||0)};el.classList.add('dragging');e.preventDefault();e.stopPropagation();});});
+window.addEventListener('mousemove',e=>{if(!dragNode)return;dragNode.style.left=snap(e.clientX/zoom-dragOff.x)+'px';dragNode.style.top=snap(e.clientY/zoom-dragOff.y)+'px';drawArrows();});
+window.addEventListener('mouseup',()=>{if(dragNode){dragNode.classList.remove('dragging');dragNode=null;}});
+
+function getAnchor(el,side){const lr=panLayer.getBoundingClientRect(),er=el.getBoundingClientRect();const cx=(er.left-lr.left)/zoom+er.width/(2*zoom),cy=(er.top-lr.top)/zoom+er.height/(2*zoom),w=er.width/zoom,h=er.height/zoom;switch(side){case'right':return{x:cx+w/2,y:cy};case'left':return{x:cx-w/2,y:cy};case'top':return{x:cx,y:cy-h/2};case'bottom':return{x:cx,y:cy+h/2};default:return{x:cx,y:cy};}}
+
+function drawEdge(fEl,fS,tEl,tS,label,color){
+  const a=getAnchor(fEl,fS),b=getAnchor(tEl,tS),pull=70;
+  let c1={...a},c2={...b};
+  if(fS==='right')c1.x+=pull;else if(fS==='left')c1.x-=pull;else if(fS==='bottom')c1.y+=pull;else if(fS==='top')c1.y-=pull;
+  if(tS==='right')c2.x+=pull;else if(tS==='left')c2.x-=pull;else if(tS==='bottom')c2.y+=pull;else if(tS==='top')c2.y-=pull;
+  const path=`M${a.x},${a.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${b.x},${b.y}`;
+  const mid='ah-'+Math.random().toString(36).slice(2,8);
+  let s=`<defs><marker id="${mid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>`;
+  s+=`<path d="${path}" fill="none" stroke="${color}" stroke-width="1.5" marker-end="url(#${mid})"/>`;
+  if(label){const t=0.5,mt=1-t;const lx=mt**3*a.x+3*mt**2*t*c1.x+3*mt*t**2*c2.x+t**3*b.x;const ly=mt**3*a.y+3*mt**2*t*c1.y+3*mt*t**2*c2.y+t**3*b.y-10;const tw=label.length*5.2+12;s+=`<rect x="${lx-tw/2}" y="${ly-9}" width="${tw}" height="16" rx="3" fill="var(--bg)" fill-opacity="0.92" stroke="var(--bd)" stroke-width="0.5"/>`;s+=`<text x="${lx}" y="${ly+2}" text-anchor="middle" font-size="8" font-family="monospace" fill="${color}">${label}</text>`;}
+  return s;
+}
+
+function drawArrows(){
+  let s='';
+  transitions.forEach(t=>{
+    const fromEl=document.getElementById('node-'+t.from);
+    const toEl=document.getElementById('node-'+t.to);
+    if(fromEl&&toEl){
+      s+=drawEdge(fromEl,'right',toEl,'left',t.label,'var(--accent)');
+    }
+  });
+  svg.innerHTML=s;
+}
+
+applyTransform();
+requestAnimationFrame(()=>requestAnimationFrame(()=>document.getElementById('zoom-fit').click()));
+window.addEventListener('resize',()=>document.getElementById('zoom-fit').click());
+</script>
+</body>
+</html>

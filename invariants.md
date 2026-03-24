@@ -22,6 +22,11 @@ Rules this project must never break. Generated from bantay.aide.
 - [ ] **inv_export_all_success**: bantay export all generates every output file without error
   - Threat: Export silently skips a file, stale exports persist
 
+## Design Integrity
+
+- [ ] **inv_wireframe_per_component**: Every component entity in the aide must have a corresponding wireframe file at wireframes/<comp_id>.html
+  - Threat: Component added to aide without wireframe file, visualizer falls back to text description instead of rendering actual wireframe
+
 ## Integrity
 
 - [ ] **inv_export_idempotent**: Running bantay export twice produces identical output
