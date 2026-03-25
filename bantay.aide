@@ -1063,6 +1063,26 @@ entities:
       given: Aide has component entities (comp_*)
       when: bantay check runs
       then: Each component entity checked for wireframes/<comp_id>.html, missing files reported as failures
+  sc_visualize_wireframe_variants:
+    parent: cuj_visualize_generate
+    props:
+      name: Visualizer renders component wireframe variants based on scenario state
+      given: "A scenario has component state props (e.g. comp_timer: idle)"
+      when: bantay visualize renders the walkthrough step for that scenario
+      then: Engine looks up wireframes/comp_timer--idle.html. If found, renders it. If not, falls back to wireframes/comp_timer.html
+  sc_visualize_map_default_variants:
+    parent: cuj_visualize_map
+    props:
+      name: Map view uses default wireframe variants
+      given: Map view renders all screens
+      when: No scenario context is available
+      then: Map view uses the default wireframe (no variant suffix) for all components
+  inv_wireframe_variant_fallback:
+    parent: invariants
+    props:
+      statement: If a scenario references a component variant that has no wireframe file, the engine falls back to the default wireframe without error
+      category: design_integrity
+      threat_signal: Missing variant file causes blank component or render error
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
@@ -1238,5 +1258,9 @@ relationships:
     cardinality: many_to_many
   - from: sc_check_wireframe_exists
     to: inv_wireframe_per_component
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_visualize_wireframe_variants
+    to: inv_wireframe_variant_fallback
     type: protected_by
     cardinality: many_to_many

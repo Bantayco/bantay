@@ -77,6 +77,7 @@
 #### Design Integrity
 
 - **inv_wireframe_per_component**: Every component entity in the aide must have a corresponding wireframe file at wireframes/<comp_id>.html
+- **inv_wireframe_variant_fallback**: If a scenario references a component variant that has no wireframe file, the engine falls back to the default wireframe without error
 
 #### Integrity
 

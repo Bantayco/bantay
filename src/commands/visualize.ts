@@ -120,6 +120,7 @@ interface Scenario {
   then: string;
   screen?: string;
   invariants: string[];
+  componentStates: Record<string, string>; // comp_* props from scenario
 }
 
 interface Component {
@@ -263,6 +264,16 @@ function extractVisualizerData(aide: AideTree, wireframes: WireframeMap = {}): {
     if (id.startsWith("sc_") && entity.parent) {
       const parentCuj = cujMap.get(entity.parent);
       if (parentCuj) {
+        // Collect component state overrides (props starting with comp_)
+        const componentStates: Record<string, string> = {};
+        if (entity.props) {
+          for (const [key, value] of Object.entries(entity.props)) {
+            if (key.startsWith("comp_")) {
+              componentStates[key] = String(value);
+            }
+          }
+        }
+
         const scenario: Scenario = {
           id,
           name: String(entity.props?.name || id),
@@ -271,6 +282,7 @@ function extractVisualizerData(aide: AideTree, wireframes: WireframeMap = {}): {
           then: String(entity.props?.then || ""),
           screen: entity.props?.screen as string | undefined,
           invariants: protectedBy.get(id) || [],
+          componentStates,
         };
         parentCuj.scenarios.push(scenario);
       }
@@ -450,6 +462,7 @@ function generateVisualizerHtml(
             then: s.then,
             screen: s.screen || "default",
             invs: s.invariants,
+            ...s.componentStates, // Include comp_* props directly on scenario
           })),
         },
       ])
@@ -486,6 +499,16 @@ function generateVisualizerHtml(
     screenHtmlMapObj[screen.id] = bodyHtml + navHtml;
   }
   const screenHtmlMapData = JSON.stringify(screenHtmlMapObj);
+
+  // Build variantHtmlMap - contains variant wireframes (e.g., comp_timer--idle)
+  const variantHtmlMapObj: Record<string, string> = {};
+  for (const [key, html] of Object.entries(wireframes)) {
+    if (key.includes("--")) {
+      // This is a variant wireframe
+      variantHtmlMapObj[key] = html;
+    }
+  }
+  const variantHtmlMapData = JSON.stringify(variantHtmlMapObj);
 
   // Generate screen HTML for map view
   const screenHtml = screens
@@ -685,6 +708,7 @@ const cujs = ${cujsData};
 const screens = ${screensData};
 const transitions = ${transitionsData};
 const screenHtmlMap = ${screenHtmlMapData};
+const variantHtmlMap = ${variantHtmlMapData};
 
 /* MODE */
 function setMode(m){
@@ -707,14 +731,33 @@ function initWalk(){
 }
 function selectCuj(id){curCuj=id;curStep=0;document.querySelectorAll('.walk-picker button').forEach((b,i)=>b.classList.toggle('active',Object.keys(cujs)[i]===id));renderStep();}
 function walkStep(d){const sc=cujs[curCuj].scenarios,n=curStep+d;if(n<0||n>=sc.length)return;curStep=n;renderStep();}
+function renderScreenForStep(screenId,scenario){
+  const screenData=screens.find(s=>s.id===screenId||s.name.toLowerCase()===scenario.screen);
+  if(!screenData||!screenData.components||screenData.components.length===0){
+    return \`<div style="padding:20px;text-align:center;color:var(--hint);">\${scenario.name}</div>\`;
+  }
+  let html='';
+  for(const comp of screenData.components){
+    const variant=scenario[comp.id];
+    const variantKey=variant?comp.id+'--'+variant:null;
+    const wireframe=(variantKey&&variantHtmlMap[variantKey])||comp.wireframeHtml||\`<div class="comp-desc">\${comp.description||comp.name}</div>\`;
+    const label=variant?comp.id+' · '+variant:comp.id;
+    html+=\`<div class="comp-box"><div class="comp-label">\${label}</div>\${wireframe}</div>\`;
+  }
+  if(screenData.nav==='none'){
+    html+='<div class="nav-footer">no nav — immersive</div>';
+  }else if(screenData.nav){
+    html+='<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>';
+  }
+  return html;
+}
 function renderStep(){
   const c=cujs[curCuj],sc=c.scenarios[curStep],tot=c.scenarios.length;
   const w=document.getElementById('walk-screen');
   // Find the screen entity for this scenario's screen prop
-  const screenId='screen_'+sc.screen;
-  const screenData=screens.find(s=>s.id===screenId||s.name.toLowerCase()===sc.screen);
-  // Use pre-rendered HTML from screenHtmlMap
-  let bodyContent=screenHtmlMap[screenId]||screenHtmlMap[screenData?.id]||\`<div style="padding:20px;text-align:center;color:var(--hint);">\${sc.name}</div>\`;
+  const screenId=sc.screen;
+  // Render screen with variant support
+  const bodyContent=renderScreenForStep(screenId,sc);
   w.innerHTML=\`<div class="ws-head"><span>\${sc.screen||'default'}</span></div><div class="ws-body">\${bodyContent}</div>\`;
   document.getElementById('walk-progress').innerHTML=c.scenarios.map((_,i)=>\`<div class="walk-dot \${i<curStep?'done':''} \${i===curStep?'current':''}"></div>\`).join('');
   document.getElementById('walk-step-counter').textContent=\`Step \${curStep+1} of \${tot}\`;

@@ -1393,8 +1393,8 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // renderStep should look up from screenHtmlMap
-      expect(html).toContain("screenHtmlMap[screenId]");
+      // renderStep should use renderScreenForStep for variant support
+      expect(html).toContain("renderScreenForStep(screenId,sc)");
     });
 
     test("screenHtmlMap includes same content as map view screens", async () => {
@@ -1451,6 +1451,63 @@ relationships: []
       expect(html).toContain("comp_avatar");
       // screenHtmlMap should be keyed by screen_profile
       expect(html).toContain("screen_profile");
+    });
+
+    test("renderStep handles full screen ID in scenario screen prop", async () => {
+      // Bug: if scenario's screen prop is "screen_flow_mode" (full ID),
+      // the code was prepending "screen_" making "screen_screen_flow_mode"
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_flow_mode:
+    parent: screens
+    props:
+      name: Flow Mode
+      components: comp_editor
+  components:
+    parent: my_project
+  comp_editor:
+    parent: components
+    props:
+      name: Editor
+      description: Flow editor
+  cujs:
+    display: table
+    parent: my_project
+  cuj_write:
+    parent: cujs
+    props:
+      feature: Write content
+  sc_enter_flow:
+    parent: cuj_write
+    props:
+      name: Enter flow mode
+      given: User on editor
+      when: User clicks flow
+      then: Flow mode active
+      screen: screen_flow_mode
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_editor.html"),
+        `<div class="flow-editor-wireframe">Editor</div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // The renderStep should use sc.screen directly as the key
+      // Not prepend "screen_" to get "screen_screen_flow_mode"
+      expect(html).toContain("const screenId=sc.screen");
+      // screenHtmlMap should have the full screen ID as key
+      expect(html).toContain('"screen_flow_mode"');
     });
   });
 
@@ -1789,6 +1846,303 @@ relationships: []
       // comp_bio should fall back to description
       expect(html).toContain("comp_bio");
       expect(html).toContain("User biography text");
+    });
+  });
+
+  describe("wireframe variants", () => {
+    test("walkthrough renders variant wireframe when scenario has comp_ prop", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+      description: Countdown timer
+  cujs:
+    display: table
+    parent: my_project
+  cuj_write:
+    parent: cujs
+    props:
+      feature: Write content
+  sc_idle_timer:
+    parent: cuj_write
+    props:
+      name: Timer is idle
+      given: User on draft
+      when: Timer not started
+      then: Timer shows idle state
+      screen: screen_draft
+      comp_timer: idle
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      // Default wireframe
+      await writeFile(
+        join(testDir, "wireframes", "comp_timer.html"),
+        `<div class="timer-default">00:00</div>`
+      );
+      // Variant wireframe
+      await writeFile(
+        join(testDir, "wireframes", "comp_timer--idle.html"),
+        `<div class="timer-idle-variant">IDLE</div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have variantHtmlMap with the idle variant
+      expect(html).toContain("variantHtmlMap");
+      expect(html).toContain("comp_timer--idle");
+      expect(html).toContain("timer-idle-variant");
+    });
+
+    test("walkthrough falls back to default wireframe when no variant specified", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+      description: Countdown timer
+  cujs:
+    display: table
+    parent: my_project
+  cuj_write:
+    parent: cujs
+    props:
+      feature: Write content
+  sc_default_timer:
+    parent: cuj_write
+    props:
+      name: Timer default state
+      given: User on draft
+      when: Timer shows
+      then: Timer displays
+      screen: screen_draft
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_timer.html"),
+        `<div class="timer-default-wf">DEFAULT TIMER</div>`
+      );
+      await writeFile(
+        join(testDir, "wireframes", "comp_timer--idle.html"),
+        `<div class="timer-idle-wf">IDLE</div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // walkthrough should render default when no comp_timer prop in scenario
+      // screenHtmlMap for screen_draft should have default wireframe
+      expect(html).toContain("timer-default-wf");
+    });
+
+    test("walkthrough falls back to default when variant file missing", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+      description: Countdown timer
+  cujs:
+    display: table
+    parent: my_project
+  cuj_write:
+    parent: cujs
+    props:
+      feature: Write content
+  sc_nonexistent_variant:
+    parent: cuj_write
+    props:
+      name: Timer with missing variant
+      given: User on draft
+      when: Timer shows
+      then: Timer displays
+      screen: screen_draft
+      comp_timer: nonexistent
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      // Only default wireframe, no --nonexistent variant
+      await writeFile(
+        join(testDir, "wireframes", "comp_timer.html"),
+        `<div class="timer-fallback-default">FALLBACK</div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should not error, should have fallback content
+      expect(html).toContain("timer-fallback-default");
+      // Scenario data should include the comp_timer prop for walkthrough to use
+      expect(html).toContain('"comp_timer":"nonexistent"');
+    });
+
+    test("map view uses default wireframes only (no variants)", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+      description: Countdown timer
+  cujs:
+    display: table
+    parent: my_project
+  cuj_write:
+    parent: cujs
+    props:
+      feature: Write content
+  sc_with_variant:
+    parent: cuj_write
+    props:
+      name: Timer variant scenario
+      given: User on draft
+      when: Timer shows
+      then: Timer displays
+      screen: screen_draft
+      comp_timer: idle
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_timer.html"),
+        `<div class="map-default-timer">MAP DEFAULT</div>`
+      );
+      await writeFile(
+        join(testDir, "wireframes", "comp_timer--idle.html"),
+        `<div class="map-idle-timer">MAP IDLE</div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // screenHtmlMap (used by map view) should have the DEFAULT wireframe
+      // The map view HTML rendering uses screenHtmlMap directly
+      expect(html).toContain("map-default-timer");
+      // screenHtmlMap should NOT contain the variant (variants are in variantHtmlMap)
+      const screenHtmlMapMatch = html.match(/const screenHtmlMap\s*=\s*(\{[^}]+\})/);
+      if (screenHtmlMapMatch) {
+        expect(screenHtmlMapMatch[1]).not.toContain("map-idle-timer");
+      }
+    });
+
+    test("walkthrough shows variant name in component label", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_editor
+  components:
+    parent: my_project
+  comp_editor:
+    parent: components
+    props:
+      name: Editor
+      description: Text editor
+  cujs:
+    display: table
+    parent: my_project
+  cuj_write:
+    parent: cujs
+    props:
+      feature: Write
+  sc_empty_editor:
+    parent: cuj_write
+    props:
+      name: Editor empty
+      given: User on draft
+      when: Editor shows
+      then: Editor empty
+      screen: screen_draft
+      comp_editor: empty
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_editor.html"),
+        `<div class="editor-default">Editor</div>`
+      );
+      await writeFile(
+        join(testDir, "wireframes", "comp_editor--empty.html"),
+        `<div class="editor-empty-state">Empty</div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // The renderScreenForStep function should show variant in label
+      // Check that the generated JS builds labels with variant suffix
+      expect(html).toContain("comp.id+'--'+variant");
     });
   });
 });
