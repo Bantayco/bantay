@@ -782,22 +782,25 @@ let selectedMapCuj=null;
 let highlightedStoryboardIdx=null;
 let curCuj=null,curStep=0;
 
-/* SCREEN POOL - caches and reuses DOM elements */
-const screenPool={};
+/* SCREEN NAME HELPER - looks up screen name from ID */
+function getScreenName(screenId){
+  const screen=screens.find(s=>s.id===screenId||s.id==='screen_'+screenId);
+  return screen?screen.name:(screenId||'default');
+}
+
+/* SCREEN HTML CACHE - caches rendered HTML strings */
+const screenHtmlCache={};
 function getScreenKey(screenId,scenario){
   // Build key from screen + component variants
   const variants=Object.keys(scenario).filter(k=>k.startsWith('comp_')).sort().map(k=>k+'='+scenario[k]).join('|');
   return screenId+'::'+variants;
 }
-function getOrCreateScreen(screenId,scenario){
+function getScreenHtml(screenId,scenario){
   const key=getScreenKey(screenId,scenario);
-  if(screenPool[key])return screenPool[key];
-  // Create new element
-  const el=document.createElement('div');
-  el.className='pool-screen';
-  el.innerHTML=\`<div class="ws-head"><span>\${scenario.screen||'default'}</span></div><div class="ws-body">\${renderScreenForStep(screenId,scenario)}</div>\`;
-  screenPool[key]=el;
-  return el;
+  if(!screenHtmlCache[key]){
+    screenHtmlCache[key]=renderScreenForStep(screenId,scenario);
+  }
+  return screenHtmlCache[key];
 }
 
 /* MODE */
@@ -860,9 +863,10 @@ function selectScenario(cujId,stepIdx,scenarioId,screenId){
     if(selectedMapCuj&&selectedMapCuj===cujId){
       highlightStoryboardCard(stepIdx);
     }else{
-      const screenEl=document.getElementById('node-'+screenId);
-      if(screenEl)screenEl.classList.add('highlighted');
-      drawArrows();
+      // Auto-select CUJ and render its storyboard
+      selectedMapCuj=cujId;
+      renderStoryboard(cujId);
+      highlightStoryboardCard(stepIdx);
     }
   }else{
     // Walkthrough mode: update walkthrough view
@@ -914,6 +918,15 @@ function showDefaultScreens(){
   drawArrows();
 }
 
+/* STATE KEY - builds unique key from screen + component variants */
+function getStateKey(scenario){
+  const variants=Object.keys(scenario).filter(k=>k.startsWith('comp_')).sort().map(k=>k+'='+scenario[k]).join('|');
+  return scenario.screen+'::'+variants;
+}
+
+let stateCards=[];  // Array of {stateKey, screenId, scenario, scenarios, cardIdx}
+let scenarioToCard={};  // Map scenario index to card index
+
 function renderStoryboard(cujId){
   const cuj=cujs[cujId];
   if(!cuj)return;
@@ -922,38 +935,56 @@ function renderStoryboard(cujId){
   const container=document.getElementById('storyboard-container');
   container.classList.add('active');
   container.innerHTML='';
-  // Generate one card per scenario using getOrCreateScreen
-  let xPos=80;
+
+  // Group scenarios by state key (deduplicate)
+  stateCards=[];
+  scenarioToCard={};
+  const seenKeys={};
   cuj.scenarios.forEach((sc,i)=>{
-    const screenId=sc.screen;
-    const screenEl=getOrCreateScreen(screenId,sc);
-    const card=document.createElement('div');
-    card.className='storyboard-card';
-    card.id='storyboard-'+i;
-    card.style.left=xPos+'px';
-    card.style.top='80px';
-    card.innerHTML=\`<div class="s-head"><span>\${sc.screen||'default'}</span></div><div class="s-body"></div><div class="storyboard-label"><span class="scenario-name">\${sc.name}</span><span class="screen-id">\${sc.screen||'default'}</span></div>\`;
-    card.querySelector('.s-body').appendChild(screenEl);
-    container.appendChild(card);
+    const key=getStateKey(sc);
+    if(!seenKeys[key]){
+      seenKeys[key]={stateKey:key,screenId:sc.screen,scenario:sc,scenarios:[sc],cardIdx:stateCards.length};
+      stateCards.push(seenKeys[key]);
+    }else{
+      seenKeys[key].scenarios.push(sc);
+    }
+    scenarioToCard[i]=seenKeys[key].cardIdx;
+  });
+
+  // Generate one card per unique state
+  let xPos=80;
+  stateCards.forEach((card,cardIdx)=>{
+    const screenId=card.screenId;
+    const el=document.createElement('div');
+    el.className='storyboard-card';
+    el.id='storyboard-'+cardIdx;
+    el.style.left=xPos+'px';
+    el.style.top='80px';
+    // Show all scenario names that map to this card
+    const names=card.scenarios.map(s=>s.name).join('<br>');
+    el.innerHTML=\`<div class="s-head"><span>\${getScreenName(screenId)}</span></div><div class="s-body"></div><div class="storyboard-label"><span class="scenario-name">\${names}</span><span class="screen-id">\${card.screenId||'default'}</span></div>\`;
+    el.querySelector('.s-body').innerHTML=getScreenHtml(screenId,card.scenario);
+    container.appendChild(el);
     xPos+=300;
   });
   highlightedStoryboardIdx=null;
-  drawStoryboardArrows(cuj.scenarios,highlightedStoryboardIdx);
+  drawStoryboardArrows(stateCards,highlightedStoryboardIdx);
 }
 
-function highlightStoryboardCard(idx){
-  highlightedStoryboardIdx=idx;
+function highlightStoryboardCard(scenarioIdx){
+  // Map scenario index to card index
+  const cardIdx=scenarioToCard[scenarioIdx];
+  highlightedStoryboardIdx=cardIdx;
   // Clear previous storyboard highlights
   document.querySelectorAll('.storyboard-card.highlighted').forEach(el=>el.classList.remove('highlighted'));
-  // Highlight the card at this index
-  const cardEl=document.getElementById('storyboard-'+idx);
+  // Highlight the card at this card index
+  const cardEl=document.getElementById('storyboard-'+cardIdx);
   if(cardEl){
     cardEl.classList.add('highlighted');
     panToCard(cardEl);
   }
-  // Redraw arrows with highlight on incoming arrow
-  const cuj=cujs[selectedMapCuj];
-  if(cuj)drawStoryboardArrows(cuj.scenarios,highlightedStoryboardIdx);
+  // Redraw arrows with highlight
+  drawStoryboardArrows(stateCards,highlightedStoryboardIdx);
 }
 
 function panToCard(el){
@@ -997,10 +1028,9 @@ function renderStep(){
   const w=document.getElementById('walk-screen');
   // Find the screen entity for this scenario's screen prop
   const screenId=sc.screen;
-  // Get or create screen element (reparents if already exists elsewhere)
-  const screenEl=getOrCreateScreen(screenId,sc);
-  w.innerHTML=\`<div class="ws-head"><span>\${sc.screen||'default'}</span></div><div class="ws-body"></div>\`;
-  w.querySelector('.ws-body').appendChild(screenEl);
+  // Get cached HTML for screen content
+  w.innerHTML=\`<div class="ws-head"><span>\${getScreenName(screenId)}</span></div><div class="ws-body"></div>\`;
+  w.querySelector('.ws-body').innerHTML=getScreenHtml(screenId,sc);
   document.getElementById('walk-progress').innerHTML=c.scenarios.map((_,i)=>\`<div class="walk-dot \${i<curStep?'done':''} \${i===curStep?'current':''}"></div>\`).join('');
   document.getElementById('walk-step-counter').textContent=\`Step \${curStep+1} of \${tot}\`;
   document.getElementById('walk-scenario-name').textContent=sc.name;
@@ -1013,7 +1043,48 @@ function renderStep(){
     el.classList.toggle('current',el.dataset.cuj===curCuj&&parseInt(el.dataset.step)===curStep);
   });
 }
-document.addEventListener('keydown',e=>{if(!document.getElementById('walk-canvas').classList.contains('active'))return;if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();walkStep(1);}if(e.key==='ArrowLeft'){e.preventDefault();walkStep(-1);}});
+document.addEventListener('keydown',e=>{
+  // Walkthrough mode keyboard nav
+  if(document.getElementById('walk-canvas').classList.contains('active')){
+    if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();walkStep(1);}
+    if(e.key==='ArrowLeft'){e.preventDefault();walkStep(-1);}
+    return;
+  }
+  // Map mode storyboard keyboard nav (navigates between unique state cards)
+  if(currentMode==='map'&&selectedMapCuj&&stateCards.length>0){
+    const len=stateCards.length;
+    if(e.key==='ArrowRight'){
+      e.preventDefault();
+      // If no card highlighted yet, highlight first card
+      if(highlightedStoryboardIdx===null){
+        highlightedStoryboardIdx=0;
+        curStep=0;  // First scenario of first card
+        highlightStoryboardCard(0);
+        updateSidebarHighlight();
+      }else if(highlightedStoryboardIdx<len-1){
+        // Move to next card
+        const nextCardIdx=highlightedStoryboardIdx+1;
+        // Find first scenario that maps to this card
+        const firstScenarioIdx=Object.keys(scenarioToCard).find(k=>scenarioToCard[k]===nextCardIdx);
+        curStep=parseInt(firstScenarioIdx)||0;
+        highlightStoryboardCard(curStep);
+        updateSidebarHighlight();
+      }
+    }
+    if(e.key==='ArrowLeft'){
+      e.preventDefault();
+      if(highlightedStoryboardIdx!==null&&highlightedStoryboardIdx>0){
+        // Move to previous card
+        const prevCardIdx=highlightedStoryboardIdx-1;
+        // Find first scenario that maps to this card
+        const firstScenarioIdx=Object.keys(scenarioToCard).find(k=>scenarioToCard[k]===prevCardIdx);
+        curStep=parseInt(firstScenarioIdx)||0;
+        highlightStoryboardCard(curStep);
+        updateSidebarHighlight();
+      }
+    }
+  }
+});
 
 /* MAP: zoom/pan/drag */
 const mapCanvas=document.getElementById('map-canvas'),panLayer=document.getElementById('pan-layer'),svg=document.getElementById('arrows'),GRID=20;

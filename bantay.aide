@@ -1107,17 +1107,17 @@ entities:
   sc_map_click_scenario_highlights:
     parent: cuj_visualize_map
     props:
-      name: Clicking a scenario highlights its screen and transition
-      given: Developer viewing the map with sidebar
-      when: Developer clicks a scenario in the sidebar
-      then: The scenario's screen is highlighted on the canvas and the transition arrow for that scenario is emphasized
+      name: Clicking a scenario auto-selects its CUJ and highlights the card
+      given: Developer clicks any scenario in the sidebar
+      when: The scenario belongs to a CUJ
+      then: The CUJ's storyboard renders automatically, the clicked scenario's card is highlighted and auto-panned to center
   sc_map_linear_layout:
     parent: cuj_visualize_map
     props:
-      name: Map shows one screen per scenario in sequence
+      name: Storyboard shows unique screen states, not one card per scenario
       given: Developer selects a CUJ in the map sidebar
-      when: Map re-renders
-      then: One screen card rendered per scenario in that CUJ, left to right. Each screen shows the component wireframe variants for that scenario's state. Transition arrows connect consecutive screens. Screen label shows scenario name below the card.
+      when: Storyboard renders
+      then: One card per unique (screen + component state) combination. Scenarios that share the same screen and state map to the same card. Cards ordered by first scenario appearance. Transition arrows only between cards with different states.
   sc_map_default_all_screens:
     parent: cuj_visualize_map
     props:
@@ -1195,6 +1195,13 @@ entities:
       given: A scenario is selected
       when: The screen preview renders
       then: The same DOM element is used in both map and walkthrough views. Switching modes reparents the element, not recreates it.
+  sc_map_keyboard_nav:
+    parent: cuj_visualize_map
+    props:
+      name: Arrow keys navigate between scenarios within the current CUJ in map mode
+      given: Developer has a scenario highlighted in map storyboard
+      when: Developer presses left or right arrow key
+      then: Highlight moves to the previous or next scenario within the same CUJ. Does not wrap around or jump to a different CUJ. No-ops at the first and last scenario.
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available

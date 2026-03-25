@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-25T06:24:33.880Z
+# Generated: 2026-03-25T15:19:30.980Z
 
 entities:
   bantay_cli: 40c228db
@@ -103,13 +103,14 @@ entities:
   sc_init_prerequisites: 4fe816e2 parent:cuj_init bh:1917cbb7
   sc_init_speed: 1de396b0 parent:cuj_init bh:5c59ba55
   sc_map_arrows_component_level: 0cc44f64 parent:cuj_visualize_map bh:49833116
-  sc_map_click_scenario_highlights: 3bfd2f33 parent:cuj_visualize_map bh:40f7496f
+  sc_map_click_scenario_highlights: 187ca7b6 parent:cuj_visualize_map bh:7a836178
   sc_map_debug_overlay: 0f3c5c73 parent:cuj_visualize_map bh:79403bde
   sc_map_default_all_screens: 50df9320 parent:cuj_visualize_map bh:6ccc16b6
   sc_map_drag_screen: 1851b7e5 parent:cuj_visualize_map bh:6a90ca7b
   sc_map_external_labels: 333f5742 parent:cuj_visualize_map bh:6a1b0f02
+  sc_map_keyboard_nav: 4915f97f parent:cuj_visualize_map bh:60da1515
   sc_map_labels_hidden_default: 22415dca parent:cuj_visualize_map bh:03485df7
-  sc_map_linear_layout: 394fab85 parent:cuj_visualize_map bh:5fc544c4
+  sc_map_linear_layout: 7ae39901 parent:cuj_visualize_map bh:57c82a82
   sc_map_pan: 1fa5e29d parent:cuj_visualize_map bh:6820fd1d
   sc_map_resizable_panels: 75646127 parent:cuj_visualize_map bh:299d35c3
   sc_map_screen_min_height: 3cef3674 parent:cuj_visualize_map bh:62ec179a

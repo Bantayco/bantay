@@ -1393,8 +1393,8 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // renderStep should use getOrCreateScreen which wraps renderScreenForStep for variant support
-      expect(html).toContain("getOrCreateScreen(screenId,sc)");
+      // renderStep should use getScreenHtml which caches renderScreenForStep for variant support
+      expect(html).toContain("getScreenHtml(screenId,sc)");
     });
 
     test("screenHtmlMap includes same content as map view screens", async () => {
@@ -2475,9 +2475,9 @@ relationships: []
     });
   });
 
-  // sc_map_linear_layout: Map shows one screen per scenario in sequence
+  // sc_map_linear_layout: Storyboard shows unique screen states, not one card per scenario
   describe("sc_map_linear_layout", () => {
-    test("selecting CUJ generates one screen card per scenario (storyboard)", async () => {
+    test("storyboard deduplicates scenarios with same screen state to one card", async () => {
       const aideContent = `
 entities:
   my_project:
@@ -2539,14 +2539,12 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // Should have a function to select CUJ and render storyboard
-      expect(html).toContain("selectCuj");
-      // Should have storyboard container for dynamically generated cards
-      expect(html).toContain("storyboard-container");
-      // Should have function to render storyboard cards dynamically
-      expect(html).toContain("renderStoryboard");
-      // Should show labels below cards (scenario name and screen ID)
-      expect(html).toContain("storyboard-label");
+      // Should have a function to get state key for deduplication
+      expect(html).toContain("getStateKey");
+      // Should deduplicate scenarios by state key
+      expect(html).toMatch(/stateCards|uniqueStates/);
+      // Should show all scenario names that map to a card
+      expect(html).toMatch(/scenarios.*map|\.scenarios\./);
     });
 
     test("clicking scenario in storyboard mode highlights that scenario's card by index", async () => {
@@ -2615,8 +2613,8 @@ relationships: []
       expect(html).toContain("highlightStoryboardCard");
       // Should have CSS for highlighted storyboard card
       expect(html).toContain(".storyboard-card.highlighted");
-      // highlightStoryboardCard should add class to storyboard-{idx} element
-      expect(html).toMatch(/getElementById\('storyboard-'\+idx\)/);
+      // highlightStoryboardCard should add class to storyboard-{cardIdx} element (maps scenario to card)
+      expect(html).toMatch(/getElementById\('storyboard-'\+cardIdx\)/);
     });
 
     test("all storyboard arrows stay visible when CUJ selected", async () => {
@@ -3755,13 +3753,13 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // Should have a screenPool object for caching
-      expect(html).toContain("screenPool");
-      // Should have getOrCreateScreen function that returns cached element
-      expect(html).toContain("getOrCreateScreen");
+      // Should have a screenHtmlCache object for caching HTML strings
+      expect(html).toContain("screenHtmlCache");
+      // Should have getScreenHtml function that returns cached HTML
+      expect(html).toContain("getScreenHtml");
     });
 
-    test("switching modes reparents screen element via appendChild", async () => {
+    test("switching modes uses innerHTML with cached HTML strings", async () => {
       const aideContent = `
 entities:
   my_project:
@@ -3796,12 +3794,12 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // renderStep should use getOrCreateScreen and appendChild for reparenting
-      expect(html).toMatch(/renderStep.*getOrCreateScreen/s);
-      expect(html).toMatch(/appendChild.*getOrCreateScreen|getOrCreateScreen.*appendChild/s);
+      // renderStep should use getScreenHtml with innerHTML (not appendChild)
+      expect(html).toMatch(/renderStep.*getScreenHtml/s);
+      expect(html).toMatch(/\.innerHTML\s*=\s*getScreenHtml/s);
     });
 
-    test("storyboard uses getOrCreateScreen for each scenario", async () => {
+    test("storyboard uses getScreenHtml for each scenario", async () => {
       const aideContent = `
 entities:
   my_project:
@@ -3836,8 +3834,479 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // renderStoryboard should use getOrCreateScreen
-      expect(html).toMatch(/renderStoryboard.*getOrCreateScreen/s);
+      // renderStoryboard should use getScreenHtml
+      expect(html).toMatch(/renderStoryboard.*getScreenHtml/s);
+    });
+  });
+
+  describe("screen header shows name not ID", () => {
+    test("s-head displays screen.name instead of screen ID", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_onboarding:
+    parent: screens
+    props:
+      name: Onboarding Flow
+  cujs:
+    display: table
+    parent: my_project
+  cuj_signup:
+    parent: cujs
+    props:
+      feature: User signup
+      area: auth
+  sc_welcome:
+    parent: cuj_signup
+    props:
+      name: Welcome screen
+      given: User opens app
+      when: App loads
+      then: Welcome screen shown
+      screen: screen_onboarding
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have a helper function to get screen name from ID
+      expect(html).toContain("getScreenName");
+
+      // The ws-head and s-head should use getScreenName to look up the screen's name
+      // NOT display the screen ID directly
+      expect(html).toMatch(/getScreenName\s*\(/);
+
+      // ws-head header should use getScreenName to look up the screen name
+      expect(html).toMatch(/ws-head.*getScreenName|getScreenName.*ws-head/s);
+    });
+
+    test("storyboard card s-head uses screen name not ID", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_dashboard:
+    parent: screens
+    props:
+      name: Dashboard
+  cujs:
+    display: table
+    parent: my_project
+  cuj_view:
+    parent: cujs
+    props:
+      feature: View dashboard
+      area: main
+  sc_open:
+    parent: cuj_view
+    props:
+      name: Open dashboard
+      given: User logged in
+      when: User clicks dashboard
+      then: Dashboard opens
+      screen: screen_dashboard
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // storyboard card s-head should use getScreenName
+      expect(html).toMatch(/storyboard-card.*s-head.*getScreenName|s-head.*getScreenName.*storyboard/s);
+    });
+  });
+
+  describe("screen content caching with HTML strings", () => {
+    test("getScreenHtml returns cached HTML string not DOM element", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should use getScreenHtml that returns HTML string (not getOrCreateScreen with DOM)
+      expect(html).toContain("getScreenHtml");
+      expect(html).toContain("screenHtmlCache");
+      // Should NOT have getOrCreateScreen anymore
+      expect(html).not.toContain("getOrCreateScreen");
+    });
+
+    test("storyboard uses innerHTML with cached HTML string", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Storyboard should use innerHTML with getScreenHtml (not appendChild)
+      expect(html).toMatch(/s-body.*\.innerHTML\s*=\s*getScreenHtml/s);
+    });
+
+    test("walkthrough uses innerHTML with cached HTML string", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Walkthrough should use innerHTML with getScreenHtml (not appendChild)
+      expect(html).toMatch(/ws-body.*\.innerHTML\s*=\s*getScreenHtml/s);
+    });
+
+    test("getScreenHtml returns only body content without header", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // getScreenHtml should return renderScreenForStep directly (no ws-head wrapper)
+      expect(html).toMatch(/getScreenHtml.*renderScreenForStep\(screenId,\s*scenario\)/s);
+      // The cached content should NOT include ws-head
+      expect(html).not.toMatch(/screenHtmlCache\[key\]\s*=.*ws-head/);
+    });
+  });
+
+  describe("sc_map_click_scenario_highlights", () => {
+    test("clicking scenario auto-selects CUJ and renders storyboard", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+  sc_step2:
+    parent: cuj_test
+    props:
+      name: Step 2
+      given: Step 1 done
+      when: Continue
+      then: Finished
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // selectScenario should auto-select CUJ in else branch
+      expect(html).toContain("selectedMapCuj=cujId");
+      // Then render the storyboard
+      expect(html).toContain("renderStoryboard(cujId)");
+    });
+
+    test("selectScenario highlights card after rendering storyboard", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // After rendering storyboard, selectScenario should highlight the card
+      expect(html).toContain("highlightStoryboardCard(stepIdx)");
+    });
+  });
+
+  describe("sc_map_keyboard_nav", () => {
+    test("ArrowRight in map mode with storyboard navigates to next scenario", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+  sc_step2:
+    parent: cuj_test
+    props:
+      name: Step 2
+      given: Step 1 done
+      when: Continue
+      then: Finished
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Keydown handler should check for map mode with active storyboard
+      expect(html).toContain("currentMode==='map'");
+      expect(html).toContain("selectedMapCuj");
+      // Should handle ArrowRight to increment highlightedStoryboardIdx
+      expect(html).toMatch(/ArrowRight.*highlightedStoryboardIdx/s);
+    });
+
+    test("ArrowLeft in map mode navigates to previous scenario", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should handle ArrowLeft to decrement highlightedStoryboardIdx
+      expect(html).toMatch(/ArrowLeft.*highlightedStoryboardIdx/s);
+    });
+
+    test("keyboard nav calls highlightStoryboardCard and updateSidebarHighlight", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Keyboard nav should call highlightStoryboardCard and updateSidebarHighlight
+      expect(html).toMatch(/keydown.*highlightStoryboardCard/s);
+      expect(html).toMatch(/keydown.*updateSidebarHighlight/s);
     });
   });
 });
