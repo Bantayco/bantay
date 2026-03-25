@@ -694,6 +694,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 .storyboard-label { position:absolute; bottom:-40px; left:0; width:100%; text-align:center; }
 .storyboard-label .scenario-name { font-size:10px; font-family:monospace; color:var(--fg); display:block; }
 .storyboard-label .screen-id { font-size:9px; font-family:monospace; color:var(--hint); display:block; }
+.storyboard-card.highlighted { box-shadow:0 0 0 3px var(--accent), 0 6px 24px rgba(0,0,0,0.18); z-index:15; }
 </style>
 </head>
 <body>
@@ -763,6 +764,7 @@ function setMode(m){
 /* MAP SIDEBAR */
 let highlightedScenarioId=null;
 let selectedMapCuj=null;
+let highlightedStoryboardIdx=null;
 function initMapSidebar(){
   const sidebar=document.getElementById('map-sidebar');
   const areas={};
@@ -777,7 +779,7 @@ function initMapSidebar(){
     cujList.forEach(({id,cuj})=>{
       html+=\`<div class="cuj-group" data-cuj="\${id}"><div class="cuj-name" style="cursor:pointer;" onclick="selectMapCuj('\${id}')">\${cuj.name}</div>\`;
       cuj.scenarios.forEach((sc,i)=>{
-        html+=\`<div class="scenario-item" data-cuj="\${id}" data-step="\${i}" data-scenario="\${sc.id}" data-screen="\${sc.screen}" onclick="highlightScenario('\${sc.id}','\${sc.screen}')">\${sc.name}</div>\`;
+        html+=\`<div class="scenario-item" data-cuj="\${id}" data-step="\${i}" data-scenario="\${sc.id}" data-screen="\${sc.screen}" onclick="highlightScenario('\${id}',\${i},'\${sc.id}','\${sc.screen}')">\${sc.name}</div>\`;
       });
       html+=\`</div>\`;
     });
@@ -831,20 +833,52 @@ function renderStoryboard(cujId){
     xPos+=300;
   });
   container.innerHTML=html;
-  drawStoryboardArrows(cuj.scenarios);
+  highlightedStoryboardIdx=null;
+  drawStoryboardArrows(cuj.scenarios,highlightedStoryboardIdx);
 }
-function highlightScenario(scenarioId,screenId){
-  // Clear previous highlight
+function highlightScenario(cujId,stepIdx,scenarioId,screenId){
+  // Clear previous highlights
   document.querySelectorAll('.screen.highlighted').forEach(el=>el.classList.remove('highlighted'));
+  document.querySelectorAll('.storyboard-card.highlighted').forEach(el=>el.classList.remove('highlighted'));
   document.querySelectorAll('.map-sidebar .scenario-item.current').forEach(el=>el.classList.remove('current'));
   highlightedScenarioId=scenarioId;
-  // Highlight screen
-  const screenEl=document.getElementById('node-'+screenId);
-  if(screenEl)screenEl.classList.add('highlighted');
+  // If in storyboard mode, highlight the storyboard card
+  if(selectedMapCuj&&selectedMapCuj===cujId){
+    highlightStoryboardCard(stepIdx);
+  }else{
+    // Highlight default screen
+    const screenEl=document.getElementById('node-'+screenId);
+    if(screenEl)screenEl.classList.add('highlighted');
+    drawArrows();
+  }
   // Highlight scenario in sidebar
   document.querySelectorAll('.map-sidebar .scenario-item[data-scenario="'+scenarioId+'"]').forEach(el=>el.classList.add('current'));
-  // Redraw arrows with highlight
-  drawArrows();
+}
+function highlightStoryboardCard(idx){
+  highlightedStoryboardIdx=idx;
+  // Clear previous storyboard highlights
+  document.querySelectorAll('.storyboard-card.highlighted').forEach(el=>el.classList.remove('highlighted'));
+  // Highlight the card at this index
+  const cardEl=document.getElementById('storyboard-'+idx);
+  if(cardEl){
+    cardEl.classList.add('highlighted');
+    panToCard(cardEl);
+  }
+  // Redraw arrows with highlight on incoming arrow
+  const cuj=cujs[selectedMapCuj];
+  if(cuj)drawStoryboardArrows(cuj.scenarios,highlightedStoryboardIdx);
+}
+function panToCard(el){
+  const vw=viewport.clientWidth;
+  const vh=viewport.clientHeight;
+  const cardX=parseInt(el.style.left)||0;
+  const cardY=parseInt(el.style.top)||0;
+  const cardW=220;
+  const cardH=el.offsetHeight||476;
+  // Center the card in the viewport
+  panX=(vw/2)-(cardX+cardW/2)*zoom;
+  panY=(vh/2)-(cardY+cardH/2)*zoom;
+  applyTransform();
 }
 
 /* WALKTHROUGH */
@@ -971,13 +1005,15 @@ function drawArrows(){
   });
   svg.innerHTML=s;
 }
-function drawStoryboardArrows(scenarios){
+function drawStoryboardArrows(scenarios,highlightedStoryboardIdx){
   let s='';
   for(let i=0;i<scenarios.length-1;i++){
     const fromEl=document.getElementById('storyboard-'+i);
     const toEl=document.getElementById('storyboard-'+(i+1));
     if(fromEl&&toEl){
-      s+=drawEdge(fromEl,'right',toEl,'left',null,'var(--accent)',false);
+      // Highlight arrow if it points to the highlighted card (i+1===highlightedStoryboardIdx)
+      const isHighlighted=i+1===highlightedStoryboardIdx;
+      s+=drawEdge(fromEl,'right',toEl,'left',null,'var(--accent)',isHighlighted);
     }
   }
   svg.innerHTML=s;

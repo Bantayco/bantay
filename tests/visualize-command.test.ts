@@ -2548,6 +2548,223 @@ relationships: []
       // Should show labels below cards (scenario name and screen ID)
       expect(html).toContain("storyboard-label");
     });
+
+    test("clicking scenario in storyboard mode highlights that scenario's card by index", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_editor:
+    parent: screens
+    props:
+      name: Editor
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+      description: Countdown timer
+  cujs:
+    display: table
+    parent: my_project
+  cuj_flow:
+    parent: cujs
+    props:
+      feature: Timer Flow
+      area: timer
+  sc_idle:
+    parent: cuj_flow
+    props:
+      name: Timer idle
+      given: User opens editor
+      when: Editor loads
+      then: Timer shows idle
+      screen: screen_editor
+      comp_timer: idle
+  sc_running:
+    parent: cuj_flow
+    props:
+      name: Timer running
+      given: User clicks start
+      when: Timer starts
+      then: Timer shows running
+      screen: screen_editor
+      comp_timer: running
+  sc_paused:
+    parent: cuj_flow
+    props:
+      name: Timer paused
+      given: User clicks pause
+      when: Timer pauses
+      then: Timer shows paused
+      screen: screen_editor
+      comp_timer: paused
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // highlightScenario should accept scenario index for storyboard mode
+      expect(html).toContain("highlightStoryboardCard");
+      // Should have CSS for highlighted storyboard card
+      expect(html).toContain(".storyboard-card.highlighted");
+      // highlightStoryboardCard should add class to storyboard-{idx} element
+      expect(html).toMatch(/getElementById\('storyboard-'\+idx\)/);
+    });
+
+    test("all storyboard arrows stay visible when CUJ selected", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_editor:
+    parent: screens
+    props:
+      name: Editor
+  cujs:
+    display: table
+    parent: my_project
+  cuj_flow:
+    parent: cujs
+    props:
+      feature: Flow
+      area: flow
+  sc_step1:
+    parent: cuj_flow
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_editor
+  sc_step2:
+    parent: cuj_flow
+    props:
+      name: Step 2
+      given: On editor
+      when: Next
+      then: Continue
+      screen: screen_editor
+  sc_step3:
+    parent: cuj_flow
+    props:
+      name: Step 3
+      given: Continuing
+      when: Finish
+      then: Complete
+      screen: screen_editor
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // drawStoryboardArrows should always draw all arrows
+      expect(html).toContain("drawStoryboardArrows");
+      // Should redraw arrows when highlighting (not clear them)
+      expect(html).toMatch(/highlightStoryboardCard.*drawStoryboardArrows/s);
+    });
+
+    test("only the arrow entering highlighted card is emphasized", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_editor:
+    parent: screens
+    props:
+      name: Editor
+  cujs:
+    display: table
+    parent: my_project
+  cuj_flow:
+    parent: cujs
+    props:
+      feature: Flow
+      area: flow
+  sc_step1:
+    parent: cuj_flow
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_editor
+  sc_step2:
+    parent: cuj_flow
+    props:
+      name: Step 2
+      given: On editor
+      when: Next
+      then: Continue
+      screen: screen_editor
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // drawStoryboardArrows should accept highlighted index parameter
+      expect(html).toContain("drawStoryboardArrows(scenarios,highlightedStoryboardIdx)");
+      // Should check if arrow target matches highlighted index
+      expect(html).toMatch(/i\+1===highlightedStoryboardIdx/);
+    });
+
+    test("auto-pans to center highlighted storyboard card", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_editor:
+    parent: screens
+    props:
+      name: Editor
+  cujs:
+    display: table
+    parent: my_project
+  cuj_flow:
+    parent: cujs
+    props:
+      feature: Flow
+      area: flow
+  sc_step1:
+    parent: cuj_flow
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_editor
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have function to pan to a storyboard card
+      expect(html).toContain("panToCard");
+      // highlightStoryboardCard should call panToCard
+      expect(html).toMatch(/highlightStoryboardCard.*panToCard/s);
+    });
   });
 
   // sc_map_default_all_screens: Default view shows one screen per screen entity
