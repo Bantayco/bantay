@@ -658,6 +658,16 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 .walk-nav-btns button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
 .walk-nav-btns button.primary:hover { opacity:0.9; }
 .walk-nav-btns button:disabled { opacity:0.3; cursor:default; }
+
+/* WALKTHROUGH SIDEBAR */
+.walk-sidebar { width:220px; border-right:1px solid var(--bd); padding:12px; overflow-y:auto; max-height:480px; }
+.area-label { font-size:9px; font-family:monospace; color:var(--hint); text-transform:uppercase; letter-spacing:1px; margin-top:12px; margin-bottom:4px; }
+.area-label:first-child { margin-top:0; }
+.cuj-group { margin-bottom:8px; }
+.cuj-name { font-size:11px; font-weight:600; color:var(--fg); margin-bottom:4px; padding:4px 6px; border-radius:4px; cursor:default; }
+.scenario-item { font-size:10px; color:var(--mt); padding:4px 6px 4px 16px; border-radius:4px; cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
+.scenario-item:hover { background:var(--bd); color:var(--fg); }
+.scenario-item.current { background:var(--accent); color:#fff; }
 </style>
 </head>
 <body>
@@ -685,8 +695,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 
 <!-- WALKTHROUGH -->
 <div class="walk-view" id="walk-view">
-  <div class="walk-picker" id="walk-picker"></div>
   <div class="walk-main">
+    <div class="walk-sidebar" id="walk-sidebar"></div>
     <div class="walk-screen-wrap"><div class="walk-screen" id="walk-screen"></div></div>
     <div class="walk-panel">
       <div class="walk-progress" id="walk-progress"></div>
@@ -723,13 +733,31 @@ function setMode(m){
 /* WALKTHROUGH */
 let curCuj=null,curStep=0;
 function initWalk(){
-  const p=document.getElementById('walk-picker');p.innerHTML='';
+  const sidebar=document.getElementById('walk-sidebar');
+  // Group CUJs by area
+  const areas={};
   Object.entries(cujs).forEach(([id,c])=>{
-    const b=document.createElement('button');b.textContent=c.name;b.onclick=()=>selectCuj(id);p.appendChild(b);
+    const area=c.area||'default';
+    if(!areas[area])areas[area]=[];
+    areas[area].push({id,cuj:c});
   });
+  // Build sidebar HTML
+  let html='';
+  Object.entries(areas).forEach(([area,cujList])=>{
+    html+=\`<div class="area-label">\${area}</div>\`;
+    cujList.forEach(({id,cuj})=>{
+      html+=\`<div class="cuj-group" data-cuj="\${id}"><div class="cuj-name">\${cuj.name}</div>\`;
+      cuj.scenarios.forEach((sc,i)=>{
+        html+=\`<div class="scenario-item" data-cuj="\${id}" data-step="\${i}" onclick="jumpToScenario('\${id}',\${i})">\${sc.name}</div>\`;
+      });
+      html+=\`</div>\`;
+    });
+  });
+  sidebar.innerHTML=html;
   selectCuj(curCuj||Object.keys(cujs)[0]);
 }
-function selectCuj(id){curCuj=id;curStep=0;document.querySelectorAll('.walk-picker button').forEach((b,i)=>b.classList.toggle('active',Object.keys(cujs)[i]===id));renderStep();}
+function jumpToScenario(cujId,step){curCuj=cujId;curStep=step;renderStep();}
+function selectCuj(id){curCuj=id;curStep=0;renderStep();}
 function walkStep(d){const sc=cujs[curCuj].scenarios,n=curStep+d;if(n<0||n>=sc.length)return;curStep=n;renderStep();}
 function renderScreenForStep(screenId,scenario){
   const screenData=screens.find(s=>s.id===screenId||s.name.toLowerCase()===scenario.screen);
@@ -766,6 +794,10 @@ function renderStep(){
   document.getElementById('walk-gherkin').innerHTML=\`<div><span class="kw">Given </span>\${sc.given}</div><div><span class="kw">When </span>\${sc.when}</div><div><span class="kw">Then </span>\${sc.then}</div>\`;
   const iv=document.getElementById('walk-invariants');iv.innerHTML=sc.invs.length?\`<div class="walk-inv-title">Protected by</div>\`+sc.invs.map(i=>\`<div class="walk-inv-item">\${i}</div>\`).join(''):'';
   document.getElementById('walk-prev').disabled=curStep===0;document.getElementById('walk-next').disabled=curStep===tot-1;
+  // Highlight current scenario in sidebar
+  document.querySelectorAll('.scenario-item').forEach(el=>{
+    el.classList.toggle('current',el.dataset.cuj===curCuj&&parseInt(el.dataset.step)===curStep);
+  });
 }
 document.addEventListener('keydown',e=>{if(!document.getElementById('walk-view').classList.contains('active'))return;if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();walkStep(1);}if(e.key==='ArrowLeft'){e.preventDefault();walkStep(-1);}});
 

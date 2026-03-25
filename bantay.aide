@@ -1083,6 +1083,20 @@ entities:
       statement: If a scenario references a component variant that has no wireframe file, the engine falls back to the default wireframe without error
       category: design_integrity
       threat_signal: Missing variant file causes blank component or render error
+  sc_walk_scenario_list:
+    parent: cuj_visualize_walkthrough
+    props:
+      name: Walkthrough shows all CUJs and scenarios as navigable list
+      given: Developer opens walkthrough mode
+      when: Walkthrough renders
+      then: Left sidebar shows all CUJs grouped by area with scenarios listed under each. Current scenario highlighted. Clicking any scenario jumps to that step.
+  sc_walk_direct_jump:
+    parent: cuj_visualize_walkthrough
+    props:
+      name: Click any scenario to jump directly to it
+      given: Developer viewing the scenario list
+      when: Developer clicks a scenario in the sidebar
+      then: Walkthrough jumps to that CUJ and scenario step, screen preview updates
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available

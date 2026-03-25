@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-24T16:55:58.332Z
+# Generated: 2026-03-25T00:18:31.018Z
 
 entities:
   bantay_cli: 40c228db
@@ -61,6 +61,7 @@ entities:
   inv_visualize_aide_agnostic: 5ceab0b2 parent:invariants
   inv_visualize_self_contained: 0f624e09 parent:invariants
   inv_wireframe_per_component: 60f0aedf parent:invariants
+  inv_wireframe_variant_fallback: 55ef45ce parent:invariants
   invariants: 27615c59 parent:bantay_cli
   sc_aide_diff: 31242108 parent:cuj_aide bh:010ed11d
   sc_aide_discovery: 3668c60f parent:cuj_aide bh:6ba7a183
@@ -121,13 +122,17 @@ entities:
   sc_tasks_phases: 7f46468a parent:cuj_tasks bh:6f4e714e
   sc_visualize_fallback: 0e61a8c1 parent:cuj_visualize_generate bh:5e9697b1
   sc_visualize_injects_tokens: 36ec108c parent:cuj_visualize_generate bh:08e83c27
+  sc_visualize_map_default_variants: 3eb7e893 parent:cuj_visualize_map bh:266603af
   sc_visualize_output_file: 02b9d3dd parent:cuj_visualize_generate bh:6dba2a83
   sc_visualize_renders_wireframes: 19c2e117 parent:cuj_visualize_generate bh:14428404
+  sc_visualize_wireframe_variants: 038f4ffb parent:cuj_visualize_generate bh:44a22d00
   sc_visualize_with_screens: 2d3b3091 parent:cuj_visualize_generate bh:2a2d542b
   sc_visualize_without_screens: 7cf22656 parent:cuj_visualize_generate bh:0fb6dec6
+  sc_walk_direct_jump: 0da69306 parent:cuj_visualize_walkthrough bh:11f32d24
   sc_walk_invariants_shown: 1338cd54 parent:cuj_visualize_walkthrough bh:4d6e0c19
   sc_walk_pick_cuj: 20d66b81 parent:cuj_visualize_walkthrough bh:3f385379
   sc_walk_progress_dots: 73f9d643 parent:cuj_visualize_walkthrough bh:019e3541
+  sc_walk_scenario_list: 10bfdfe7 parent:cuj_visualize_walkthrough bh:0480b516
   sc_walk_screen_transition: 4ee103ea parent:cuj_visualize_walkthrough bh:71f2e934
   sc_walk_step_back: 044e21e5 parent:cuj_visualize_walkthrough bh:70400dd3
   sc_walk_step_forward: 3ae0fd95 parent:cuj_visualize_walkthrough bh:451a8a07
@@ -196,3 +201,4 @@ relationships:
   - cuj_export_css:cuj_aide:depends_on: 0a05861c
   - sc_visualize_injects_tokens:cuj_export_css:depends_on: 388ebb2b
   - sc_check_wireframe_exists:inv_wireframe_per_component:protected_by: 40b67a33
+  - sc_visualize_wireframe_variants:inv_wireframe_variant_fallback:protected_by: 2bed778c

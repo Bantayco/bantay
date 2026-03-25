@@ -2145,4 +2145,218 @@ relationships: []
       expect(html).toContain("comp.id+'--'+variant");
     });
   });
+
+  describe("walkthrough scenario list", () => {
+    test("walkthrough shows all CUJs grouped by area in sidebar", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_auth:
+    parent: cujs
+    props:
+      feature: Authentication
+      area: auth
+  cuj_profile:
+    parent: cujs
+    props:
+      feature: Profile Management
+      area: settings
+  sc_login:
+    parent: cuj_auth
+    props:
+      name: User logs in
+      given: User on login page
+      when: User enters credentials
+      then: User authenticated
+      screen: screen_home
+  sc_logout:
+    parent: cuj_auth
+    props:
+      name: User logs out
+      given: User logged in
+      when: User clicks logout
+      then: User logged out
+      screen: screen_home
+  sc_edit_profile:
+    parent: cuj_profile
+    props:
+      name: Edit profile
+      given: User on profile
+      when: User edits info
+      then: Profile updated
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have a sidebar element with scenario list
+      expect(html).toContain("walk-sidebar");
+      // Should have CUJ groupings
+      expect(html).toContain("cuj-group");
+      // Should show area labels
+      expect(html).toContain("area-label");
+    });
+
+    test("walkthrough highlights current scenario in sidebar", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test Feature
+      area: test
+  sc_step1:
+    parent: cuj_test
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Result
+      screen: screen_home
+  sc_step2:
+    parent: cuj_test
+    props:
+      name: Step 2
+      given: Step 1 done
+      when: Next action
+      then: Next result
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have CSS for current/active scenario highlighting
+      expect(html).toContain(".scenario-item.current");
+      // Should have logic to update current class
+      expect(html).toContain("scenario-item");
+    });
+
+    test("clicking scenario in sidebar jumps to that step", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_first:
+    parent: cuj_test
+    props:
+      name: First scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+  sc_second:
+    parent: cuj_test
+    props:
+      name: Second scenario
+      given: First done
+      when: Next
+      then: Complete
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have click handler for scenario items that calls jumpToScenario
+      expect(html).toContain("jumpToScenario");
+      // Scenario items should be clickable
+      expect(html).toContain("onclick");
+    });
+
+    test("sidebar shows scenarios under their parent CUJ", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_checkout:
+    parent: cujs
+    props:
+      feature: Checkout Flow
+      area: commerce
+  sc_add_to_cart:
+    parent: cuj_checkout
+    props:
+      name: Add item to cart
+      given: User on product page
+      when: User clicks add to cart
+      then: Item in cart
+      screen: screen_home
+  sc_view_cart:
+    parent: cuj_checkout
+    props:
+      name: View cart
+      given: Item in cart
+      when: User opens cart
+      then: Cart displayed
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // CUJ name should appear in sidebar
+      expect(html).toContain("Checkout Flow");
+      // Scenario names should appear
+      expect(html).toContain("Add item to cart");
+      expect(html).toContain("View cart");
+    });
+  });
 });
