@@ -2359,4 +2359,188 @@ relationships: []
       expect(html).toContain("View cart");
     });
   });
+
+  describe("map view sidebar", () => {
+    test("sc_map_sidebar_list: map view shows CUJ and scenario list in left sidebar", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_auth:
+    parent: cujs
+    props:
+      feature: Authentication
+      area: auth
+  cuj_profile:
+    parent: cujs
+    props:
+      feature: Profile Management
+      area: settings
+  sc_login:
+    parent: cuj_auth
+    props:
+      name: User logs in
+      given: User on login
+      when: User enters creds
+      then: User authenticated
+      screen: screen_home
+  sc_edit_profile:
+    parent: cuj_profile
+    props:
+      name: Edit profile
+      given: User on profile
+      when: User edits
+      then: Profile updated
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have a map sidebar element
+      expect(html).toContain("map-sidebar");
+      // Should have area labels in map sidebar
+      expect(html).toContain("auth");
+      expect(html).toContain("settings");
+      // Should have CUJ names
+      expect(html).toContain("Authentication");
+      expect(html).toContain("Profile Management");
+    });
+
+    test("sc_map_click_scenario_highlights: clicking scenario highlights screen and arrow", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  screen_profile:
+    parent: screens
+    props:
+      name: Profile
+  cujs:
+    display: table
+    parent: my_project
+  cuj_nav:
+    parent: cujs
+    props:
+      feature: Navigation
+      area: nav
+  sc_go_to_profile:
+    parent: cuj_nav
+    props:
+      name: Go to profile
+      given: User on home
+      when: User clicks profile
+      then: Profile displayed
+      screen: screen_home
+  sc_view_profile:
+    parent: cuj_nav
+    props:
+      name: View profile details
+      given: User on profile
+      when: Profile loads
+      then: Details shown
+      screen: screen_profile
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have highlight function for scenarios
+      expect(html).toContain("highlightScenario");
+      // Should have CSS for highlighted screen
+      expect(html).toContain(".screen.highlighted");
+      // Should have CSS for highlighted arrow
+      expect(html).toContain(".arrow-highlighted");
+    });
+
+    test("sc_map_linear_layout: screens arranged in linear flow, not grid", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_a:
+    parent: screens
+    props:
+      name: Screen A
+  screen_b:
+    parent: screens
+    props:
+      name: Screen B
+  screen_c:
+    parent: screens
+    props:
+      name: Screen C
+  screen_d:
+    parent: screens
+    props:
+      name: Screen D
+  screen_e:
+    parent: screens
+    props:
+      name: Screen E
+  cujs:
+    display: table
+    parent: my_project
+  cuj_flow:
+    parent: cujs
+    props:
+      feature: User Flow
+      area: flow
+  sc_step1:
+    parent: cuj_flow
+    props:
+      name: Step 1
+      given: Start
+      when: Action
+      then: Result
+      screen: screen_a
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Extract screen positions to verify linear layout
+      // All screens should have same Y position (horizontal layout)
+      // OR all should have same X position (vertical layout)
+      const screenPositions = html.matchAll(/style="left:(\d+)px;top:(\d+)px;"/g);
+      const positions = [...screenPositions].map((m) => ({
+        x: parseInt(m[1]),
+        y: parseInt(m[2]),
+      }));
+
+      // With 5 screens in a grid layout (4 per row), we'd have y positions at 80 and 640
+      // With linear layout, all y should be the same (horizontal) or all x should be same (vertical)
+      const allSameY = positions.every((p) => p.y === positions[0].y);
+      const allSameX = positions.every((p) => p.x === positions[0].x);
+
+      // Should be linear (either horizontal or vertical)
+      expect(allSameY || allSameX).toBe(true);
+    });
+  });
 });

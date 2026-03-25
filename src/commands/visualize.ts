@@ -510,11 +510,12 @@ function generateVisualizerHtml(
   }
   const variantHtmlMapData = JSON.stringify(variantHtmlMapObj);
 
-  // Generate screen HTML for map view
+  // Generate screen HTML for map view - linear horizontal layout
   const screenHtml = screens
     .map((screen, i) => {
-      const x = 80 + (i % 4) * 320;
-      const y = 80 + Math.floor(i / 4) * 560;
+      // Linear layout: horizontal sequence with fixed spacing
+      const x = 80 + i * 300;
+      const y = 80;
 
       // Render component boxes if screen has components
       let bodyContent: string;
@@ -668,6 +669,18 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 .scenario-item { font-size:10px; color:var(--mt); padding:4px 6px 4px 16px; border-radius:4px; cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
 .scenario-item:hover { background:var(--bd); color:var(--fg); }
 .scenario-item.current { background:var(--accent); color:#fff; }
+
+/* MAP SIDEBAR */
+.map-sidebar { width:220px; border-right:1px solid var(--bd); padding:12px; overflow-y:auto; max-height:680px; position:absolute; left:0; top:0; background:var(--bg); z-index:25; }
+.map-sidebar .area-label { font-size:9px; font-family:monospace; color:var(--hint); text-transform:uppercase; letter-spacing:1px; margin-top:12px; margin-bottom:4px; }
+.map-sidebar .area-label:first-child { margin-top:0; }
+.map-sidebar .cuj-group { margin-bottom:8px; }
+.map-sidebar .cuj-name { font-size:11px; font-weight:600; color:var(--fg); margin-bottom:4px; padding:4px 6px; border-radius:4px; }
+.map-sidebar .scenario-item { font-size:10px; color:var(--mt); padding:4px 6px 4px 16px; border-radius:4px; cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
+.map-sidebar .scenario-item:hover { background:var(--bd); color:var(--fg); }
+.map-sidebar .scenario-item.current { background:var(--accent); color:#fff; }
+.screen.highlighted { box-shadow:0 0 0 3px var(--accent), 0 6px 24px rgba(0,0,0,0.18); z-index:15; }
+.arrow-highlighted { stroke-width:3 !important; }
 </style>
 </head>
 <body>
@@ -679,6 +692,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 
 <!-- MAP -->
 <div class="viewport" id="viewport">
+  <div class="map-sidebar" id="map-sidebar"></div>
   <div class="pan-layer" id="pan-layer">
     <svg id="arrows" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible;"></svg>
     ${screenHtml}
@@ -727,7 +741,44 @@ function setMode(m){
   document.getElementById('viewport').style.display=m==='map'?'block':'none';
   document.getElementById('walk-view').classList.toggle('active',m==='walk');
   if(m==='walk')initWalk();
-  if(m==='map')requestAnimationFrame(()=>requestAnimationFrame(drawArrows));
+  if(m==='map'){initMapSidebar();requestAnimationFrame(()=>requestAnimationFrame(drawArrows));}
+}
+
+/* MAP SIDEBAR */
+let highlightedScenarioId=null;
+function initMapSidebar(){
+  const sidebar=document.getElementById('map-sidebar');
+  const areas={};
+  Object.entries(cujs).forEach(([id,c])=>{
+    const area=c.area||'default';
+    if(!areas[area])areas[area]=[];
+    areas[area].push({id,cuj:c});
+  });
+  let html='';
+  Object.entries(areas).forEach(([area,cujList])=>{
+    html+=\`<div class="area-label">\${area}</div>\`;
+    cujList.forEach(({id,cuj})=>{
+      html+=\`<div class="cuj-group" data-cuj="\${id}"><div class="cuj-name">\${cuj.name}</div>\`;
+      cuj.scenarios.forEach((sc,i)=>{
+        html+=\`<div class="scenario-item" data-cuj="\${id}" data-step="\${i}" data-scenario="\${sc.id}" data-screen="\${sc.screen}" onclick="highlightScenario('\${sc.id}','\${sc.screen}')">\${sc.name}</div>\`;
+      });
+      html+=\`</div>\`;
+    });
+  });
+  sidebar.innerHTML=html;
+}
+function highlightScenario(scenarioId,screenId){
+  // Clear previous highlight
+  document.querySelectorAll('.screen.highlighted').forEach(el=>el.classList.remove('highlighted'));
+  document.querySelectorAll('.map-sidebar .scenario-item.current').forEach(el=>el.classList.remove('current'));
+  highlightedScenarioId=scenarioId;
+  // Highlight screen
+  const screenEl=document.getElementById('node-'+screenId);
+  if(screenEl)screenEl.classList.add('highlighted');
+  // Highlight scenario in sidebar
+  document.querySelectorAll('.map-sidebar .scenario-item[data-scenario="'+scenarioId+'"]').forEach(el=>el.classList.add('current'));
+  // Redraw arrows with highlight
+  drawArrows();
 }
 
 /* WALKTHROUGH */
@@ -822,15 +873,17 @@ window.addEventListener('mouseup',()=>{if(dragNode){dragNode.classList.remove('d
 
 function getAnchor(el,side){const lr=panLayer.getBoundingClientRect(),er=el.getBoundingClientRect();const cx=(er.left-lr.left)/zoom+er.width/(2*zoom),cy=(er.top-lr.top)/zoom+er.height/(2*zoom),w=er.width/zoom,h=er.height/zoom;switch(side){case'right':return{x:cx+w/2,y:cy};case'left':return{x:cx-w/2,y:cy};case'top':return{x:cx,y:cy-h/2};case'bottom':return{x:cx,y:cy+h/2};default:return{x:cx,y:cy};}}
 
-function drawEdge(fEl,fS,tEl,tS,label,color){
+function drawEdge(fEl,fS,tEl,tS,label,color,isHighlighted){
   const a=getAnchor(fEl,fS),b=getAnchor(tEl,tS),pull=70;
   let c1={...a},c2={...b};
   if(fS==='right')c1.x+=pull;else if(fS==='left')c1.x-=pull;else if(fS==='bottom')c1.y+=pull;else if(fS==='top')c1.y-=pull;
   if(tS==='right')c2.x+=pull;else if(tS==='left')c2.x-=pull;else if(tS==='bottom')c2.y+=pull;else if(tS==='top')c2.y-=pull;
   const path=\`M\${a.x},\${a.y} C\${c1.x},\${c1.y} \${c2.x},\${c2.y} \${b.x},\${b.y}\`;
   const mid='ah-'+Math.random().toString(36).slice(2,8);
+  const strokeWidth=isHighlighted?3:1.5;
+  const cssClass=isHighlighted?'class="arrow-highlighted"':'';
   let s=\`<defs><marker id="\${mid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="\${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>\`;
-  s+=\`<path d="\${path}" fill="none" stroke="\${color}" stroke-width="1.5" marker-end="url(#\${mid})"/>\`;
+  s+=\`<path \${cssClass} d="\${path}" fill="none" stroke="\${color}" stroke-width="\${strokeWidth}" marker-end="url(#\${mid})"/>\`;
   if(label){const t=0.5,mt=1-t;const lx=mt**3*a.x+3*mt**2*t*c1.x+3*mt*t**2*c2.x+t**3*b.x;const ly=mt**3*a.y+3*mt**2*t*c1.y+3*mt*t**2*c2.y+t**3*b.y-10;const tw=label.length*5.2+12;s+=\`<rect x="\${lx-tw/2}" y="\${ly-9}" width="\${tw}" height="16" rx="3" fill="var(--bg)" fill-opacity="0.92" stroke="var(--bd)" stroke-width="0.5"/>\`;s+=\`<text x="\${lx}" y="\${ly+2}" text-anchor="middle" font-size="8" font-family="monospace" fill="\${color}">\${label}</text>\`;}
   return s;
 }
@@ -841,13 +894,15 @@ function drawArrows(){
     const fromEl=document.getElementById('node-'+t.from);
     const toEl=document.getElementById('node-'+t.to);
     if(fromEl&&toEl){
-      s+=drawEdge(fromEl,'right',toEl,'left',t.label,'var(--accent)');
+      const isHighlighted=t.scenarioId===highlightedScenarioId;
+      s+=drawEdge(fromEl,'right',toEl,'left',t.label,'var(--accent)',isHighlighted);
     }
   });
   svg.innerHTML=s;
 }
 
 applyTransform();
+initMapSidebar();
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.getElementById('zoom-fit').click()));
 window.addEventListener('resize',()=>document.getElementById('zoom-fit').click());
 </script>

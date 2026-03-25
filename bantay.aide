@@ -1097,6 +1097,27 @@ entities:
       given: Developer viewing the scenario list
       when: Developer clicks a scenario in the sidebar
       then: Walkthrough jumps to that CUJ and scenario step, screen preview updates
+  sc_map_sidebar_list:
+    parent: cuj_visualize_map
+    props:
+      name: Map view shows CUJ and scenario list in left sidebar
+      given: Developer opens map mode
+      when: Map renders
+      then: Left sidebar shows all CUJs grouped by area with scenarios listed under each, matching walkthrough layout
+  sc_map_click_scenario_highlights:
+    parent: cuj_visualize_map
+    props:
+      name: Clicking a scenario highlights its screen and transition
+      given: Developer viewing the map with sidebar
+      when: Developer clicks a scenario in the sidebar
+      then: The scenario's screen is highlighted on the canvas and the transition arrow for that scenario is emphasized
+  sc_map_linear_layout:
+    parent: cuj_visualize_map
+    props:
+      name: Screens laid out in a linear flow
+      given: Developer opens map mode
+      when: Map renders screens
+      then: Screens arranged in a horizontal or vertical sequence based on the primary user flow, not a grid
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
