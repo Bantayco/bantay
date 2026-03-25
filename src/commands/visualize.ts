@@ -598,48 +598,96 @@ ${tokenCssVars}
 ${darkModeCssVars}
 }}
 
+html, body { height: 100%; margin: 0; }
 body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 
-.mode-bar { display:flex; gap:2px; padding:8px 12px; background:var(--bg); border-bottom:1px solid var(--bd); font-family:monospace; font-size:11px; }
-.mode-btn { padding:4px 14px; border:1px solid var(--bd); border-radius:6px; background:none; color:var(--mt); cursor:pointer; font-family:inherit; font-size:inherit; }
-.mode-btn.active { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+/* APP LAYOUT */
+.app { display:flex; height:100vh; }
 
-/* MAP */
-.viewport { width:100%; height:680px; position:relative; overflow:hidden; border:1px solid var(--bd); border-top:none; }
+/* SHARED SIDEBAR */
+.sidebar { width:220px; border-right:1px solid var(--bd); padding:12px; overflow-y:auto; height:100%; background:var(--bg); z-index:25; flex-shrink:0; }
+.area-label { font-size:9px; font-family:monospace; color:var(--hint); text-transform:uppercase; letter-spacing:1px; margin-top:12px; margin-bottom:4px; }
+.area-label:first-child { margin-top:0; }
+.cuj-group { margin-bottom:8px; }
+.cuj-name { font-size:11px; font-weight:600; color:var(--fg); margin-bottom:4px; padding:4px 6px; border-radius:4px; cursor:pointer; }
+.cuj-name:hover { background:var(--bd); }
+.cuj-name.selected { background:var(--accent); color:#fff; }
+.scenario-item { font-size:10px; color:var(--mt); padding:4px 6px 4px 16px; border-radius:4px; cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
+.scenario-item:hover { background:var(--bd); color:var(--fg); }
+.scenario-item.current { background:var(--accent); color:#fff; }
+
+/* RESIZE HANDLE */
+.resize-handle { width:4px; background:var(--bd); cursor:col-resize; flex-shrink:0; transition:background 0.15s; }
+.resize-handle:hover { background:var(--accent); }
+
+/* CANVAS PANEL */
+.canvas-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.canvas-toolbar { height:40px; display:flex; align-items:center; gap:8px; padding:0 12px; border-bottom:1px solid var(--bd); background:var(--bg); }
+.canvas-toolbar .mode-btns { display:flex; gap:2px; }
+.mode-btn { padding:4px 14px; border:1px solid var(--bd); border-radius:6px; background:none; color:var(--mt); cursor:pointer; font-family:monospace; font-size:11px; }
+.mode-btn.active { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+.canvas-toolbar .spacer { flex:1; }
+.canvas-toolbar .zoom-btns { display:flex; gap:2px; }
+.canvas-toolbar .zoom-btns button { width:28px; height:28px; border:1px solid var(--bd); border-radius:4px; background:var(--bg); color:var(--fg); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:monospace; }
+.canvas-toolbar .zoom-btns button:hover { background:var(--bd); }
+.canvas-toolbar .zoom-label { font-size:10px; font-family:monospace; color:var(--hint); padding:0 8px; }
+.debug-toggle { width:28px; height:28px; border:1px solid var(--bd); border-radius:4px; background:var(--bg); color:var(--hint); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; margin-left:8px; }
+.debug-toggle:hover { background:var(--bd); }
+.debug-toggle.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+/* MAP CANVAS */
+#map-canvas { flex:1; position:relative; overflow:hidden; display:flex; }
+#map-canvas.hidden { display:none; }
 .pan-layer { position:absolute; width:4000px; height:3000px; transform-origin:0 0; background-image:radial-gradient(circle,var(--bd) 1px,transparent 1px); background-size:var(--grid) var(--grid); }
 .screen { position:absolute; width:220px; min-height:476px; background:var(--bg); border:1px solid var(--bd); border-radius:10px; overflow:visible; font-family:var(--sans); font-size:11px; color:var(--fg); box-shadow:0 2px 10px rgba(0,0,0,0.08); cursor:grab; user-select:none; z-index:3; display:flex; flex-direction:column; transition:box-shadow 0.15s, opacity 0.2s; }
 .screen.dimmed { opacity:0.2; }
 @media(prefers-color-scheme:dark){ .screen { box-shadow:0 2px 12px rgba(0,0,0,0.5); } }
 .screen.dragging { z-index:10; cursor:grabbing; box-shadow:0 6px 24px rgba(0,0,0,0.18); transition:none; }
+.screen.highlighted { box-shadow:0 0 0 3px var(--accent), 0 6px 24px rgba(0,0,0,0.18); z-index:15; }
 .s-head { padding:5px 10px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; font-size:10px; color:var(--mt); font-family:monospace; border-radius:10px 10px 0 0; }
 .s-body { padding:8px 10px; flex:1; font-family:var(--serif); }
-.s-tag { position:absolute; top:-20px; left:0; font-size:9px; font-family:monospace; color:var(--accent); white-space:nowrap; pointer-events:none; }
+.s-tag { position:absolute; top:-20px; left:0; font-size:9px; font-family:monospace; color:var(--accent); white-space:nowrap; pointer-events:none; display:none; }
 
-.comp-box { padding:4px 0; margin-bottom:2px; }
-.comp-label { font-size:8px; font-family:monospace; color:var(--accent); opacity:0.5; margin-bottom:2px; }
+.comp-box { padding:4px 0; margin-bottom:2px; position:relative; }
+.comp-label { font-size:8px; font-family:monospace; color:var(--accent); opacity:0.5; margin-bottom:2px; display:none; }
+
+/* DEBUG MODE */
+.app.debug-mode .s-tag { display:block; }
+.app.debug-mode .comp-label { display:block; }
+.app.debug-mode .comp-box { border:1px dashed var(--accent); border-radius:4px; padding:4px; opacity:0.85; }
+.app.debug-mode .screen::after,
+.app.debug-mode .storyboard-card::after,
+.app.debug-mode .walk-screen::after { content:''; position:absolute; inset:0; background:rgba(0,0,0,0.12); border-radius:inherit; pointer-events:none; }
+@media(prefers-color-scheme:dark){ .app.debug-mode .screen::after, .app.debug-mode .storyboard-card::after, .app.debug-mode .walk-screen::after { background:rgba(255,255,255,0.08); } }
 .comp-desc { font-size:10px; color:var(--hint); }
 .nav-bar { display:flex; justify-content:space-around; padding:8px; border-top:1px solid var(--bd); font-size:9px; color:var(--mt); }
 .nav-footer { padding:6px 10px; border-top:1px solid var(--bd); font-size:9px; color:var(--hint); text-align:center; font-style:italic; }
 
-.toolbar { position:absolute; top:12px; right:12px; z-index:30; display:flex; flex-direction:column; gap:2px; background:var(--bg); border:1px solid var(--bd); border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-.toolbar button { width:36px; height:36px; border:none; background:var(--bg); color:var(--fg); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--bd); font-family:monospace; }
-.toolbar button:last-child { border-bottom:none; }
-.toolbar button:hover { background:var(--bd); }
-.zoom-label { position:absolute; top:12px; left:12px; z-index:20; font-size:10px; font-family:monospace; color:var(--hint); background:var(--bg); border:1px solid var(--bd); border-radius:4px; padding:2px 8px; }
+.arrow-highlighted { stroke-width:3 !important; }
 
-/* WALKTHROUGH */
-.walk-view { display:none; width:100%; border:1px solid var(--bd); border-top:none; }
-.walk-view.active { display:flex; flex-direction:column; }
-.walk-picker { padding:10px 16px; border-bottom:1px solid var(--bd); display:flex; gap:4px; flex-wrap:wrap; }
-.walk-picker button { padding:4px 10px; border:1px solid var(--bd); border-radius:16px; background:none; color:var(--mt); cursor:pointer; font-family:var(--sans); font-size:10px; transition:all 0.15s; }
-.walk-picker button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-.walk-picker button:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
-.walk-main { display:flex; flex:1; min-height:480px; }
+/* STORYBOARD */
+.storyboard-container { display:none; position:absolute; top:0; left:0; width:100%; height:100%; }
+.storyboard-container.active { display:block; }
+.default-screens { display:block; }
+.default-screens.hidden { display:none; }
+.storyboard-card { position:absolute; width:220px; min-height:476px; background:var(--bg); border:1px solid var(--bd); border-radius:10px; overflow:visible; font-family:var(--sans); font-size:11px; color:var(--fg); box-shadow:0 2px 10px rgba(0,0,0,0.08); z-index:3; display:flex; flex-direction:column; }
+@media(prefers-color-scheme:dark){ .storyboard-card { box-shadow:0 2px 12px rgba(0,0,0,0.5); } }
+.storyboard-label { position:absolute; bottom:-40px; left:0; width:100%; text-align:center; }
+.storyboard-label .scenario-name { font-size:10px; font-family:monospace; color:var(--fg); display:block; }
+.storyboard-label .screen-id { font-size:9px; font-family:monospace; color:var(--hint); display:block; }
+.storyboard-card.highlighted { box-shadow:0 0 0 3px var(--accent), 0 6px 24px rgba(0,0,0,0.18); z-index:15; }
+
+/* WALK CANVAS */
+#walk-canvas { flex:1; display:none; }
+#walk-canvas.active { display:flex; }
+.walk-content { display:flex; flex:1; }
+.walk-resize-handle { width:4px; background:var(--bd); cursor:col-resize; flex-shrink:0; transition:background 0.15s; }
+.walk-resize-handle:hover { background:var(--accent); }
 .walk-screen-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--bd); position:relative; }
-.walk-screen { width:280px; min-height:300px; background:var(--bg); border:1px solid var(--bd); border-radius:16px; overflow:hidden; font-family:var(--sans); font-size:13px; color:var(--fg); box-shadow:0 4px 24px rgba(0,0,0,0.12); display:flex; flex-direction:column; transition:opacity 0.2s,transform 0.2s; }
+.walk-screen { width:220px; min-height:476px; background:var(--bg); border:1px solid var(--bd); border-radius:10px; overflow:visible; font-family:var(--sans); font-size:11px; color:var(--fg); box-shadow:0 2px 10px rgba(0,0,0,0.08); display:flex; flex-direction:column; transition:opacity 0.2s,transform 0.2s; }
 .walk-screen.transitioning { opacity:0; transform:translateX(24px); }
-.ws-head { padding:8px 14px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; font-size:12px; color:var(--mt); font-family:monospace; }
-.ws-body { padding:10px 14px; flex:1; }
+.ws-head { padding:5px 10px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; font-size:10px; color:var(--mt); font-family:monospace; border-radius:10px 10px 0 0; }
+.ws-body { padding:8px 10px; flex:1; font-family:var(--serif); }
 
 .walk-panel { width:300px; border-left:1px solid var(--bd); padding:16px; display:flex; flex-direction:column; }
 .walk-progress { display:flex; gap:3px; margin-bottom:12px; flex-wrap:wrap; }
@@ -660,85 +708,62 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 .walk-nav-btns button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
 .walk-nav-btns button.primary:hover { opacity:0.9; }
 .walk-nav-btns button:disabled { opacity:0.3; cursor:default; }
-
-/* WALKTHROUGH SIDEBAR */
-.walk-sidebar { width:220px; border-right:1px solid var(--bd); padding:12px; overflow-y:auto; max-height:480px; }
-.area-label { font-size:9px; font-family:monospace; color:var(--hint); text-transform:uppercase; letter-spacing:1px; margin-top:12px; margin-bottom:4px; }
-.area-label:first-child { margin-top:0; }
-.cuj-group { margin-bottom:8px; }
-.cuj-name { font-size:11px; font-weight:600; color:var(--fg); margin-bottom:4px; padding:4px 6px; border-radius:4px; cursor:default; }
-.scenario-item { font-size:10px; color:var(--mt); padding:4px 6px 4px 16px; border-radius:4px; cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
-.scenario-item:hover { background:var(--bd); color:var(--fg); }
-.scenario-item.current { background:var(--accent); color:#fff; }
-
-/* MAP SIDEBAR */
-.map-sidebar { width:220px; border-right:1px solid var(--bd); padding:12px; overflow-y:auto; max-height:680px; position:absolute; left:0; top:0; background:var(--bg); z-index:25; }
-.map-sidebar .area-label { font-size:9px; font-family:monospace; color:var(--hint); text-transform:uppercase; letter-spacing:1px; margin-top:12px; margin-bottom:4px; }
-.map-sidebar .area-label:first-child { margin-top:0; }
-.map-sidebar .cuj-group { margin-bottom:8px; }
-.map-sidebar .cuj-name { font-size:11px; font-weight:600; color:var(--fg); margin-bottom:4px; padding:4px 6px; border-radius:4px; }
-.map-sidebar .scenario-item { font-size:10px; color:var(--mt); padding:4px 6px 4px 16px; border-radius:4px; cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
-.map-sidebar .scenario-item:hover { background:var(--bd); color:var(--fg); }
-.map-sidebar .scenario-item.current { background:var(--accent); color:#fff; }
-.map-sidebar .cuj-name.selected { background:var(--accent); color:#fff; }
-.screen.highlighted { box-shadow:0 0 0 3px var(--accent), 0 6px 24px rgba(0,0,0,0.18); z-index:15; }
-.arrow-highlighted { stroke-width:3 !important; }
-
-/* STORYBOARD */
-.storyboard-container { display:none; position:absolute; top:0; left:0; width:100%; height:100%; }
-.storyboard-container.active { display:block; }
-.default-screens { display:block; }
-.default-screens.hidden { display:none; }
-.storyboard-card { position:absolute; width:220px; min-height:476px; background:var(--bg); border:1px solid var(--bd); border-radius:10px; overflow:visible; font-family:var(--sans); font-size:11px; color:var(--fg); box-shadow:0 2px 10px rgba(0,0,0,0.08); z-index:3; display:flex; flex-direction:column; }
-@media(prefers-color-scheme:dark){ .storyboard-card { box-shadow:0 2px 12px rgba(0,0,0,0.5); } }
-.storyboard-label { position:absolute; bottom:-40px; left:0; width:100%; text-align:center; }
-.storyboard-label .scenario-name { font-size:10px; font-family:monospace; color:var(--fg); display:block; }
-.storyboard-label .screen-id { font-size:9px; font-family:monospace; color:var(--hint); display:block; }
-.storyboard-card.highlighted { box-shadow:0 0 0 3px var(--accent), 0 6px 24px rgba(0,0,0,0.18); z-index:15; }
 </style>
 </head>
 <body>
 
-<div class="mode-bar">
-  <button class="mode-btn active" id="mode-map" onclick="setMode('map')">Map</button>
-  <button class="mode-btn" id="mode-walk" onclick="setMode('walk')">Walkthrough</button>
-</div>
+<div class="app">
+  <!-- SHARED SIDEBAR -->
+  <div class="sidebar" id="sidebar"></div>
+  <div class="resize-handle" id="resize-handle"></div>
 
-<!-- MAP -->
-<div class="viewport" id="viewport">
-  <div class="map-sidebar" id="map-sidebar"></div>
-  <div class="pan-layer" id="pan-layer">
-    <svg id="arrows" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible;"></svg>
-    <div class="default-screens" id="default-screens">
-      ${screenHtml}
+  <!-- CANVAS PANEL -->
+  <div class="canvas-panel">
+    <div class="canvas-toolbar">
+      <div class="mode-btns">
+        <button class="mode-btn active" id="mode-map" onclick="setMode('map')">Map</button>
+        <button class="mode-btn" id="mode-walk" onclick="setMode('walk')">Walkthrough</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="zoom-btns" id="zoom-btns">
+        <button id="zoom-out">-</button>
+        <button id="zoom-in">+</button>
+        <button id="zoom-fit">◻</button>
+        <button id="zoom-reset">1:1</button>
+      </div>
+      <span class="zoom-label" id="zoom-label">100%</span>
+      <button class="debug-toggle" id="debug-toggle" onclick="toggleDebug()" title="Toggle IDs">◉</button>
     </div>
-    <div class="storyboard-container" id="storyboard-container"></div>
-  </div>
 
-  <div class="toolbar">
-    <button id="zoom-in">+</button>
-    <button id="zoom-out">-</button>
-    <button id="zoom-fit">◻</button>
-    <button id="zoom-reset">1:1</button>
-  </div>
-  <div class="zoom-label" id="zoom-label">100%</div>
-</div>
+    <!-- MAP CANVAS -->
+    <div id="map-canvas">
+      <div class="pan-layer" id="pan-layer">
+        <svg id="arrows" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible;"></svg>
+        <div class="default-screens" id="default-screens">
+          ${screenHtml}
+        </div>
+        <div class="storyboard-container" id="storyboard-container"></div>
+      </div>
+    </div>
 
-<!-- WALKTHROUGH -->
-<div class="walk-view" id="walk-view">
-  <div class="walk-main">
-    <div class="walk-sidebar" id="walk-sidebar"></div>
-    <div class="walk-screen-wrap"><div class="walk-screen" id="walk-screen"></div></div>
-    <div class="walk-panel">
-      <div class="walk-progress" id="walk-progress"></div>
-      <div class="walk-step-counter" id="walk-step-counter"></div>
-      <div class="walk-scenario-name" id="walk-scenario-name"></div>
-      <div class="walk-scenario-id" id="walk-scenario-id"></div>
-      <div class="walk-gherkin" id="walk-gherkin"></div>
-      <div class="walk-invariants" id="walk-invariants"></div>
-      <div class="walk-nav-btns">
-        <button id="walk-prev" onclick="walkStep(-1)">← Back</button>
-        <button id="walk-next" class="primary" onclick="walkStep(1)">Next →</button>
+    <!-- WALK CANVAS -->
+    <div id="walk-canvas">
+      <div class="walk-content">
+        <div class="walk-resize-handle" id="walk-resize-left"></div>
+        <div class="walk-screen-wrap"><div class="walk-screen" id="walk-screen"></div></div>
+        <div class="walk-resize-handle" id="walk-resize-right"></div>
+        <div class="walk-panel">
+          <div class="walk-progress" id="walk-progress"></div>
+          <div class="walk-step-counter" id="walk-step-counter"></div>
+          <div class="walk-scenario-name" id="walk-scenario-name"></div>
+          <div class="walk-scenario-id" id="walk-scenario-id"></div>
+          <div class="walk-gherkin" id="walk-gherkin"></div>
+          <div class="walk-invariants" id="walk-invariants"></div>
+          <div class="walk-nav-btns">
+            <button id="walk-prev" onclick="walkStep(-1)">← Back</button>
+            <button id="walk-next" class="primary" onclick="walkStep(1)">Next →</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -751,41 +776,131 @@ const transitions = ${transitionsData};
 const screenHtmlMap = ${screenHtmlMapData};
 const variantHtmlMap = ${variantHtmlMapData};
 
-/* MODE */
-function setMode(m){
-  document.getElementById('mode-map').classList.toggle('active',m==='map');
-  document.getElementById('mode-walk').classList.toggle('active',m==='walk');
-  document.getElementById('viewport').style.display=m==='map'?'block':'none';
-  document.getElementById('walk-view').classList.toggle('active',m==='walk');
-  if(m==='walk')initWalk();
-  if(m==='map'){initMapSidebar();requestAnimationFrame(()=>requestAnimationFrame(drawArrows));}
-}
-
-/* MAP SIDEBAR */
+let currentMode='map';
 let highlightedScenarioId=null;
 let selectedMapCuj=null;
 let highlightedStoryboardIdx=null;
-function initMapSidebar(){
-  const sidebar=document.getElementById('map-sidebar');
+let curCuj=null,curStep=0;
+
+/* SCREEN POOL - caches and reuses DOM elements */
+const screenPool={};
+function getScreenKey(screenId,scenario){
+  // Build key from screen + component variants
+  const variants=Object.keys(scenario).filter(k=>k.startsWith('comp_')).sort().map(k=>k+'='+scenario[k]).join('|');
+  return screenId+'::'+variants;
+}
+function getOrCreateScreen(screenId,scenario){
+  const key=getScreenKey(screenId,scenario);
+  if(screenPool[key])return screenPool[key];
+  // Create new element
+  const el=document.createElement('div');
+  el.className='pool-screen';
+  el.innerHTML=\`<div class="ws-head"><span>\${scenario.screen||'default'}</span></div><div class="ws-body">\${renderScreenForStep(screenId,scenario)}</div>\`;
+  screenPool[key]=el;
+  return el;
+}
+
+/* MODE */
+function setMode(m){
+  currentMode=m;
+  document.getElementById('mode-map').classList.toggle('active',m==='map');
+  document.getElementById('mode-walk').classList.toggle('active',m==='walk');
+  document.getElementById('map-canvas').classList.toggle('hidden',m!=='map');
+  document.getElementById('map-canvas').style.display=m==='map'?'flex':'none';
+  document.getElementById('walk-canvas').classList.toggle('active',m==='walk');
+  document.getElementById('zoom-btns').style.display=m==='map'?'flex':'none';
+  document.getElementById('zoom-label').style.display=m==='map'?'inline':'none';
+  if(m==='walk'){renderStep();}
+  if(m==='map'){requestAnimationFrame(()=>requestAnimationFrame(drawArrows));}
+  // Update sidebar highlight based on current selection
+  updateSidebarHighlight();
+}
+
+/* DEBUG MODE */
+function toggleDebug(){
+  const app=document.querySelector('.app');
+  const btn=document.getElementById('debug-toggle');
+  app.classList.toggle('debug-mode');
+  btn.classList.toggle('active');
+}
+
+/* SHARED SIDEBAR */
+function initSidebar(){
+  const sidebar=document.getElementById('sidebar');
   const areas={};
   Object.entries(cujs).forEach(([id,c])=>{
     const area=c.area||'default';
     if(!areas[area])areas[area]=[];
     areas[area].push({id,cuj:c});
   });
-  let html='<div class="cuj-group"><div class="cuj-name" style="cursor:pointer;color:var(--accent);" onclick="showDefaultScreens()">All Screens</div></div>';
+  let html='<div class="cuj-group"><div class="cuj-name" style="color:var(--accent);" onclick="showDefaultScreens()">All Screens</div></div>';
   Object.entries(areas).forEach(([area,cujList])=>{
     html+=\`<div class="area-label">\${area}</div>\`;
     cujList.forEach(({id,cuj})=>{
-      html+=\`<div class="cuj-group" data-cuj="\${id}"><div class="cuj-name" style="cursor:pointer;" onclick="selectMapCuj('\${id}')">\${cuj.name}</div>\`;
+      html+=\`<div class="cuj-group" data-cuj="\${id}"><div class="cuj-name" onclick="selectCuj('\${id}')">\${cuj.name}</div>\`;
       cuj.scenarios.forEach((sc,i)=>{
-        html+=\`<div class="scenario-item" data-cuj="\${id}" data-step="\${i}" data-scenario="\${sc.id}" data-screen="\${sc.screen}" onclick="highlightScenario('\${id}',\${i},'\${sc.id}','\${sc.screen}')">\${sc.name}</div>\`;
+        html+=\`<div class="scenario-item" data-cuj="\${id}" data-step="\${i}" data-scenario="\${sc.id}" data-screen="\${sc.screen}" onclick="selectScenario('\${id}',\${i},'\${sc.id}','\${sc.screen}')">\${sc.name}</div>\`;
       });
       html+=\`</div>\`;
     });
   });
   sidebar.innerHTML=html;
 }
+
+function selectScenario(cujId,stepIdx,scenarioId,screenId){
+  curCuj=cujId;
+  curStep=stepIdx;
+  highlightedScenarioId=scenarioId;
+
+  if(currentMode==='map'){
+    // Map mode: highlight screen or storyboard card
+    document.querySelectorAll('.screen.highlighted').forEach(el=>el.classList.remove('highlighted'));
+    document.querySelectorAll('.storyboard-card.highlighted').forEach(el=>el.classList.remove('highlighted'));
+
+    if(selectedMapCuj&&selectedMapCuj===cujId){
+      highlightStoryboardCard(stepIdx);
+    }else{
+      const screenEl=document.getElementById('node-'+screenId);
+      if(screenEl)screenEl.classList.add('highlighted');
+      drawArrows();
+    }
+  }else{
+    // Walkthrough mode: update walkthrough view
+    renderStep();
+  }
+  updateSidebarHighlight();
+}
+
+function selectCuj(cujId){
+  curCuj=cujId;
+  curStep=0;
+
+  if(currentMode==='map'){
+    selectedMapCuj=cujId;
+    highlightedScenarioId=null;
+    renderStoryboard(cujId);
+  }else{
+    renderStep();
+  }
+  updateSidebarHighlight();
+}
+
+function updateSidebarHighlight(){
+  // Clear all highlights
+  document.querySelectorAll('.sidebar .cuj-name.selected').forEach(el=>el.classList.remove('selected'));
+  document.querySelectorAll('.sidebar .scenario-item.current').forEach(el=>el.classList.remove('current'));
+
+  // Highlight current CUJ if in storyboard mode
+  if(currentMode==='map'&&selectedMapCuj){
+    document.querySelectorAll('.sidebar .cuj-group[data-cuj="'+selectedMapCuj+'"] .cuj-name').forEach(el=>el.classList.add('selected'));
+  }
+
+  // Highlight current scenario
+  if(curCuj&&curStep!==null){
+    document.querySelectorAll('.sidebar .scenario-item[data-cuj="'+curCuj+'"][data-step="'+curStep+'"]').forEach(el=>el.classList.add('current'));
+  }
+}
+
 function showDefaultScreens(){
   selectedMapCuj=null;
   highlightedScenarioId=null;
@@ -795,20 +910,10 @@ function showDefaultScreens(){
   document.getElementById('default-screens').classList.remove('hidden');
   // Remove all highlighted states
   document.querySelectorAll('.screen.highlighted').forEach(el=>el.classList.remove('highlighted'));
-  document.querySelectorAll('.map-sidebar .cuj-name.selected').forEach(el=>el.classList.remove('selected'));
-  document.querySelectorAll('.map-sidebar .scenario-item.current').forEach(el=>el.classList.remove('current'));
+  updateSidebarHighlight();
   drawArrows();
 }
-function selectMapCuj(cujId){
-  selectedMapCuj=cujId;
-  highlightedScenarioId=null;
-  // Update sidebar highlighting
-  document.querySelectorAll('.map-sidebar .cuj-name.selected').forEach(el=>el.classList.remove('selected'));
-  document.querySelectorAll('.map-sidebar .cuj-group[data-cuj="'+cujId+'"] .cuj-name').forEach(el=>el.classList.add('selected'));
-  document.querySelectorAll('.map-sidebar .scenario-item.current').forEach(el=>el.classList.remove('current'));
-  // Render storyboard for this CUJ
-  renderStoryboard(cujId);
-}
+
 function renderStoryboard(cujId){
   const cuj=cujs[cujId];
   if(!cuj)return;
@@ -816,44 +921,26 @@ function renderStoryboard(cujId){
   document.getElementById('default-screens').classList.add('hidden');
   const container=document.getElementById('storyboard-container');
   container.classList.add('active');
-  // Generate one card per scenario
-  let html='';
+  container.innerHTML='';
+  // Generate one card per scenario using getOrCreateScreen
   let xPos=80;
   cuj.scenarios.forEach((sc,i)=>{
     const screenId=sc.screen;
-    const bodyContent=renderScreenForStep(screenId,sc);
-    html+=\`<div class="storyboard-card" id="storyboard-\${i}" style="left:\${xPos}px;top:80px;">
-      <div class="s-head"><span>\${sc.screen||'default'}</span></div>
-      <div class="s-body">\${bodyContent}</div>
-      <div class="storyboard-label">
-        <span class="scenario-name">\${sc.name}</span>
-        <span class="screen-id">\${sc.screen||'default'}</span>
-      </div>
-    </div>\`;
+    const screenEl=getOrCreateScreen(screenId,sc);
+    const card=document.createElement('div');
+    card.className='storyboard-card';
+    card.id='storyboard-'+i;
+    card.style.left=xPos+'px';
+    card.style.top='80px';
+    card.innerHTML=\`<div class="s-head"><span>\${sc.screen||'default'}</span></div><div class="s-body"></div><div class="storyboard-label"><span class="scenario-name">\${sc.name}</span><span class="screen-id">\${sc.screen||'default'}</span></div>\`;
+    card.querySelector('.s-body').appendChild(screenEl);
+    container.appendChild(card);
     xPos+=300;
   });
-  container.innerHTML=html;
   highlightedStoryboardIdx=null;
   drawStoryboardArrows(cuj.scenarios,highlightedStoryboardIdx);
 }
-function highlightScenario(cujId,stepIdx,scenarioId,screenId){
-  // Clear previous highlights
-  document.querySelectorAll('.screen.highlighted').forEach(el=>el.classList.remove('highlighted'));
-  document.querySelectorAll('.storyboard-card.highlighted').forEach(el=>el.classList.remove('highlighted'));
-  document.querySelectorAll('.map-sidebar .scenario-item.current').forEach(el=>el.classList.remove('current'));
-  highlightedScenarioId=scenarioId;
-  // If in storyboard mode, highlight the storyboard card
-  if(selectedMapCuj&&selectedMapCuj===cujId){
-    highlightStoryboardCard(stepIdx);
-  }else{
-    // Highlight default screen
-    const screenEl=document.getElementById('node-'+screenId);
-    if(screenEl)screenEl.classList.add('highlighted');
-    drawArrows();
-  }
-  // Highlight scenario in sidebar
-  document.querySelectorAll('.map-sidebar .scenario-item[data-scenario="'+scenarioId+'"]').forEach(el=>el.classList.add('current'));
-}
+
 function highlightStoryboardCard(idx){
   highlightedStoryboardIdx=idx;
   // Clear previous storyboard highlights
@@ -868,9 +955,11 @@ function highlightStoryboardCard(idx){
   const cuj=cujs[selectedMapCuj];
   if(cuj)drawStoryboardArrows(cuj.scenarios,highlightedStoryboardIdx);
 }
+
 function panToCard(el){
-  const vw=viewport.clientWidth;
-  const vh=viewport.clientHeight;
+  const mapCanvas=document.getElementById('map-canvas');
+  const vw=mapCanvas.clientWidth;
+  const vh=mapCanvas.clientHeight;
   const cardX=parseInt(el.style.left)||0;
   const cardY=parseInt(el.style.top)||0;
   const cardW=220;
@@ -882,34 +971,7 @@ function panToCard(el){
 }
 
 /* WALKTHROUGH */
-let curCuj=null,curStep=0;
-function initWalk(){
-  const sidebar=document.getElementById('walk-sidebar');
-  // Group CUJs by area
-  const areas={};
-  Object.entries(cujs).forEach(([id,c])=>{
-    const area=c.area||'default';
-    if(!areas[area])areas[area]=[];
-    areas[area].push({id,cuj:c});
-  });
-  // Build sidebar HTML
-  let html='';
-  Object.entries(areas).forEach(([area,cujList])=>{
-    html+=\`<div class="area-label">\${area}</div>\`;
-    cujList.forEach(({id,cuj})=>{
-      html+=\`<div class="cuj-group" data-cuj="\${id}"><div class="cuj-name">\${cuj.name}</div>\`;
-      cuj.scenarios.forEach((sc,i)=>{
-        html+=\`<div class="scenario-item" data-cuj="\${id}" data-step="\${i}" onclick="jumpToScenario('\${id}',\${i})">\${sc.name}</div>\`;
-      });
-      html+=\`</div>\`;
-    });
-  });
-  sidebar.innerHTML=html;
-  selectCuj(curCuj||Object.keys(cujs)[0]);
-}
-function jumpToScenario(cujId,step){curCuj=cujId;curStep=step;renderStep();}
-function selectCuj(id){curCuj=id;curStep=0;renderStep();}
-function walkStep(d){const sc=cujs[curCuj].scenarios,n=curStep+d;if(n<0||n>=sc.length)return;curStep=n;renderStep();}
+function walkStep(d){const sc=cujs[curCuj].scenarios,n=curStep+d;if(n<0||n>=sc.length)return;curStep=n;renderStep();updateSidebarHighlight();}
 function renderScreenForStep(screenId,scenario){
   const screenData=screens.find(s=>s.id===screenId||s.name.toLowerCase()===scenario.screen);
   if(!screenData||!screenData.components||screenData.components.length===0){
@@ -935,9 +997,10 @@ function renderStep(){
   const w=document.getElementById('walk-screen');
   // Find the screen entity for this scenario's screen prop
   const screenId=sc.screen;
-  // Render screen with variant support
-  const bodyContent=renderScreenForStep(screenId,sc);
-  w.innerHTML=\`<div class="ws-head"><span>\${sc.screen||'default'}</span></div><div class="ws-body">\${bodyContent}</div>\`;
+  // Get or create screen element (reparents if already exists elsewhere)
+  const screenEl=getOrCreateScreen(screenId,sc);
+  w.innerHTML=\`<div class="ws-head"><span>\${sc.screen||'default'}</span></div><div class="ws-body"></div>\`;
+  w.querySelector('.ws-body').appendChild(screenEl);
   document.getElementById('walk-progress').innerHTML=c.scenarios.map((_,i)=>\`<div class="walk-dot \${i<curStep?'done':''} \${i===curStep?'current':''}"></div>\`).join('');
   document.getElementById('walk-step-counter').textContent=\`Step \${curStep+1} of \${tot}\`;
   document.getElementById('walk-scenario-name').textContent=sc.name;
@@ -950,20 +1013,20 @@ function renderStep(){
     el.classList.toggle('current',el.dataset.cuj===curCuj&&parseInt(el.dataset.step)===curStep);
   });
 }
-document.addEventListener('keydown',e=>{if(!document.getElementById('walk-view').classList.contains('active'))return;if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();walkStep(1);}if(e.key==='ArrowLeft'){e.preventDefault();walkStep(-1);}});
+document.addEventListener('keydown',e=>{if(!document.getElementById('walk-canvas').classList.contains('active'))return;if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();walkStep(1);}if(e.key==='ArrowLeft'){e.preventDefault();walkStep(-1);}});
 
 /* MAP: zoom/pan/drag */
-const viewport=document.getElementById('viewport'),panLayer=document.getElementById('pan-layer'),svg=document.getElementById('arrows'),GRID=20;
+const mapCanvas=document.getElementById('map-canvas'),panLayer=document.getElementById('pan-layer'),svg=document.getElementById('arrows'),GRID=20;
 let zoom=0.5,panX=0,panY=0,isPanning=false,panStart={x:0,y:0};
 function applyTransform(){panLayer.style.transform=\`translate(\${panX}px,\${panY}px) scale(\${zoom})\`;document.getElementById('zoom-label').textContent=Math.round(zoom*100)+'%';}
 document.getElementById('zoom-in').onclick=()=>{zoom=Math.min(2,zoom+0.1);applyTransform();drawArrows();};
 document.getElementById('zoom-out').onclick=()=>{zoom=Math.max(0.15,zoom-0.1);applyTransform();drawArrows();};
 document.getElementById('zoom-reset').onclick=()=>{zoom=1;panX=0;panY=0;applyTransform();drawArrows();};
-document.getElementById('zoom-fit').onclick=()=>{const ns=document.querySelectorAll('#pan-layer .screen');let x1=Infinity,y1=Infinity,x2=0,y2=0;ns.forEach(n=>{const l=parseInt(n.style.left),t=parseInt(n.style.top);x1=Math.min(x1,l);y1=Math.min(y1,t);x2=Math.max(x2,l+220);y2=Math.max(y2,t+n.offsetHeight);});const w=x2-x1+160,h=y2-y1+160,vw=viewport.clientWidth,vh=viewport.clientHeight;zoom=Math.min(vw/w,vh/h,1);panX=(vw-w*zoom)/2-x1*zoom+60;panY=(vh-h*zoom)/2-y1*zoom+60;applyTransform();drawArrows();};
-viewport.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(0.15,Math.min(2,zoom+(e.deltaY>0?-0.05:0.05)));applyTransform();drawArrows();},{passive:false});
-viewport.addEventListener('mousedown',e=>{if(e.target.closest('.screen,.toolbar'))return;isPanning=true;panStart={x:e.clientX-panX,y:e.clientY-panY};viewport.style.cursor='grabbing';e.preventDefault();});
+document.getElementById('zoom-fit').onclick=()=>{const ns=document.querySelectorAll('#pan-layer .screen');let x1=Infinity,y1=Infinity,x2=0,y2=0;ns.forEach(n=>{const l=parseInt(n.style.left),t=parseInt(n.style.top);x1=Math.min(x1,l);y1=Math.min(y1,t);x2=Math.max(x2,l+220);y2=Math.max(y2,t+n.offsetHeight);});const w=x2-x1+160,h=y2-y1+160,vw=mapCanvas.clientWidth,vh=mapCanvas.clientHeight;zoom=Math.min(vw/w,vh/h,1);panX=(vw-w*zoom)/2-x1*zoom+60;panY=(vh-h*zoom)/2-y1*zoom+60;applyTransform();drawArrows();};
+mapCanvas.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(0.15,Math.min(2,zoom+(e.deltaY>0?-0.05:0.05)));applyTransform();drawArrows();},{passive:false});
+mapCanvas.addEventListener('mousedown',e=>{if(e.target.closest('.screen,.toolbar'))return;isPanning=true;panStart={x:e.clientX-panX,y:e.clientY-panY};mapCanvas.style.cursor='grabbing';e.preventDefault();});
 window.addEventListener('mousemove',e=>{if(isPanning){panX=e.clientX-panStart.x;panY=e.clientY-panStart.y;applyTransform();drawArrows();}});
-window.addEventListener('mouseup',()=>{if(isPanning){isPanning=false;viewport.style.cursor='default';}});
+window.addEventListener('mouseup',()=>{if(isPanning){isPanning=false;mapCanvas.style.cursor='default';}});
 
 function snap(v){return Math.round(v/GRID)*GRID;}
 let dragNode=null,dragOff={x:0,y:0};
@@ -1019,8 +1082,48 @@ function drawStoryboardArrows(scenarios,highlightedStoryboardIdx){
   svg.innerHTML=s;
 }
 
+/* RESIZE HANDLERS */
+let sidebarWidth=220;
+function initResize(){
+  const handle=document.getElementById('resize-handle');
+  const sidebar=document.getElementById('sidebar');
+  let isResizing=false;
+  handle.addEventListener('mousedown',e=>{isResizing=true;e.preventDefault();});
+  window.addEventListener('mousemove',e=>{
+    if(!isResizing)return;
+    const newWidth=Math.max(150,Math.min(400,e.clientX));
+    sidebar.style.width=newWidth+'px';
+    sidebarWidth=newWidth;
+  });
+  window.addEventListener('mouseup',()=>{isResizing=false;});
+}
+
+let walkPanelWidth=300;
+function initWalkResize(){
+  const leftHandle=document.getElementById('walk-resize-left');
+  const rightHandle=document.getElementById('walk-resize-right');
+  const panel=document.querySelector('.walk-panel');
+  let resizingLeft=false,resizingRight=false;
+  if(leftHandle)leftHandle.addEventListener('mousedown',e=>{resizingLeft=true;e.preventDefault();});
+  if(rightHandle)rightHandle.addEventListener('mousedown',e=>{resizingRight=true;e.preventDefault();});
+  window.addEventListener('mousemove',e=>{
+    if(resizingRight){
+      const viewWidth=window.innerWidth;
+      const newWidth=Math.max(200,Math.min(450,viewWidth-e.clientX));
+      panel.style.width=newWidth+'px';
+      walkPanelWidth=newWidth;
+    }
+  });
+  window.addEventListener('mouseup',()=>{resizingLeft=false;resizingRight=false;});
+}
+
+/* SIDEBAR SCROLL PREVENTION */
+document.getElementById('sidebar').addEventListener('wheel',e=>{e.stopPropagation();},{passive:true});
+
 applyTransform();
-initMapSidebar();
+initSidebar();
+initResize();
+initWalkResize();
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.getElementById('zoom-fit').click()));
 window.addEventListener('resize',()=>document.getElementById('zoom-fit').click());
 </script>

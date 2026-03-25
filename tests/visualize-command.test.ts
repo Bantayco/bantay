@@ -1393,8 +1393,8 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // renderStep should use renderScreenForStep for variant support
-      expect(html).toContain("renderScreenForStep(screenId,sc)");
+      // renderStep should use getOrCreateScreen which wraps renderScreenForStep for variant support
+      expect(html).toContain("getOrCreateScreen(screenId,sc)");
     });
 
     test("screenHtmlMap includes same content as map view screens", async () => {
@@ -1554,12 +1554,12 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // Component boxes should NOT have dashed borders
-      expect(html).not.toContain(".comp-box { border:1px dashed");
-      expect(html).not.toContain("border-style:dashed");
-      // Should have no border on comp-box
+      // Base .comp-box should NOT have dashed borders (only debug-mode adds them)
       expect(html).toContain(".comp-box {");
-      expect(html).not.toMatch(/\.comp-box\s*\{[^}]*border:\s*1px\s+dashed/);
+      // The base rule should not include border
+      expect(html).toMatch(/\.comp-box\s*\{[^}]*padding:\s*4px\s+0[^}]*position:\s*relative/);
+      // Debug mode can have dashed borders, that's expected
+      expect(html).toContain(".app.debug-mode .comp-box { border:1px dashed");
     });
 
     test("component label is 8px with low opacity", async () => {
@@ -2203,8 +2203,8 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // Should have a sidebar element with scenario list
-      expect(html).toContain("walk-sidebar");
+      // Should have a shared sidebar element with scenario list
+      expect(html).toContain('id="sidebar"');
       // Should have CUJ groupings
       expect(html).toContain("cuj-group");
       // Should show area labels
@@ -2303,8 +2303,8 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // Should have click handler for scenario items that calls jumpToScenario
-      expect(html).toContain("jumpToScenario");
+      // Should have click handler for scenario items that calls selectScenario
+      expect(html).toContain("selectScenario");
       // Scenario items should be clickable
       expect(html).toContain("onclick");
     });
@@ -2409,9 +2409,9 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // Should have a map sidebar element
-      expect(html).toContain("map-sidebar");
-      // Should have area labels in map sidebar
+      // Should have a shared sidebar element
+      expect(html).toContain('id="sidebar"');
+      // Should have area labels in sidebar
       expect(html).toContain("auth");
       expect(html).toContain("settings");
       // Should have CUJ names
@@ -2466,8 +2466,8 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // Should have highlight function for scenarios
-      expect(html).toContain("highlightScenario");
+      // Should have select/highlight function for scenarios
+      expect(html).toContain("selectScenario");
       // Should have CSS for highlighted screen
       expect(html).toContain(".screen.highlighted");
       // Should have CSS for highlighted arrow
@@ -2540,7 +2540,7 @@ relationships: []
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
       // Should have a function to select CUJ and render storyboard
-      expect(html).toContain("selectMapCuj");
+      expect(html).toContain("selectCuj");
       // Should have storyboard container for dynamically generated cards
       expect(html).toContain("storyboard-container");
       // Should have function to render storyboard cards dynamically
@@ -2611,7 +2611,7 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // highlightScenario should accept scenario index for storyboard mode
+      // selectScenario calls highlightStoryboardCard when in storyboard mode
       expect(html).toContain("highlightStoryboardCard");
       // Should have CSS for highlighted storyboard card
       expect(html).toContain(".storyboard-card.highlighted");
@@ -2872,6 +2872,972 @@ relationships: []
 
       // Should have min-height of 476px on screen cards
       expect(html).toMatch(/\.screen\s*\{[^}]*min-height:\s*476px/);
+    });
+
+    test("walk-screen matches map card dimensions (220px width, 476px min-height)", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // walk-screen should have same dimensions as map screen cards
+      expect(html).toMatch(/\.walk-screen\s*\{[^}]*width:\s*220px/);
+      expect(html).toMatch(/\.walk-screen\s*\{[^}]*min-height:\s*476px/);
+    });
+  });
+
+  // sc_map_resizable_panels: Map sidebar width is adjustable
+  describe("sc_map_resizable_panels", () => {
+    test("map has resizable sidebar with drag handle", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have resize handle element
+      expect(html).toContain("resize-handle");
+      // Should have cursor:col-resize style for drag handle
+      expect(html).toContain("cursor:col-resize");
+      // Should have resize handler function (shared sidebar)
+      expect(html).toContain("initResize");
+    });
+  });
+
+  // sc_walk_resizable_panels: Walkthrough panel widths are adjustable
+  describe("sc_walk_resizable_panels", () => {
+    test("walkthrough has resizable panels with drag handles", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have walk resize handles
+      expect(html).toContain("walk-resize-handle");
+      // Should have resize handler function for walkthrough
+      expect(html).toContain("initWalkResize");
+    });
+  });
+
+  // sc_view_switch_preserves_selection: Switching views preserves selected scenario
+  describe("sc_view_switch_preserves_selection", () => {
+    test("switching between map and walkthrough preserves selection", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Selection is preserved via curCuj and curStep variables
+      expect(html).toContain("curCuj");
+      expect(html).toContain("curStep");
+      // setMode calls renderStep to update walkthrough with current selection
+      expect(html).toMatch(/setMode.*renderStep/s);
+      // updateSidebarHighlight keeps sidebar selection in sync
+      expect(html).toContain("updateSidebarHighlight");
+    });
+  });
+
+  // sc_panels_full_height: Panels extend full window height
+  describe("sc_panels_full_height", () => {
+    test("panels use full viewport height minus mode bar", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // html and body should have 100% height
+      expect(html).toMatch(/html\s*,\s*body\s*\{[^}]*height:\s*100%/);
+      // app container should use 100vh (no mode bar to subtract)
+      expect(html).toMatch(/\.app\s*\{[^}]*height:\s*100vh/);
+    });
+  });
+
+  // sc_sidebar_independent_scroll: Sidebar scrolls independently from canvas
+  describe("sc_sidebar_independent_scroll", () => {
+    test("sidebar has independent scroll that doesn't zoom canvas", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Sidebar should stop wheel event propagation
+      expect(html).toContain("sidebar");
+      expect(html).toMatch(/sidebar.*addEventListener.*wheel.*stopPropagation/s);
+    });
+  });
+
+  // sc_map_sidebar_list (updated): Persistent sidebar shared between map and walkthrough
+  describe("sc_map_sidebar_list: Persistent sidebar shared between views", () => {
+    test("has ONE sidebar element shared between map and walkthrough views", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have ONE shared sidebar with id="sidebar"
+      expect(html).toContain('id="sidebar"');
+      // Should NOT have separate map-sidebar and walk-sidebar
+      expect(html).not.toContain('id="map-sidebar"');
+      expect(html).not.toContain('id="walk-sidebar"');
+    });
+
+    test("sidebar populates once and does not rebuild on mode switch", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have a single initSidebar function that populates once
+      expect(html).toContain("initSidebar");
+      // setMode should NOT rebuild the sidebar
+      expect(html).not.toMatch(/setMode[^}]*initSidebar/s);
+      // Should NOT have separate initMapSidebar or initWalkSidebar
+      expect(html).not.toContain("initMapSidebar");
+    });
+
+    test("sidebar updates whichever view is active when scenario clicked", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have a shared selectScenario function
+      expect(html).toContain("selectScenario");
+      // Scenario items should call selectScenario, not view-specific functions
+      expect(html).toMatch(/scenario-item.*onclick.*selectScenario/s);
+    });
+  });
+
+  // sc_mode_toggle_in_canvas: Map/Walkthrough toggle lives inside the canvas panel
+  describe("sc_mode_toggle_in_canvas: Mode toggle inside canvas panel", () => {
+    test("mode toggle is inside canvas-toolbar, not top-level mode-bar", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have canvas-toolbar with mode toggle
+      expect(html).toContain("canvas-toolbar");
+      // Should NOT have top-level mode-bar
+      expect(html).not.toContain('class="mode-bar"');
+    });
+
+    test("layout has sidebar higher in hierarchy than canvas toggle", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Layout: sidebar comes before canvas-panel in DOM (sidebar is left, full height)
+      expect(html).toMatch(/<div[^>]*class="sidebar"[^>]*id="sidebar"[^>]*>.*<div[^>]*class="canvas-panel"/s);
+      // App container uses flexbox for layout
+      expect(html).toMatch(/\.app\s*\{[^}]*display:\s*flex/);
+    });
+
+    test("canvas-panel contains both map-canvas and walk-canvas", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Both canvas views should be inside canvas-panel
+      expect(html).toMatch(/canvas-panel.*id="map-canvas".*id="walk-canvas"/s);
+      // setMode toggles visibility of map-canvas vs walk-canvas
+      expect(html).toMatch(/setMode.*map-canvas.*display.*walk-canvas.*display/s);
+    });
+
+    test("viewport uses full height (100vh)", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // App should use 100vh (no mode bar to subtract)
+      expect(html).toMatch(/\.app\s*\{[^}]*height:\s*100vh/);
+    });
+  });
+
+  // sc_map_labels_hidden_default: Screen and component IDs hidden by default
+  describe("sc_map_labels_hidden_default", () => {
+    test("screen IDs (s-tag) are hidden by default", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // s-tag should be display:none by default
+      expect(html).toMatch(/\.s-tag\s*\{[^}]*display:\s*none/);
+    });
+
+    test("component labels (comp-label) are hidden by default", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // comp-label should be display:none by default
+      expect(html).toMatch(/\.comp-label\s*\{[^}]*display:\s*none/);
+    });
+  });
+
+  // sc_map_debug_overlay: Debug overlay toggle shows IDs and bounding boxes
+  describe("sc_map_debug_overlay", () => {
+    test("debug toggle button exists in canvas-toolbar", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have a debug toggle button in toolbar
+      expect(html).toContain("debug-toggle");
+      // Toggle should call toggleDebug function
+      expect(html).toContain("toggleDebug");
+    });
+
+    test("debug mode shows s-tag and comp-label", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // In debug mode, s-tag should be visible
+      expect(html).toMatch(/\.app\.debug-mode\s+\.s-tag\s*\{[^}]*display:\s*block/);
+      // In debug mode, comp-label should be visible
+      expect(html).toMatch(/\.app\.debug-mode\s+\.comp-label\s*\{[^}]*display:\s*block/);
+    });
+
+    test("debug mode adds dashed border to comp-box", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // In debug mode, comp-box should have dashed border
+      expect(html).toMatch(/\.app\.debug-mode\s+\.comp-box\s*\{[^}]*border:[^}]*dashed/);
+    });
+
+    test("debug mode adds semi-transparent overlay to screens", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // In debug mode, screens should have ::after overlay
+      expect(html).toMatch(/\.app\.debug-mode\s+\.screen::after/);
+      // Walk screen should also have overlay
+      expect(html).toMatch(/\.app\.debug-mode\s+\.walk-screen::after/);
+    });
+
+    test("toggleDebug function toggles debug-mode class on app", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // toggleDebug should toggle debug-mode class on app element
+      expect(html).toMatch(/toggleDebug.*\.app.*classList.*toggle.*debug-mode/s);
+    });
+  });
+
+  // sc_single_screen_instance: Map and walkthrough share a single screen DOM element
+  describe("sc_single_screen_instance", () => {
+    test("screen pool caches and returns DOM elements by key", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have a screenPool object for caching
+      expect(html).toContain("screenPool");
+      // Should have getOrCreateScreen function that returns cached element
+      expect(html).toContain("getOrCreateScreen");
+    });
+
+    test("switching modes reparents screen element via appendChild", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // renderStep should use getOrCreateScreen and appendChild for reparenting
+      expect(html).toMatch(/renderStep.*getOrCreateScreen/s);
+      expect(html).toMatch(/appendChild.*getOrCreateScreen|getOrCreateScreen.*appendChild/s);
+    });
+
+    test("storyboard uses getOrCreateScreen for each scenario", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // renderStoryboard should use getOrCreateScreen
+      expect(html).toMatch(/renderStoryboard.*getOrCreateScreen/s);
     });
   });
 });

@@ -1100,10 +1100,10 @@ entities:
   sc_map_sidebar_list:
     parent: cuj_visualize_map
     props:
-      name: Map view shows CUJ and scenario list in left sidebar
-      given: Developer opens map mode
-      when: Map renders
-      then: Left sidebar shows all CUJs grouped by area with scenarios listed under each, matching walkthrough layout
+      name: Persistent sidebar shared between map and walkthrough
+      given: Developer opens the visualizer
+      when: Any view renders
+      then: Left sidebar with CUJ/scenario list is always visible and is the same DOM element in both map and walkthrough views. Selecting a scenario in the sidebar updates whichever view is active.
   sc_map_click_scenario_highlights:
     parent: cuj_visualize_map
     props:
@@ -1132,6 +1132,69 @@ entities:
       given: Map renders screen cards
       when: Screens are sized
       then: Each screen card has min-height 476px (iPhone portrait ratio at 220px width)
+  sc_map_resizable_panels:
+    parent: cuj_visualize_map
+    props:
+      name: Map sidebar width is adjustable
+      given: Developer viewing the map
+      when: Developer drags the divider between sidebar and canvas
+      then: Sidebar width adjusts, canvas reflows, preference persists during session
+  sc_walk_resizable_panels:
+    parent: cuj_visualize_walkthrough
+    props:
+      name: Walkthrough panel widths are adjustable
+      given: Developer viewing walkthrough
+      when: Developer drags panel dividers
+      then: Panel widths adjust, screen preview recenters
+  sc_view_switch_preserves_selection:
+    parent: cuj_visualize_map
+    props:
+      name: Switching views preserves selected scenario
+      given: Developer has a scenario highlighted in map view
+      when: Developer switches to walkthrough
+      then: Same CUJ and scenario are selected in walkthrough, and vice versa
+  sc_panels_full_height:
+    parent: cuj_visualize_map
+    props:
+      name: Panels extend full window height
+      given: Developer opens the visualizer
+      when: Page renders
+      then: Sidebar and canvas fill the full viewport height minus the mode bar
+  sc_sidebar_independent_scroll:
+    parent: cuj_visualize_map
+    props:
+      name: Sidebar scrolls independently from canvas
+      given: Developer hovers over the sidebar
+      when: Developer scrolls with mouse wheel
+      then: Only the sidebar scrolls. Canvas does not zoom or pan.
+  sc_mode_toggle_in_canvas:
+    parent: cuj_visualize_map
+    props:
+      name: Map/Walkthrough toggle lives inside the canvas panel
+      given: Developer opens the visualizer
+      when: Page renders
+      then: Mode toggle (Map/Walkthrough) is positioned inside the right canvas panel, not in a top-level bar. The sidebar is visually higher in hierarchy than the toggle.
+  sc_map_labels_hidden_default:
+    parent: cuj_visualize_map
+    props:
+      name: Screen and component IDs hidden by default
+      given: Developer opens the visualizer
+      when: Map or walkthrough renders
+      then: Screen IDs (s-tag), component IDs (comp-label), and variant names are not visible
+  sc_map_debug_overlay:
+    parent: cuj_visualize_map
+    props:
+      name: Debug overlay toggle shows IDs and bounding boxes
+      given: Developer wants to see screen and component IDs
+      when: Developer clicks the debug overlay toggle button
+      then: Semi-transparent overlay appears on all screens showing screen ID at top, dashed bounding box around each component with component ID and variant name. Overlay is slightly opaque so wireframe content is still visible underneath.
+  sc_single_screen_instance:
+    parent: cuj_visualize_generate
+    props:
+      name: Map and walkthrough share a single screen DOM element
+      given: A scenario is selected
+      when: The screen preview renders
+      then: The same DOM element is used in both map and walkthrough views. Switching modes reparents the element, not recreates it.
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available

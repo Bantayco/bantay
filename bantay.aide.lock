@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-25T01:50:58.269Z
+# Generated: 2026-03-25T06:24:33.880Z
 
 entities:
   bantay_cli: 40c228db
@@ -104,19 +104,26 @@ entities:
   sc_init_speed: 1de396b0 parent:cuj_init bh:5c59ba55
   sc_map_arrows_component_level: 0cc44f64 parent:cuj_visualize_map bh:49833116
   sc_map_click_scenario_highlights: 3bfd2f33 parent:cuj_visualize_map bh:40f7496f
+  sc_map_debug_overlay: 0f3c5c73 parent:cuj_visualize_map bh:79403bde
   sc_map_default_all_screens: 50df9320 parent:cuj_visualize_map bh:6ccc16b6
   sc_map_drag_screen: 1851b7e5 parent:cuj_visualize_map bh:6a90ca7b
   sc_map_external_labels: 333f5742 parent:cuj_visualize_map bh:6a1b0f02
+  sc_map_labels_hidden_default: 22415dca parent:cuj_visualize_map bh:03485df7
   sc_map_linear_layout: 394fab85 parent:cuj_visualize_map bh:5fc544c4
   sc_map_pan: 1fa5e29d parent:cuj_visualize_map bh:6820fd1d
+  sc_map_resizable_panels: 75646127 parent:cuj_visualize_map bh:299d35c3
   sc_map_screen_min_height: 3cef3674 parent:cuj_visualize_map bh:62ec179a
   sc_map_self_loops: 4e770947 parent:cuj_visualize_map bh:76c60e16
-  sc_map_sidebar_list: 784a8b6d parent:cuj_visualize_map bh:1430cf8b
+  sc_map_sidebar_list: 04a21559 parent:cuj_visualize_map bh:4c515ccd
   sc_map_view_screens: 2d929139 parent:cuj_visualize_map bh:4d6ca415
   sc_map_zoom: 76985469 parent:cuj_visualize_map bh:05faafc3
+  sc_mode_toggle_in_canvas: 2669003c parent:cuj_visualize_map bh:43e4c6f1
   sc_orchestrate_plan: 0d9a1054 parent:cuj_orchestrate bh:400c2b0f
   sc_orchestrate_spawn: 3f36aa44 parent:cuj_orchestrate bh:7d062e13
   sc_orchestrate_validate_plan: 052156b0 parent:cuj_orchestrate bh:18d29900
+  sc_panels_full_height: 0c1f53b7 parent:cuj_visualize_map bh:3132bc16
+  sc_sidebar_independent_scroll: 29c13123 parent:cuj_visualize_map bh:7efc19b6
+  sc_single_screen_instance: 1a865036 parent:cuj_visualize_generate bh:3f21e432
   sc_tasks_all: 6ca85866 parent:cuj_tasks bh:63ad8dd7
   sc_tasks_all_entity_types: 4d0e6452 parent:cuj_tasks bh:4c8eb41f
   sc_tasks_design_token: 4eb26532 parent:cuj_tasks bh:7dfb5286
@@ -125,6 +132,7 @@ entities:
   sc_tasks_metadata_only: 1cc7ae63 parent:cuj_tasks bh:7ec63d0d
   sc_tasks_output: 06fcfa94 parent:cuj_tasks bh:177a514f
   sc_tasks_phases: 7f46468a parent:cuj_tasks bh:6f4e714e
+  sc_view_switch_preserves_selection: 40cd3035 parent:cuj_visualize_map bh:06e53146
   sc_visualize_fallback: 0e61a8c1 parent:cuj_visualize_generate bh:5e9697b1
   sc_visualize_injects_tokens: 36ec108c parent:cuj_visualize_generate bh:08e83c27
   sc_visualize_map_default_variants: 3eb7e893 parent:cuj_visualize_map bh:266603af
@@ -137,6 +145,7 @@ entities:
   sc_walk_invariants_shown: 1338cd54 parent:cuj_visualize_walkthrough bh:4d6e0c19
   sc_walk_pick_cuj: 20d66b81 parent:cuj_visualize_walkthrough bh:3f385379
   sc_walk_progress_dots: 73f9d643 parent:cuj_visualize_walkthrough bh:019e3541
+  sc_walk_resizable_panels: 51173f51 parent:cuj_visualize_walkthrough bh:1b87a374
   sc_walk_scenario_list: 10bfdfe7 parent:cuj_visualize_walkthrough bh:0480b516
   sc_walk_screen_transition: 4ee103ea parent:cuj_visualize_walkthrough bh:71f2e934
   sc_walk_step_back: 044e21e5 parent:cuj_visualize_walkthrough bh:70400dd3
