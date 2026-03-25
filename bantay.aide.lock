@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-25T00:25:15.124Z
+# Generated: 2026-03-25T01:43:00.410Z
 
 entities:
   bantay_cli: 40c228db
@@ -104,10 +104,12 @@ entities:
   sc_init_speed: 1de396b0 parent:cuj_init bh:5c59ba55
   sc_map_arrows_component_level: 0cc44f64 parent:cuj_visualize_map bh:49833116
   sc_map_click_scenario_highlights: 3bfd2f33 parent:cuj_visualize_map bh:40f7496f
+  sc_map_default_all_screens: 50df9320 parent:cuj_visualize_map bh:6ccc16b6
   sc_map_drag_screen: 1851b7e5 parent:cuj_visualize_map bh:6a90ca7b
   sc_map_external_labels: 333f5742 parent:cuj_visualize_map bh:6a1b0f02
-  sc_map_linear_layout: 4b583b23 parent:cuj_visualize_map bh:6db15c92
+  sc_map_linear_layout: 394fab85 parent:cuj_visualize_map bh:5fc544c4
   sc_map_pan: 1fa5e29d parent:cuj_visualize_map bh:6820fd1d
+  sc_map_screen_min_height: 3cef3674 parent:cuj_visualize_map bh:62ec179a
   sc_map_self_loops: 4e770947 parent:cuj_visualize_map bh:76c60e16
   sc_map_sidebar_list: 784a8b6d parent:cuj_visualize_map bh:1430cf8b
   sc_map_view_screens: 2d929139 parent:cuj_visualize_map bh:4d6ca415

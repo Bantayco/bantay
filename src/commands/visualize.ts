@@ -607,7 +607,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 /* MAP */
 .viewport { width:100%; height:680px; position:relative; overflow:hidden; border:1px solid var(--bd); border-top:none; }
 .pan-layer { position:absolute; width:4000px; height:3000px; transform-origin:0 0; background-image:radial-gradient(circle,var(--bd) 1px,transparent 1px); background-size:var(--grid) var(--grid); }
-.screen { position:absolute; width:220px; min-height:200px; background:var(--bg); border:1px solid var(--bd); border-radius:10px; overflow:visible; font-family:var(--sans); font-size:11px; color:var(--fg); box-shadow:0 2px 10px rgba(0,0,0,0.08); cursor:grab; user-select:none; z-index:3; display:flex; flex-direction:column; transition:box-shadow 0.15s; }
+.screen { position:absolute; width:220px; min-height:476px; background:var(--bg); border:1px solid var(--bd); border-radius:10px; overflow:visible; font-family:var(--sans); font-size:11px; color:var(--fg); box-shadow:0 2px 10px rgba(0,0,0,0.08); cursor:grab; user-select:none; z-index:3; display:flex; flex-direction:column; transition:box-shadow 0.15s, opacity 0.2s; }
+.screen.dimmed { opacity:0.2; }
 @media(prefers-color-scheme:dark){ .screen { box-shadow:0 2px 12px rgba(0,0,0,0.5); } }
 .screen.dragging { z-index:10; cursor:grabbing; box-shadow:0 6px 24px rgba(0,0,0,0.18); transition:none; }
 .s-head { padding:5px 10px; border-bottom:1px solid var(--bd); display:flex; justify-content:space-between; font-size:10px; color:var(--mt); font-family:monospace; border-radius:10px 10px 0 0; }
@@ -679,8 +680,20 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 .map-sidebar .scenario-item { font-size:10px; color:var(--mt); padding:4px 6px 4px 16px; border-radius:4px; cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
 .map-sidebar .scenario-item:hover { background:var(--bd); color:var(--fg); }
 .map-sidebar .scenario-item.current { background:var(--accent); color:#fff; }
+.map-sidebar .cuj-name.selected { background:var(--accent); color:#fff; }
 .screen.highlighted { box-shadow:0 0 0 3px var(--accent), 0 6px 24px rgba(0,0,0,0.18); z-index:15; }
 .arrow-highlighted { stroke-width:3 !important; }
+
+/* STORYBOARD */
+.storyboard-container { display:none; position:absolute; top:0; left:0; width:100%; height:100%; }
+.storyboard-container.active { display:block; }
+.default-screens { display:block; }
+.default-screens.hidden { display:none; }
+.storyboard-card { position:absolute; width:220px; min-height:476px; background:var(--bg); border:1px solid var(--bd); border-radius:10px; overflow:visible; font-family:var(--sans); font-size:11px; color:var(--fg); box-shadow:0 2px 10px rgba(0,0,0,0.08); z-index:3; display:flex; flex-direction:column; }
+@media(prefers-color-scheme:dark){ .storyboard-card { box-shadow:0 2px 12px rgba(0,0,0,0.5); } }
+.storyboard-label { position:absolute; bottom:-40px; left:0; width:100%; text-align:center; }
+.storyboard-label .scenario-name { font-size:10px; font-family:monospace; color:var(--fg); display:block; }
+.storyboard-label .screen-id { font-size:9px; font-family:monospace; color:var(--hint); display:block; }
 </style>
 </head>
 <body>
@@ -695,7 +708,10 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
   <div class="map-sidebar" id="map-sidebar"></div>
   <div class="pan-layer" id="pan-layer">
     <svg id="arrows" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible;"></svg>
-    ${screenHtml}
+    <div class="default-screens" id="default-screens">
+      ${screenHtml}
+    </div>
+    <div class="storyboard-container" id="storyboard-container"></div>
   </div>
 
   <div class="toolbar">
@@ -746,6 +762,7 @@ function setMode(m){
 
 /* MAP SIDEBAR */
 let highlightedScenarioId=null;
+let selectedMapCuj=null;
 function initMapSidebar(){
   const sidebar=document.getElementById('map-sidebar');
   const areas={};
@@ -754,11 +771,11 @@ function initMapSidebar(){
     if(!areas[area])areas[area]=[];
     areas[area].push({id,cuj:c});
   });
-  let html='';
+  let html='<div class="cuj-group"><div class="cuj-name" style="cursor:pointer;color:var(--accent);" onclick="showDefaultScreens()">All Screens</div></div>';
   Object.entries(areas).forEach(([area,cujList])=>{
     html+=\`<div class="area-label">\${area}</div>\`;
     cujList.forEach(({id,cuj})=>{
-      html+=\`<div class="cuj-group" data-cuj="\${id}"><div class="cuj-name">\${cuj.name}</div>\`;
+      html+=\`<div class="cuj-group" data-cuj="\${id}"><div class="cuj-name" style="cursor:pointer;" onclick="selectMapCuj('\${id}')">\${cuj.name}</div>\`;
       cuj.scenarios.forEach((sc,i)=>{
         html+=\`<div class="scenario-item" data-cuj="\${id}" data-step="\${i}" data-scenario="\${sc.id}" data-screen="\${sc.screen}" onclick="highlightScenario('\${sc.id}','\${sc.screen}')">\${sc.name}</div>\`;
       });
@@ -766,6 +783,55 @@ function initMapSidebar(){
     });
   });
   sidebar.innerHTML=html;
+}
+function showDefaultScreens(){
+  selectedMapCuj=null;
+  highlightedScenarioId=null;
+  // Hide storyboard, show default screens
+  document.getElementById('storyboard-container').classList.remove('active');
+  document.getElementById('storyboard-container').innerHTML='';
+  document.getElementById('default-screens').classList.remove('hidden');
+  // Remove all highlighted states
+  document.querySelectorAll('.screen.highlighted').forEach(el=>el.classList.remove('highlighted'));
+  document.querySelectorAll('.map-sidebar .cuj-name.selected').forEach(el=>el.classList.remove('selected'));
+  document.querySelectorAll('.map-sidebar .scenario-item.current').forEach(el=>el.classList.remove('current'));
+  drawArrows();
+}
+function selectMapCuj(cujId){
+  selectedMapCuj=cujId;
+  highlightedScenarioId=null;
+  // Update sidebar highlighting
+  document.querySelectorAll('.map-sidebar .cuj-name.selected').forEach(el=>el.classList.remove('selected'));
+  document.querySelectorAll('.map-sidebar .cuj-group[data-cuj="'+cujId+'"] .cuj-name').forEach(el=>el.classList.add('selected'));
+  document.querySelectorAll('.map-sidebar .scenario-item.current').forEach(el=>el.classList.remove('current'));
+  // Render storyboard for this CUJ
+  renderStoryboard(cujId);
+}
+function renderStoryboard(cujId){
+  const cuj=cujs[cujId];
+  if(!cuj)return;
+  // Hide default screens, show storyboard
+  document.getElementById('default-screens').classList.add('hidden');
+  const container=document.getElementById('storyboard-container');
+  container.classList.add('active');
+  // Generate one card per scenario
+  let html='';
+  let xPos=80;
+  cuj.scenarios.forEach((sc,i)=>{
+    const screenId=sc.screen;
+    const bodyContent=renderScreenForStep(screenId,sc);
+    html+=\`<div class="storyboard-card" id="storyboard-\${i}" style="left:\${xPos}px;top:80px;">
+      <div class="s-head"><span>\${sc.screen||'default'}</span></div>
+      <div class="s-body">\${bodyContent}</div>
+      <div class="storyboard-label">
+        <span class="scenario-name">\${sc.name}</span>
+        <span class="screen-id">\${sc.screen||'default'}</span>
+      </div>
+    </div>\`;
+    xPos+=300;
+  });
+  container.innerHTML=html;
+  drawStoryboardArrows(cuj.scenarios);
 }
 function highlightScenario(scenarioId,screenId){
   // Clear previous highlight
@@ -890,6 +956,11 @@ function drawEdge(fEl,fS,tEl,tS,label,color,isHighlighted){
 
 function drawArrows(){
   let s='';
+  // If storyboard mode is active, don't draw default arrows
+  if(selectedMapCuj){
+    svg.innerHTML='';
+    return;
+  }
   transitions.forEach(t=>{
     const fromEl=document.getElementById('node-'+t.from);
     const toEl=document.getElementById('node-'+t.to);
@@ -898,6 +969,17 @@ function drawArrows(){
       s+=drawEdge(fromEl,'right',toEl,'left',t.label,'var(--accent)',isHighlighted);
     }
   });
+  svg.innerHTML=s;
+}
+function drawStoryboardArrows(scenarios){
+  let s='';
+  for(let i=0;i<scenarios.length-1;i++){
+    const fromEl=document.getElementById('storyboard-'+i);
+    const toEl=document.getElementById('storyboard-'+(i+1));
+    if(fromEl&&toEl){
+      s+=drawEdge(fromEl,'right',toEl,'left',null,'var(--accent)',false);
+    }
+  }
   svg.innerHTML=s;
 }
 

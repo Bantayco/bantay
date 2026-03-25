@@ -2473,8 +2473,86 @@ relationships: []
       // Should have CSS for highlighted arrow
       expect(html).toContain(".arrow-highlighted");
     });
+  });
 
-    test("sc_map_linear_layout: screens arranged in linear flow, not grid", async () => {
+  // sc_map_linear_layout: Map shows one screen per scenario in sequence
+  describe("sc_map_linear_layout", () => {
+    test("selecting CUJ generates one screen card per scenario (storyboard)", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_editor:
+    parent: screens
+    props:
+      name: Editor
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+      description: Countdown timer
+  cujs:
+    display: table
+    parent: my_project
+  cuj_flow:
+    parent: cujs
+    props:
+      feature: Timer Flow
+      area: timer
+  sc_idle:
+    parent: cuj_flow
+    props:
+      name: Timer idle
+      given: User opens editor
+      when: Editor loads
+      then: Timer shows idle
+      screen: screen_editor
+      comp_timer: idle
+  sc_running:
+    parent: cuj_flow
+    props:
+      name: Timer running
+      given: User clicks start
+      when: Timer starts
+      then: Timer shows running
+      screen: screen_editor
+      comp_timer: running
+  sc_paused:
+    parent: cuj_flow
+    props:
+      name: Timer paused
+      given: User clicks pause
+      when: Timer pauses
+      then: Timer shows paused
+      screen: screen_editor
+      comp_timer: paused
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have a function to select CUJ and render storyboard
+      expect(html).toContain("selectMapCuj");
+      // Should have storyboard container for dynamically generated cards
+      expect(html).toContain("storyboard-container");
+      // Should have function to render storyboard cards dynamically
+      expect(html).toContain("renderStoryboard");
+      // Should show labels below cards (scenario name and screen ID)
+      expect(html).toContain("storyboard-label");
+    });
+  });
+
+  // sc_map_default_all_screens: Default view shows one screen per screen entity
+  describe("sc_map_default_all_screens", () => {
+    test("default view shows deduplicated screens (one per entity)", async () => {
       const aideContent = `
 entities:
   my_project:
@@ -2489,25 +2567,13 @@ entities:
     parent: screens
     props:
       name: Screen B
-  screen_c:
-    parent: screens
-    props:
-      name: Screen C
-  screen_d:
-    parent: screens
-    props:
-      name: Screen D
-  screen_e:
-    parent: screens
-    props:
-      name: Screen E
   cujs:
     display: table
     parent: my_project
   cuj_flow:
     parent: cujs
     props:
-      feature: User Flow
+      feature: Flow
       area: flow
   sc_step1:
     parent: cuj_flow
@@ -2515,7 +2581,23 @@ entities:
       name: Step 1
       given: Start
       when: Action
-      then: Result
+      then: Done
+      screen: screen_a
+  sc_step2:
+    parent: cuj_flow
+    props:
+      name: Step 2
+      given: On A
+      when: Navigate
+      then: On B
+      screen: screen_b
+  sc_step3:
+    parent: cuj_flow
+    props:
+      name: Step 3
+      given: On B
+      when: Return
+      then: Back to A
       screen: screen_a
 relationships: []
 `;
@@ -2525,22 +2607,54 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // Extract screen positions to verify linear layout
-      // All screens should have same Y position (horizontal layout)
-      // OR all should have same X position (vertical layout)
-      const screenPositions = html.matchAll(/style="left:(\d+)px;top:(\d+)px;"/g);
-      const positions = [...screenPositions].map((m) => ({
-        x: parseInt(m[1]),
-        y: parseInt(m[2]),
-      }));
+      // Should have default state of null CUJ selection
+      expect(html).toContain("selectedMapCuj=null");
+      // Should have function to show default deduplicated screens
+      expect(html).toContain("showDefaultScreens");
+      // Default view shows static screen entities, storyboard hidden
+      expect(html).toContain("default-screens");
+    });
+  });
 
-      // With 5 screens in a grid layout (4 per row), we'd have y positions at 80 and 640
-      // With linear layout, all y should be the same (horizontal) or all x should be same (vertical)
-      const allSameY = positions.every((p) => p.y === positions[0].y);
-      const allSameX = positions.every((p) => p.x === positions[0].x);
+  // sc_map_screen_min_height: Map screens use mobile portrait aspect ratio
+  describe("sc_map_screen_min_height", () => {
+    test("screen cards have 476px min-height", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+      area: test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Start
+      when: Action
+      then: Done
+      screen: screen_home
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
 
-      // Should be linear (either horizontal or vertical)
-      expect(allSameY || allSameX).toBe(true);
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have min-height of 476px on screen cards
+      expect(html).toMatch(/\.screen\s*\{[^}]*min-height:\s*476px/);
     });
   });
 });

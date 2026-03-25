@@ -1114,10 +1114,24 @@ entities:
   sc_map_linear_layout:
     parent: cuj_visualize_map
     props:
-      name: Screens laid out in a linear flow
-      given: Developer opens map mode
-      when: Map renders screens
-      then: Screens arranged in a horizontal or vertical sequence based on the primary user flow, not a grid
+      name: Map shows one screen per scenario in sequence
+      given: Developer selects a CUJ in the map sidebar
+      when: Map re-renders
+      then: One screen card rendered per scenario in that CUJ, left to right. Each screen shows the component wireframe variants for that scenario's state. Transition arrows connect consecutive screens. Screen label shows scenario name below the card.
+  sc_map_default_all_screens:
+    parent: cuj_visualize_map
+    props:
+      name: Default view shows one screen per screen entity
+      given: Developer opens map with no CUJ selected
+      when: Map renders
+      then: Deduplicated screens shown (one per screen entity) with all transition arrows
+  sc_map_screen_min_height:
+    parent: cuj_visualize_map
+    props:
+      name: Map screens use mobile portrait aspect ratio
+      given: Map renders screen cards
+      when: Screens are sized
+      then: Each screen card has min-height 476px (iPhone portrait ratio at 220px width)
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
