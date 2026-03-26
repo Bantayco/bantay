@@ -414,13 +414,23 @@ async function handleTasks(args: string[]) {
 }
 
 async function handleVisualize(args: string[]) {
-  const projectPath = process.cwd();
-
   // Parse options
   const aideIndex = args.indexOf("--aide");
   const outputIndex = args.indexOf("--output");
 
   const options: { aide?: string; output?: string } = {};
+
+  // Check for positional argument (first non-option arg that ends in .aide)
+  const positionalArg = args.find((arg, idx) => {
+    if (arg.startsWith("--")) return false;
+    // Skip if this arg is the value for --aide or --output
+    if (aideIndex !== -1 && idx === aideIndex + 1) return false;
+    if (outputIndex !== -1 && idx === outputIndex + 1) return false;
+    return arg.endsWith(".aide");
+  });
+  if (positionalArg) {
+    options.aide = positionalArg;
+  }
 
   if (aideIndex !== -1 && args[aideIndex + 1]) {
     options.aide = args[aideIndex + 1];
@@ -428,6 +438,13 @@ async function handleVisualize(args: string[]) {
 
   if (outputIndex !== -1 && args[outputIndex + 1]) {
     options.output = args[outputIndex + 1];
+  }
+
+  // Derive project path from aide file path if it's absolute, otherwise use cwd
+  let projectPath = process.cwd();
+  if (options.aide && options.aide.startsWith("/")) {
+    const { dirname } = await import("path");
+    projectPath = dirname(options.aide);
   }
 
   try {
