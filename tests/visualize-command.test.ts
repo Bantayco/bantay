@@ -1394,7 +1394,7 @@ relationships: []
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
       // renderStep should use getScreenHtml which caches renderScreenForStep for variant support
-      expect(html).toContain("getScreenHtml(screenId,sc)");
+      expect(html).toContain("getScreenHtml(screenId,legacySc)");
     });
 
     test("screenHtmlMap includes same content as map view screens", async () => {
@@ -1503,9 +1503,9 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // The renderStep should use sc.screen directly as the key
+      // The renderStep should use legacySc.screen directly as the key
       // Not prepend "screen_" to get "screen_screen_flow_mode"
-      expect(html).toContain("const screenId=sc.screen");
+      expect(html).toContain("const screenId=legacySc.screen");
       // screenHtmlMap should have the full screen ID as key
       expect(html).toContain('"screen_flow_mode"');
     });
@@ -4307,6 +4307,872 @@ relationships: []
       // Keyboard nav should call highlightStoryboardCard and updateSidebarHighlight
       expect(html).toMatch(/keydown.*highlightStoryboardCard/s);
       expect(html).toMatch(/keydown.*updateSidebarHighlight/s);
+    });
+  });
+
+  // === GRAPH VISUALIZATION TESTS ===
+
+  // sc_graph_nodes_from_states: st_* entities render as graph nodes
+  describe("sc_graph_nodes_from_states", () => {
+    test("st_* entities are extracted and included in screenStates data", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+  states:
+    parent: my_project
+  st_draft_idle:
+    parent: states
+    props:
+      screen: screen_draft
+      comp_timer: idle
+  st_draft_running:
+    parent: states
+    props:
+      screen: screen_draft
+      comp_timer: running
+  cujs:
+    display: table
+    parent: my_project
+  cuj_timer:
+    parent: cujs
+    props:
+      feature: Timer flow
+      area: write
+  sc_start_timer:
+    parent: cuj_timer
+    props:
+      name: Start timer
+      given: Timer idle
+      when: User clicks start
+      then: Timer running
+      path: tr_idle_to_running
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have screenStates data from st_* entities
+      expect(html).toContain("screenStates");
+      expect(html).toContain("st_draft_idle");
+      expect(html).toContain("st_draft_running");
+    });
+
+    test("each st_* entity renders as a node with screen wireframe and variants applied", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+  states:
+    parent: my_project
+  st_draft_idle:
+    parent: states
+    props:
+      screen: screen_draft
+      comp_timer: idle
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_timer--idle.html"),
+        `<div class="timer-idle-node">IDLE STATE</div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Graph nodes should be generated for screen states
+      expect(html).toContain("graph-node");
+    });
+  });
+
+  // sc_graph_edges_from_transitions: tr_* entities render as directed edges
+  describe("sc_graph_edges_from_transitions", () => {
+    test("tr_* entities are extracted and included in transitions data", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+  states:
+    parent: my_project
+  st_draft_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  st_draft_running:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_idle_to_running:
+    parent: transitions
+    props:
+      from: st_draft_idle
+      to: st_draft_running
+      action: Start timer
+      trigger: comp_start_button
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have transitions data from tr_* entities
+      expect(html).toContain("tr_idle_to_running");
+      expect(html).toContain("st_draft_idle");
+      expect(html).toContain("st_draft_running");
+      expect(html).toContain("Start timer");
+    });
+
+    test("tr_* entity renders as directed edge with action label", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  st_running:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_running
+      action: Start
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have transitions data for drawing edges
+      expect(html).toContain("const transitions =");
+    });
+
+    test("transitions array contains from/to/action fields from tr_* entities", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  st_running:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_running
+      action: Start Timer
+      trigger: btn_start
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Extract transitions JSON from HTML (unified array - no separate graphTransitions)
+      const match = html.match(/const transitions = (\[.*?\]);/s);
+      expect(match).not.toBeNull();
+      const transitions = JSON.parse(match![1]);
+
+      // Should have exactly one transition
+      expect(transitions.length).toBe(1);
+
+      // Should have from/to/action fields populated from tr_* entity
+      expect(transitions[0].id).toBe("tr_start");
+      expect(transitions[0].from).toBe("st_idle");
+      expect(transitions[0].to).toBe("st_running");
+      expect(transitions[0].action).toBe("Start Timer");
+      expect(transitions[0].trigger).toBe("btn_start");
+
+      // Should NOT have a separate graphTransitions array
+      expect(html).not.toContain("const graphTransitions");
+    });
+  });
+
+  // sc_graph_highlight_scenario_path: Selecting a scenario highlights its path through the graph
+  describe("sc_graph_highlight_scenario_path", () => {
+    test("scenario with path prop lists transition IDs in order", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  st_running:
+    parent: states
+    props:
+      screen: screen_draft
+  st_paused:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_running
+      action: Start
+  tr_pause:
+    parent: transitions
+    props:
+      from: st_running
+      to: st_paused
+      action: Pause
+  cujs:
+    display: table
+    parent: my_project
+  cuj_timer:
+    parent: cujs
+    props:
+      feature: Timer
+      area: write
+  sc_start_and_pause:
+    parent: cuj_timer
+    props:
+      name: Start then pause
+      given: Timer idle
+      when: User starts and pauses
+      then: Timer paused
+      path: tr_start,tr_pause
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Scenario should include path prop in cujs data
+      expect(html).toContain('"path"');
+      expect(html).toContain("tr_start");
+      expect(html).toContain("tr_pause");
+    });
+
+    test("clicking scenario dims non-path nodes to 0.2 opacity", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  st_running:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_running
+      action: Start
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test scenario
+      given: Idle
+      when: Start
+      then: Running
+      path: tr_start
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have CSS for dimmed nodes
+      expect(html).toContain("opacity");
+      expect(html).toContain("0.2");
+    });
+  });
+
+  // sc_storyboard_from_path: Storyboard renders scenario path as horizontal strip
+  describe("sc_storyboard_from_path", () => {
+    test("storyboard renders screen states in path order with transition arrows", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+      comp_timer: idle
+  st_running:
+    parent: states
+    props:
+      screen: screen_draft
+      comp_timer: running
+  st_paused:
+    parent: states
+    props:
+      screen: screen_draft
+      comp_timer: paused
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_running
+      action: Start
+  tr_pause:
+    parent: transitions
+    props:
+      from: st_running
+      to: st_paused
+      action: Pause
+  cujs:
+    display: table
+    parent: my_project
+  cuj_timer:
+    parent: cujs
+    props:
+      feature: Timer
+      area: write
+  sc_full_flow:
+    parent: cuj_timer
+    props:
+      name: Full flow
+      given: Timer idle
+      when: Start then pause
+      then: Timer paused
+      path: tr_start,tr_pause
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have function to render path-based storyboard
+      expect(html).toContain("renderPathStoryboard");
+    });
+
+    test("storyboard shows wireframe with variant state for each screen state", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_timer
+  components:
+    parent: my_project
+  comp_timer:
+    parent: components
+    props:
+      name: Timer
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+      comp_timer: idle
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_idle
+      action: Noop
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test
+      given: Idle
+      when: Action
+      then: Done
+      path: tr_start
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_timer--idle.html"),
+        `<div class="timer-idle-path">IDLE PATH</div>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // variantHtmlMap should have the idle variant
+      expect(html).toContain("timer-idle-path");
+    });
+  });
+
+  // sc_graph_trigger_prop: Transition trigger identifies which UI element is tapped
+  describe("sc_graph_trigger_prop", () => {
+    test("transition with trigger prop includes trigger in data", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  st_running:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_running
+      action: Start timer
+      trigger: comp_start_button
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // tr_* entity data should include trigger prop
+      expect(html).toContain("trigger");
+      expect(html).toContain("comp_start_button");
+    });
+
+    test("edge label shows action text from transition", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  st_running:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_running
+      action: Tap Start
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Transition should have action for edge label
+      expect(html).toContain("Tap Start");
+    });
+  });
+
+  // Backward compatibility: aide without st_*/tr_* entities falls back to current behavior
+  describe("backward compatibility", () => {
+    test("aide without st_*/tr_* entities uses legacy screen/scenario behavior", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_login:
+    parent: screens
+    props:
+      name: Login
+  screen_dashboard:
+    parent: screens
+    props:
+      name: Dashboard
+  cujs:
+    display: table
+    parent: my_project
+  cuj_auth:
+    parent: cujs
+    props:
+      feature: Auth
+      area: auth
+  sc_login:
+    parent: cuj_auth
+    props:
+      name: User logs in
+      given: User on login
+      when: Enters credentials
+      then: Sees dashboard
+      screen: screen_login
+  sc_dashboard:
+    parent: cuj_auth
+    props:
+      name: View dashboard
+      given: User logged in
+      when: Navigates
+      then: Dashboard shown
+      screen: screen_dashboard
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should still work with legacy screen entities
+      expect(html).toContain("screen_login");
+      expect(html).toContain("screen_dashboard");
+      expect(html).toContain("Login");
+      expect(html).toContain("Dashboard");
+      // Should have hasGraphEntities = false (legacy mode)
+      expect(html).toContain("hasGraphEntities = false");
+    });
+
+    test("aide with st_*/tr_* entities enables graph mode", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_noop:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_idle
+      action: Noop
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Should have graph mode data structures
+      expect(html).toContain("screenStates");
+      expect(html).toContain("hasGraphEntities = true");
+    });
+  });
+
+  // sc_graph_default_view: Default map view shows graph nodes when hasGraphEntities is true
+  describe("sc_graph_default_view", () => {
+    test("default view shows st_* nodes instead of screen_* cards when hasGraphEntities is true", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft Screen
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  st_running:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_running
+      action: Start
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // With hasGraphEntities = true, default view should show st_* nodes
+      // NOT screen_* cards
+      expect(html).toContain("node-st_idle");
+      expect(html).toContain("node-st_running");
+      // Should NOT have screen_draft as a default-screens card
+      expect(html).not.toMatch(/id="node-screen_draft".*class="screen"/s);
+    });
+  });
+
+  // sc_visualize_exclude_containers: Container entities excluded from screen rendering
+  describe("sc_visualize_exclude_containers", () => {
+    test("container entities (states, transitions, screens) are not rendered as screen cards", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_noop:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_idle
+      action: Noop
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      // Container entities should NOT be rendered as screen cards
+      expect(html).not.toContain('id="node-states"');
+      expect(html).not.toContain('id="node-transitions"');
+      expect(html).not.toContain('id="node-screens"');
+      // But also should not have screen_states (the spout bug)
+      expect(html).not.toContain('id="node-screen_states"');
     });
   });
 });

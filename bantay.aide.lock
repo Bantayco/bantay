@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-25T15:19:30.980Z
+# Generated: 2026-03-25T19:10:24.682Z
 
 entities:
   bantay_cli: 40c228db
@@ -28,6 +28,7 @@ entities:
   cuj_orchestrate: 0f1088f0 parent:cujs
   cuj_tasks: 68f341d8 parent:cujs
   cuj_visualize_generate: 7d1822d8 parent:cujs
+  cuj_visualize_graph: 02889f1e parent:cujs
   cuj_visualize_map: 1b76c7fa parent:cujs
   cuj_visualize_walkthrough: 7cc601ac parent:cujs
   cujs: 6dd382da parent:bantay_cli
@@ -94,6 +95,11 @@ entities:
   sc_export_cursor: 1768a732 parent:cuj_export bh:782e02e8
   sc_export_idempotent: 15a866e9 parent:cuj_export bh:3c8cb104
   sc_export_no_clobber: 59a23a2e parent:cuj_export bh:105a8885
+  sc_graph_default_view: 797c2d8e parent:cuj_visualize_graph bh:00000f62
+  sc_graph_edges_from_transitions: 66bbd91c parent:cuj_visualize_graph bh:4a1f8965
+  sc_graph_highlight_scenario_path: 444c659e parent:cuj_visualize_graph bh:4dda892e
+  sc_graph_nodes_from_states: 7287a03c parent:cuj_visualize_graph bh:6d047ee6
+  sc_graph_trigger_prop: 575abe97 parent:cuj_visualize_graph bh:68a4fe2a
   sc_init_already_initialized: 07e41832 parent:cuj_init bh:7e9c24ff
   sc_init_binary: 48928fe5 parent:cuj_init bh:38040c72
   sc_init_detect_stack: 2d1ece62 parent:cuj_init bh:6ffd66d2
@@ -125,6 +131,7 @@ entities:
   sc_panels_full_height: 0c1f53b7 parent:cuj_visualize_map bh:3132bc16
   sc_sidebar_independent_scroll: 29c13123 parent:cuj_visualize_map bh:7efc19b6
   sc_single_screen_instance: 1a865036 parent:cuj_visualize_generate bh:3f21e432
+  sc_storyboard_from_path: 39ae56a1 parent:cuj_visualize_graph bh:78572ef3
   sc_tasks_all: 6ca85866 parent:cuj_tasks bh:63ad8dd7
   sc_tasks_all_entity_types: 4d0e6452 parent:cuj_tasks bh:4c8eb41f
   sc_tasks_design_token: 4eb26532 parent:cuj_tasks bh:7dfb5286
@@ -134,6 +141,7 @@ entities:
   sc_tasks_output: 06fcfa94 parent:cuj_tasks bh:177a514f
   sc_tasks_phases: 7f46468a parent:cuj_tasks bh:6f4e714e
   sc_view_switch_preserves_selection: 40cd3035 parent:cuj_visualize_map bh:06e53146
+  sc_visualize_exclude_containers: 1b08c08d parent:cuj_visualize_generate bh:00000f62
   sc_visualize_fallback: 0e61a8c1 parent:cuj_visualize_generate bh:5e9697b1
   sc_visualize_injects_tokens: 36ec108c parent:cuj_visualize_generate bh:08e83c27
   sc_visualize_map_default_variants: 3eb7e893 parent:cuj_visualize_map bh:266603af
@@ -217,3 +225,4 @@ relationships:
   - sc_visualize_injects_tokens:cuj_export_css:depends_on: 388ebb2b
   - sc_check_wireframe_exists:inv_wireframe_per_component:protected_by: 40b67a33
   - sc_visualize_wireframe_variants:inv_wireframe_variant_fallback:protected_by: 2bed778c
+  - cuj_visualize_graph:cuj_visualize_generate:depends_on: 201a4d5e

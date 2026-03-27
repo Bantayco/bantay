@@ -1202,6 +1202,53 @@ entities:
       given: Developer has a scenario highlighted in map storyboard
       when: Developer presses left or right arrow key
       then: Highlight moves to the previous or next scenario within the same CUJ. Does not wrap around or jump to a different CUJ. No-ops at the first and last scenario.
+  cuj_visualize_graph:
+    parent: cujs
+    props:
+      feature: Visualizer renders a state-transition graph from screen states and transitions in the aide
+      tier: primary
+      area: visualize
+  sc_graph_nodes_from_states:
+    parent: cuj_visualize_graph
+    props:
+      name: Graph nodes from screen state entities
+      given: Aide has st_* entities with screen and component variant props
+      when: bantay visualize generates the graph view
+      then: Each st_* entity renders as a node showing the screen wireframe with component variants applied
+  sc_graph_edges_from_transitions:
+    parent: cuj_visualize_graph
+    props:
+      name: Graph edges from transition entities
+      given: Aide has tr_* entities with from, to, and action props
+      when: bantay visualize generates the graph view
+      then: Each tr_* entity renders as a directed edge between its from and to screen states with the action as a label
+  sc_graph_highlight_scenario_path:
+    parent: cuj_visualize_graph
+    props:
+      name: Selecting a scenario highlights its path through the graph
+      given: A scenario has a path prop listing transition IDs
+      when: Developer clicks the scenario in the sidebar
+      then: The transitions in the path and their connected screen states are highlighted. All other nodes dim to 0.2 opacity.
+  sc_storyboard_from_path:
+    parent: cuj_visualize_graph
+    props:
+      name: Storyboard renders scenario path as horizontal strip
+      given: A scenario has a path prop listing transition IDs
+      when: Developer views the storyboard for that scenario
+      then: Screen states are rendered left to right in path order with transition arrows between them. Each screen shows the wireframe with variant state.
+  sc_graph_trigger_prop:
+    parent: cuj_visualize_graph
+    props:
+      name: Transition trigger identifies which UI element is tapped
+      given: A transition has a trigger prop referencing a component or action
+      when: The transition edge is rendered
+      then: The label on the edge shows the action text. In debug mode the trigger element is highlighted on the source screen.
+  sc_graph_default_view:
+    parent: cuj_visualize_graph
+    props: {}
+  sc_visualize_exclude_containers:
+    parent: cuj_visualize_generate
+    props: {}
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
@@ -1382,4 +1429,8 @@ relationships:
   - from: sc_visualize_wireframe_variants
     to: inv_wireframe_variant_fallback
     type: protected_by
+    cardinality: many_to_many
+  - from: cuj_visualize_graph
+    to: cuj_visualize_generate
+    type: depends_on
     cardinality: many_to_many

@@ -524,8 +524,13 @@ function generateVisualizerHtml(
   const screenHtmlMapObj: Record<string, string> = {};
   for (const screen of screens) {
     let bodyHtml: string;
+    let fabHtml = "";
     if (screen.components && screen.components.length > 0) {
-      bodyHtml = screen.components
+      // Separate FAB from other components
+      const regularComponents = screen.components.filter(c => c.id !== "comp_fab");
+      const fabComponent = screen.components.find(c => c.id === "comp_fab");
+
+      bodyHtml = regularComponents
         .map((comp) => {
           const content = comp.wireframeHtml
             ? comp.wireframeHtml
@@ -533,6 +538,11 @@ function generateVisualizerHtml(
           return `<div class="comp-box"><div class="comp-label">${comp.id}</div>${content}</div>`;
         })
         .join("");
+
+      // Render FAB with absolute positioning
+      if (fabComponent) {
+        fabHtml = `<div style="position:absolute; bottom:52px; right:12px; width:44px; height:44px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.25);"><span style="color:#fff; font-size:22px; font-weight:300; line-height:1;">+</span></div>`;
+      }
     } else {
       bodyHtml = `<div style="padding:20px;text-align:center;color:var(--hint);">${screen.description || screen.name}</div>`;
     }
@@ -544,7 +554,7 @@ function generateVisualizerHtml(
       navHtml = '<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>';
     }
 
-    screenHtmlMapObj[screen.id] = bodyHtml + navHtml;
+    screenHtmlMapObj[screen.id] = bodyHtml + fabHtml + navHtml;
   }
   const screenHtmlMapData = JSON.stringify(screenHtmlMapObj);
 
@@ -565,8 +575,13 @@ function generateVisualizerHtml(
   for (const state of screenStates) {
     const screen = screens.find(s => s.id === state.screen);
     let bodyContent = "";
+    let fabHtml = "";
     if (screen?.components && screen.components.length > 0) {
-      bodyContent = screen.components
+      // Separate FAB from other components
+      const regularComponents = screen.components.filter(c => c.id !== "comp_fab");
+      const fabComponent = screen.components.find(c => c.id === "comp_fab");
+
+      bodyContent = regularComponents
         .map((comp) => {
           const variant = state.componentStates[comp.id];
           let content: string;
@@ -579,10 +594,15 @@ function generateVisualizerHtml(
           return `<div class="comp-box"><div class="comp-label">${comp.id}</div>${content}</div>`;
         })
         .join("");
+
+      // Render FAB with absolute positioning
+      if (fabComponent) {
+        fabHtml = `<div style="position:absolute; bottom:52px; right:12px; width:44px; height:44px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.25);"><span style="color:#fff; font-size:22px; font-weight:300; line-height:1;">+</span></div>`;
+      }
     } else {
       bodyContent = `<div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">${state.id}</div>`;
     }
-    stateHtmlMapObj[state.id] = bodyContent;
+    stateHtmlMapObj[state.id] = bodyContent + fabHtml;
     // Store nav separately
     if (screen?.nav === "none") {
       stateNavMapObj[state.id] = `<div class="nav-footer">no nav — immersive</div>`;
@@ -1083,22 +1103,34 @@ function setMode(m){
   document.getElementById('zoom-btns').style.display=m==='map'?'flex':'none';
   document.getElementById('zoom-label').style.display=m==='map'?'inline':'none';
   if(m==='walk'){
+    // Sync currentScenarioIdx with curStep (scenario index from map mode)
+    currentScenarioIdx=curStep;
     // Compute walkSteps for graph mode with paths
     if(curCuj&&hasGraphEntities){
       const c=cujs[curCuj];
       const sc=c&&c.scenarios&&c.scenarios[currentScenarioIdx];
       if(sc&&sc.path){
         walkSteps=computeWalkSteps(sc.path);
-        curStep=0;
+        curStep=0; // Reset walk step position within this scenario
       }
     }
     renderStep();
   }
   if(m==='map'){
+    // Sync curStep with currentScenarioIdx (scenario index from walk mode)
+    curStep=currentScenarioIdx;
     if(hasSeparateCujMaps&&selectedMapCuj){
-      // Show the previously selected CUJ's map
+      // Show the previously selected CUJ's map and highlight the current scenario
       showCujMap(selectedMapCuj);
-      requestAnimationFrame(()=>redrawArrows());
+      const cuj=cujs[selectedMapCuj];
+      const scenario=cuj&&cuj.scenarios&&cuj.scenarios[curStep];
+      if(scenario&&scenario.path){
+        highlightGraphPathInCuj(selectedMapCuj,scenario);
+        const pathIds=scenario.path.split(',').map(s=>s.trim());
+        drawCujArrows(selectedMapCuj,pathIds);
+      }else{
+        requestAnimationFrame(()=>redrawArrows());
+      }
     }else if(hasSeparateCujMaps){
       // No CUJ selected, show first CUJ by default
       const firstCujId=Object.keys(cujs)[0];
@@ -1247,6 +1279,7 @@ function drawCujArrows(cujId,pathIds){
 function selectScenario(cujId,stepIdx,scenarioId,screenId){
   curCuj=cujId;
   curStep=stepIdx;
+  currentScenarioIdx=stepIdx; // Keep both in sync
   highlightedScenarioId=scenarioId;
 
   if(currentMode==='map'){
