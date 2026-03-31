@@ -3433,7 +3433,7 @@ relationships: []
 
   // sc_map_labels_hidden_default: Screen and component IDs hidden by default
   describe("sc_map_labels_hidden_default", () => {
-    test("screen IDs (s-tag) are hidden by default", async () => {
+    test("screen IDs (s-tag-id) are hidden by default, names visible", async () => {
       const aideContent = `
 entities:
   my_project:
@@ -3468,8 +3468,10 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // s-tag should be display:none by default
-      expect(html).toMatch(/\.s-tag\s*\{[^}]*display:\s*none/);
+      // s-tag-id (screen ID) should be display:none by default
+      expect(html).toMatch(/\.s-tag-id\s*\{[^}]*display:\s*none/);
+      // s-tag (screen name) should be visible (positioned above card)
+      expect(html).toMatch(/\.s-tag\s*\{[^}]*position:\s*absolute/);
     });
 
     test("component labels (comp-label) are hidden by default", async () => {
@@ -3590,8 +3592,8 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // In debug mode, s-tag should be visible
-      expect(html).toMatch(/\.app\.debug-mode\s+\.s-tag\s*\{[^}]*display:\s*block/);
+      // In debug mode, s-tag-id (screen ID) should be visible
+      expect(html).toMatch(/\.app\.debug-mode\s+\.s-tag-id\s*\{[^}]*display:\s*inline/);
       // In debug mode, comp-label should be visible
       expect(html).toMatch(/\.app\.debug-mode\s+\.comp-label\s*\{[^}]*display:\s*block/);
     });
@@ -3840,7 +3842,7 @@ relationships: []
   });
 
   describe("screen header shows name not ID", () => {
-    test("s-head displays screen.name instead of screen ID", async () => {
+    test("s-tag displays screen.name instead of screen ID", async () => {
       const aideContent = `
 entities:
   my_project:
@@ -3878,15 +3880,15 @@ relationships: []
       // Should have a helper function to get screen name from ID
       expect(html).toContain("getScreenName");
 
-      // The ws-head and s-head should use getScreenName to look up the screen's name
+      // The ws-tag and s-tag should use getScreenName to look up the screen's name
       // NOT display the screen ID directly
       expect(html).toMatch(/getScreenName\s*\(/);
 
-      // ws-head header should use getScreenName to look up the screen name
-      expect(html).toMatch(/ws-head.*getScreenName|getScreenName.*ws-head/s);
+      // ws-tag label should use getScreenName to look up the screen name
+      expect(html).toMatch(/ws-tag.*getScreenName|getScreenName.*ws-tag/s);
     });
 
-    test("storyboard card s-head uses screen name not ID", async () => {
+    test("storyboard card s-tag uses screen name not ID", async () => {
       const aideContent = `
 entities:
   my_project:
@@ -3921,8 +3923,8 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // storyboard card s-head should use getScreenName
-      expect(html).toMatch(/storyboard-card.*s-head.*getScreenName|s-head.*getScreenName.*storyboard/s);
+      // storyboard card s-tag should use getScreenName
+      expect(html).toMatch(/storyboard-card.*s-tag.*getScreenName|s-tag.*getScreenName.*storyboard/s);
     });
   });
 
@@ -4082,10 +4084,10 @@ relationships: []
 
       const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
 
-      // getScreenHtml should return renderScreenForStep directly (no ws-head wrapper)
+      // getScreenHtml should return renderScreenForStep directly (no ws-tag wrapper)
       expect(html).toMatch(/getScreenHtml.*renderScreenForStep\(screenId,\s*scenario\)/s);
-      // The cached content should NOT include ws-head
-      expect(html).not.toMatch(/screenHtmlCache\[key\]\s*=.*ws-head/);
+      // The cached content should NOT include ws-tag
+      expect(html).not.toMatch(/screenHtmlCache\[key\]\s*=.*ws-tag/);
     });
   });
 

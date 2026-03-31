@@ -12,31 +12,11 @@
   --grid: 20px;
   --serif: Charter, Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, sans-serif;
-  --ds-colors-text: #292929;
-  --ds-colors-background: #FAFAFA;
-  --ds-colors-accent: #1A8917;
-  --ds-colors-muted: #757575;
-  --ds-colors-border: rgba(0,0,0,0.08);
-  --ds-typography-serif: Charter, Georgia, serif;
-  --ds-typography-sans: -apple-system, BlinkMacSystemFont, sans-serif;
-  --ds-typography-mono: monospace;
-  --ds-typography-body-size: 16px;
-  --ds-typography-body-line-height: 1.6;
-  --ds-typography-scale: 14,16,18,21,24,32;
-  --ds-spacing-base: 8px;
-  --ds-spacing-scale: 4,8,16,24,32,48,64;
-  --ds-components-border-radius: 0;
-  --ds-components-shadow: none;
-  --ds-components-input-border: none;
-  --ds-components-button-style: text;
+
 }
 @media(prefers-color-scheme:dark){:root{
   --bg:#1a1a1a; --fg:#e8e6e1; --bd:rgba(255,255,255,0.08); --mt:#888; --hint:#666;
-  --ds-colors-text: #e8e6e1;
-  --ds-colors-background: #1a1a1a;
-  --ds-colors-accent: #2ea043;
-  --ds-colors-muted: #888888;
-  --ds-colors-border: rgba(255,255,255,0.08);
+
 }}
 
 html, body { height: 100%; margin: 0; }
@@ -191,383 +171,637 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
     <!-- MAP CANVAS -->
     <div id="map-canvas">
       <div class="pan-layer" id="pan-layer">
-        <svg id="arrows" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-        
-        <div class="cuj-map" id="cuj-map-cuj_onboarding" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_onboarding" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_flow_idle" style="left:400px;top:80px;">
-      <div class="s-tag">st_flow_idle</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+        <svg id="arrows" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;pointer-events:none;"></svg>
+        <div class="default-screens" id="default-screens">
+    <div class="screen" id="node-screen_maps" style="left:80px;top:80px;">
+      <div class="s-tag">screen_maps</div>
+      <div class="s-head"><span>Maps</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_running" style="left:400px;top:640px;">
-      <div class="s-tag">st_flow_running</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_results" style="left:380px;top:80px;">
+      <div class="s-tag">screen_results</div>
+      <div class="s-head"><span>Results</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_expired" style="left:720px;top:80px;">
-      <div class="s-tag">st_flow_expired</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_no" style="left:680px;top:80px;">
+      <div class="s-tag">screen_no</div>
+      <div class="s-head"><span>No</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_edit_readonly" style="left:1040px;top:80px;">
-      <div class="s-tag">st_edit_readonly</div>
-      <div class="s-head"><span>Edit Draft</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_warning" style="left:980px;top:80px;">
+      <div class="s-tag">screen_warning</div>
+      <div class="s-head"><span>Warning</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_external" style="left:80px;top:80px;">
-      <div class="s-tag">st_external</div>
-      <div class="s-head"><span>external</span></div>
-      <div class="s-body"><div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">st_external</div></div>
-      
-    </div>
-        </div>
-
-        <div class="cuj-map" id="cuj-map-cuj_account_upgrade" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_account_upgrade" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_artifact_list" style="left:400px;top:80px;">
-      <div class="s-tag">st_artifact_list</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_already" style="left:1280px;top:80px;">
+      <div class="s-tag">screen_already</div>
+      <div class="s-head"><span>Already</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_settings" style="left:720px;top:80px;">
-      <div class="s-tag">st_settings</div>
-      <div class="s-head"><span>Settings</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_settings</div><div class="comp-desc">Timer, font, theme, account setting rows</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_init" style="left:1580px;top:80px;">
+      <div class="s-tag">screen_init</div>
+      <div class="s-head"><span>Init</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_upgrade" style="left:1040px;top:80px;">
-      <div class="s-tag">st_upgrade</div>
-      <div class="s-head"><span>Upgrade</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_email_input</div><div class="comp-desc">Email field for account upgrade</div></div><div class="comp-box"><div class="comp-label">comp_magic_link_button</div><div class="comp-desc">Send magic link CTA with no-password note</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_to" style="left:1880px;top:80px;">
+      <div class="s-tag">screen_to</div>
+      <div class="s-head"><span>To</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_upgrade_sent" style="left:1360px;top:80px;">
-      <div class="s-tag">st_upgrade_sent</div>
-      <div class="s-head"><span>Upgrade</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_email_input</div><div class="comp-desc">Email field for account upgrade</div></div><div class="comp-box"><div class="comp-label">comp_magic_link_button</div><div class="comp-desc">Send magic link CTA with no-password note</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_could" style="left:2180px;top:80px;">
+      <div class="s-tag">screen_could</div>
+      <div class="s-head"><span>Could</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_external" style="left:80px;top:80px;">
-      <div class="s-tag">st_external</div>
-      <div class="s-head"><span>external</span></div>
-      <div class="s-body"><div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">st_external</div></div>
-      
-    </div>
-        </div>
-
-        <div class="cuj-map" id="cuj-map-cuj_login" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_login" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_artifact_list" style="left:400px;top:80px;">
-      <div class="s-tag">st_artifact_list</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_would" style="left:2480px;top:80px;">
+      <div class="s-tag">screen_would</div>
+      <div class="s-head"><span>Would</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_idle" style="left:400px;top:640px;">
-      <div class="s-tag">st_flow_idle</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_full" style="left:2780px;top:80px;">
+      <div class="s-tag">screen_full</div>
+      <div class="s-head"><span>Full</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_settings" style="left:720px;top:80px;">
-      <div class="s-tag">st_settings</div>
-      <div class="s-head"><span>Settings</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_settings</div><div class="comp-desc">Timer, font, theme, account setting rows</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_isn" style="left:3080px;top:80px;">
+      <div class="s-tag">screen_isn</div>
+      <div class="s-head"><span>Isn</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_upgrade" style="left:720px;top:640px;">
-      <div class="s-tag">st_upgrade</div>
-      <div class="s-head"><span>Upgrade</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_email_input</div><div class="comp-desc">Email field for account upgrade</div></div><div class="comp-box"><div class="comp-label">comp_magic_link_button</div><div class="comp-desc">Send magic link CTA with no-password note</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_patterns" style="left:3380px;top:80px;">
+      <div class="s-tag">screen_patterns</div>
+      <div class="s-head"><span>Patterns</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_upgrade_sent" style="left:1040px;top:80px;">
-      <div class="s-tag">st_upgrade_sent</div>
-      <div class="s-head"><span>Upgrade</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_email_input</div><div class="comp-desc">Email field for account upgrade</div></div><div class="comp-box"><div class="comp-label">comp_magic_link_button</div><div class="comp-desc">Send magic link CTA with no-password note</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_every" style="left:3680px;top:80px;">
+      <div class="s-tag">screen_every</div>
+      <div class="s-head"><span>Every</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_external" style="left:80px;top:80px;">
-      <div class="s-tag">st_external</div>
-      <div class="s-head"><span>external</span></div>
-      <div class="s-body"><div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">st_external</div></div>
-      
-    </div>
-        </div>
-
-        <div class="cuj-map" id="cuj-map-cuj_flow_writing" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_flow_writing" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_artifact_list" style="left:80px;top:80px;">
-      <div class="s-tag">st_artifact_list</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_github" style="left:3980px;top:80px;">
+      <div class="s-tag">screen_github</div>
+      <div class="s-head"><span>Github</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_idle" style="left:400px;top:80px;">
-      <div class="s-tag">st_flow_idle</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_output" style="left:4280px;top:80px;">
+      <div class="s-tag">screen_output</div>
+      <div class="s-head"><span>Output</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_running" style="left:720px;top:80px;">
-      <div class="s-tag">st_flow_running</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_appended" style="left:4580px;top:80px;">
+      <div class="s-tag">screen_appended</div>
+      <div class="s-head"><span>Appended</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_paused" style="left:400px;top:640px;">
-      <div class="s-tag">st_flow_paused</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_expected" style="left:4880px;top:80px;">
+      <div class="s-tag">screen_expected</div>
+      <div class="s-head"><span>Expected</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_expired" style="left:1040px;top:80px;">
-      <div class="s-tag">st_flow_expired</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_reads" style="left:5180px;top:80px;">
+      <div class="s-tag">screen_reads</div>
+      <div class="s-head"><span>Reads</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_edit_readonly" style="left:400px;top:1200px;">
-      <div class="s-tag">st_edit_readonly</div>
-      <div class="s-head"><span>Edit Draft</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_exists" style="left:5480px;top:80px;">
+      <div class="s-tag">screen_exists</div>
+      <div class="s-head"><span>Exists</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_external" style="left:80px;top:640px;">
-      <div class="s-tag">st_external</div>
-      <div class="s-head"><span>external</span></div>
-      <div class="s-body"><div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">st_external</div></div>
-      
-    </div>
-        </div>
-
-        <div class="cuj-map" id="cuj-map-cuj_edit_draft" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_edit_draft" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_artifact_list" style="left:80px;top:80px;">
-      <div class="s-tag">st_artifact_list</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_end" style="left:5780px;top:80px;">
+      <div class="s-tag">screen_end</div>
+      <div class="s-head"><span>End</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_idle" style="left:720px;top:80px;">
-      <div class="s-tag">st_flow_idle</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_section" style="left:6080px;top:80px;">
+      <div class="s-tag">screen_section</div>
+      <div class="s-head"><span>Section</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_running" style="left:1040px;top:80px;">
-      <div class="s-tag">st_flow_running</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_flag" style="left:6380px;top:80px;">
+      <div class="s-tag">screen_flag</div>
+      <div class="s-head"><span>Flag</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_edit_readonly" style="left:400px;top:80px;">
-      <div class="s-tag">st_edit_readonly</div>
-      <div class="s-head"><span>Edit Draft</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_structure" style="left:6680px;top:80px;">
+      <div class="s-tag">screen_structure</div>
+      <div class="s-head"><span>Structure</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_edit_writing" style="left:720px;top:640px;">
-      <div class="s-tag">st_edit_writing</div>
-      <div class="s-head"><span>Edit Draft</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
-    </div>
-        </div>
-
-        <div class="cuj-map" id="cuj-map-cuj_create_draft" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_create_draft" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_artifact_list" style="left:80px;top:80px;">
-      <div class="s-tag">st_artifact_list</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_file" style="left:6980px;top:80px;">
+      <div class="s-tag">screen_file</div>
+      <div class="s-head"><span>File</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_idle" style="left:400px;top:80px;">
-      <div class="s-tag">st_flow_idle</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_relationships" style="left:7280px;top:80px;">
+      <div class="s-tag">screen_relationships</div>
+      <div class="s-head"><span>Relationships</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_running" style="left:720px;top:80px;">
-      <div class="s-tag">st_flow_running</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_completes" style="left:7580px;top:80px;">
+      <div class="s-tag">screen_completes</div>
+      <div class="s-head"><span>Completes</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_edit_readonly" style="left:400px;top:640px;">
-      <div class="s-tag">st_edit_readonly</div>
-      <div class="s-head"><span>Edit Draft</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
-    </div>
-        </div>
-
-        <div class="cuj-map" id="cuj-map-cuj_compare_drafts" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_compare_drafts" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_artifact_list" style="left:80px;top:80px;">
-      <div class="s-tag">st_artifact_list</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_checklist" style="left:7880px;top:80px;">
+      <div class="s-tag">screen_checklist</div>
+      <div class="s-head"><span>Checklist</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_edit_readonly" style="left:400px;top:80px;">
-      <div class="s-tag">st_edit_readonly</div>
-      <div class="s-head"><span>Edit Draft</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_run" style="left:8180px;top:80px;">
+      <div class="s-tag">screen_run</div>
+      <div class="s-head"><span>Run</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_compare" style="left:720px;top:80px;">
-      <div class="s-tag">st_compare</div>
-      <div class="s-head"><span>Compare</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
-    </div>
-        </div>
-
-        <div class="cuj-map" id="cuj-map-cuj_manage_artifact" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_manage_artifact" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_artifact_list" style="left:80px;top:80px;">
-      <div class="s-tag">st_artifact_list</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_generated" style="left:8480px;top:80px;">
+      <div class="s-tag">screen_generated</div>
+      <div class="s-head"><span>Generated</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_artifact_list_empty" style="left:400px;top:80px;">
-      <div class="s-tag">st_artifact_list_empty</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_task" style="left:8780px;top:80px;">
+      <div class="s-tag">screen_task</div>
+      <div class="s-head"><span>Task</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_flow_idle" style="left:400px;top:640px;">
-      <div class="s-tag">st_flow_idle</div>
-      <div class="s-head"><span>Flow Mode</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_timer</div><div class="comp-desc">Countdown display, pause button</div></div><div class="comp-box"><div class="comp-label">comp_editor</div><div class="comp-desc">Writing surface, serif font</div></div></div>
-      <div class="nav-footer">no nav — immersive</div>
+    <div class="screen" id="node-screen_scenario" style="left:9080px;top:80px;">
+      <div class="s-tag">screen_scenario</div>
+      <div class="s-head"><span>Scenario</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_external" style="left:80px;top:640px;">
-      <div class="s-tag">st_external</div>
-      <div class="s-head"><span>external</span></div>
-      <div class="s-body"><div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">st_external</div></div>
-      
-    </div>
-        </div>
-
-        <div class="cuj-map" id="cuj-map-cuj_browse_artifacts" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_browse_artifacts" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_artifact_list" style="left:400px;top:80px;">
-      <div class="s-tag">st_artifact_list</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_50" style="left:9380px;top:80px;">
+      <div class="s-tag">screen_50</div>
+      <div class="s-head"><span>50</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_settings" style="left:80px;top:80px;">
-      <div class="s-tag">st_settings</div>
-      <div class="s-head"><span>Settings</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_settings</div><div class="comp-desc">Timer, font, theme, account setting rows</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
-    </div>
-        </div>
-
-        <div class="cuj-map" id="cuj-map-cuj_settings" style="display:none;">
-          <svg class="cuj-map-arrows" id="arrows-cuj_settings" style="position:absolute;inset:0;width:100%;height:100%;z-index:10;overflow:visible;"></svg>
-          
-    <div class="graph-node" id="graph-node-st_artifact_list" style="left:80px;top:80px;">
-      <div class="s-tag">st_artifact_list</div>
-      <div class="s-head"><span>Artifact List</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_search</div><div class="comp-desc">Search input</div></div><div class="comp-box"><div class="comp-label">comp_artifact_row</div><div class="comp-desc">Title, draft count, date</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_80" style="left:9680px;top:80px;">
+      <div class="s-tag">screen_80</div>
+      <div class="s-head"><span>80</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_settings" style="left:400px;top:80px;">
-      <div class="s-tag">st_settings</div>
-      <div class="s-head"><span>Settings</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_settings</div><div class="comp-desc">Timer, font, theme, account setting rows</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_steps" style="left:9980px;top:80px;">
+      <div class="s-tag">screen_steps</div>
+      <div class="s-head"><span>Steps</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_settings_dark" style="left:720px;top:80px;">
-      <div class="s-tag">st_settings_dark</div>
-      <div class="s-head"><span>Settings</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_settings</div><div class="comp-desc">Timer, font, theme, account setting rows</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_arrows" style="left:10280px;top:80px;">
+      <div class="s-tag">screen_arrows</div>
+      <div class="s-head"><span>Arrows</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_settings_timer_focused" style="left:720px;top:640px;">
-      <div class="s-tag">st_settings_timer_focused</div>
-      <div class="s-head"><span>Settings</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_settings</div><div class="comp-desc">Timer, font, theme, account setting rows</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_all" style="left:10580px;top:80px;">
+      <div class="s-tag">screen_all</div>
+      <div class="s-head"><span>All</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_settings_editing_timer" style="left:1040px;top:640px;">
-      <div class="s-tag">st_settings_editing_timer</div>
-      <div class="s-head"><span>Settings</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_settings</div><div class="comp-desc">Timer, font, theme, account setting rows</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_map" style="left:10880px;top:80px;">
+      <div class="s-tag">screen_map</div>
+      <div class="s-head"><span>Map</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_settings_editing_timer_invalid" style="left:1360px;top:640px;">
-      <div class="s-tag">st_settings_editing_timer_invalid</div>
-      <div class="s-head"><span>Settings</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_settings</div><div class="comp-desc">Timer, font, theme, account setting rows</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_developer" style="left:11180px;top:80px;">
+      <div class="s-tag">screen_developer</div>
+      <div class="s-head"><span>Developer</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
 
-    <div class="graph-node" id="graph-node-st_settings_timer_updated" style="left:1360px;top:1200px;">
-      <div class="s-tag">st_settings_timer_updated</div>
-      <div class="s-head"><span>Settings</span></div>
-      <div class="s-body"><div class="comp-box"><div class="comp-label">comp_settings</div><div class="comp-desc">Timer, font, theme, account setting rows</div></div></div>
-      <div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>
+    <div class="screen" id="node-screen_percentage" style="left:11480px;top:80px;">
+      <div class="s-tag">screen_percentage</div>
+      <div class="s-head"><span>Percentage</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
     </div>
-        </div>
+
+    <div class="screen" id="node-screen_between" style="left:11780px;top:80px;">
+      <div class="s-tag">screen_between</div>
+      <div class="s-head"><span>Between</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_same" style="left:12080px;top:80px;">
+      <div class="s-tag">screen_same</div>
+      <div class="s-head"><span>Same</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_label" style="left:12380px;top:80px;">
+      <div class="s-tag">screen_label</div>
+      <div class="s-head"><span>Label</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_below" style="left:12680px;top:80px;">
+      <div class="s-tag">screen_below</div>
+      <div class="s-head"><span>Below</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_always" style="left:12980px;top:80px;">
+      <div class="s-tag">screen_always</div>
+      <div class="s-head"><span>Always</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_walkthrough" style="left:13280px;top:80px;">
+      <div class="s-tag">screen_walkthrough</div>
+      <div class="s-head"><span>Walkthrough</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_whichever" style="left:13580px;top:80px;">
+      <div class="s-tag">screen_whichever</div>
+      <div class="s-head"><span>Whichever</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_share" style="left:13880px;top:80px;">
+      <div class="s-tag">screen_share</div>
+      <div class="s-head"><span>Share</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_deduplicated" style="left:14180px;top:80px;">
+      <div class="s-tag">screen_deduplicated</div>
+      <div class="s-head"><span>Deduplicated</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_per" style="left:14480px;top:80px;">
+      <div class="s-tag">screen_per</div>
+      <div class="s-head"><span>Per</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_renders" style="left:14780px;top:80px;">
+      <div class="s-tag">screen_renders</div>
+      <div class="s-head"><span>Renders</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_220px" style="left:15080px;top:80px;">
+      <div class="s-tag">screen_220px</div>
+      <div class="s-head"><span>220px</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_each" style="left:15380px;top:80px;">
+      <div class="s-tag">screen_each</div>
+      <div class="s-head"><span>Each</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_not" style="left:15680px;top:80px;">
+      <div class="s-tag">screen_not</div>
+      <div class="s-head"><span>Not</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_screen" style="left:15980px;top:80px;">
+      <div class="s-tag">screen_screen</div>
+      <div class="s-head"><span>Screen</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_see" style="left:16280px;top:80px;">
+      <div class="s-tag">screen_see</div>
+      <div class="s-head"><span>See</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_top" style="left:16580px;top:80px;">
+      <div class="s-tag">screen_top</div>
+      <div class="s-head"><span>Top</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_still" style="left:16880px;top:80px;">
+      <div class="s-tag">screen_still</div>
+      <div class="s-head"><span>Still</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_showing" style="left:17180px;top:80px;">
+      <div class="s-tag">screen_showing</div>
+      <div class="s-head"><span>Showing</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_first" style="left:17480px;top:80px;">
+      <div class="s-tag">screen_first</div>
+      <div class="s-head"><span>First</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_if" style="left:17780px;top:80px;">
+      <div class="s-tag">screen_if</div>
+      <div class="s-head"><span>If</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_on" style="left:18080px;top:80px;">
+      <div class="s-tag">screen_on</div>
+      <div class="s-head"><span>On</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_step" style="left:18380px;top:80px;">
+      <div class="s-tag">screen_step</div>
+      <div class="s-head"><span>Step</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_cuj" style="left:18680px;top:80px;">
+      <div class="s-tag">screen_cuj</div>
+      <div class="s-head"><span>Cuj</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_text" style="left:18980px;top:80px;">
+      <div class="s-tag">screen_text</div>
+      <div class="s-head"><span>Text</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_props" style="left:19280px;top:80px;">
+      <div class="s-tag">screen_props</div>
+      <div class="s-head"><span>Props</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_as" style="left:19580px;top:80px;">
+      <div class="s-tag">screen_as</div>
+      <div class="s-head"><span>As</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_ids" style="left:19880px;top:80px;">
+      <div class="s-tag">screen_ids</div>
+      <div class="s-head"><span>Ids</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_connected" style="left:20180px;top:80px;">
+      <div class="s-tag">screen_connected</div>
+      <div class="s-head"><span>Connected</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_edge" style="left:20480px;top:80px;">
+      <div class="s-tag">screen_edge</div>
+      <div class="s-head"><span>Edge</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div>
+
+    <div class="screen" id="node-screen_source" style="left:20780px;top:80px;">
+      <div class="s-tag">screen_source</div>
+      <div class="s-head"><span>Source</span></div>
+      <div class="s-body">
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          (Inferred from scenarios)
+        </div></div>
+    </div></div>
         <div class="storyboard-container" id="storyboard-container"></div>
       </div>
     </div>
@@ -596,16 +830,16 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 </div>
 
 <script>
-const cujs = {"cuj_onboarding":{"name":"First-time anon user lands on blank draft, auto-saved to shadow account","area":"auth","scenarios":[{"id":"sc_first_visit","name":"First time visitor","given":"","when":"","then":"","screen":"default","path":"tr_arrive,tr_first_keystroke,tr_timer_expires,tr_tap_done","invs":[]},{"id":"sc_revisit_expired","name":"Returning visitor resumes session","given":"","when":"","then":"","screen":"default","path":"tr_arrive_returning,tr_timer_expires,tr_tap_done","invs":[]}]},"cuj_account_upgrade":{"name":"User upgrades shadow account to known account via email magic link","area":"auth","scenarios":[{"id":"sc_upgrade_from_settings","name":"Upgrade from settings","given":"","when":"","then":"","screen":"default","path":"tr_tap_settings_nav,tr_tap_add_email,tr_send_magic_link,tr_check_email,tr_click_magic_link","invs":[]},{"id":"sc_upgrade_prompted","name":"Upgrade from prompt","given":"","when":"","then":"","screen":"default","path":"tr_tap_add_email,tr_send_magic_link,tr_check_email,tr_click_magic_link","invs":[]}]},"cuj_login":{"name":"Returning user logs in via magic link, session restored","area":"auth","scenarios":[{"id":"sc_login_normal","name":"Normal login","given":"","when":"","then":"","screen":"default","path":"tr_tap_login,tr_send_magic_link,tr_check_email,tr_click_magic_link","invs":[]},{"id":"sc_login_expired","name":"Login after session expired","given":"","when":"","then":"","screen":"default","path":"tr_arrive,tr_tap_login,tr_send_magic_link,tr_check_email,tr_click_magic_link","invs":[]},{"id":"sc_logout","name":"Logout","given":"","when":"","then":"","screen":"default","path":"tr_tap_settings_nav,tr_logout","invs":[]}]},"cuj_flow_writing":{"name":"Writer composes in flow mode with timer (forward-only, 1-60 min, pausable)","area":"writing","scenarios":[{"id":"sc_new_artifact_flow","name":"New artifact, new draft","given":"","when":"","then":"","screen":"default","path":"tr_tap_write_nav,tr_first_keystroke,tr_timer_expires,tr_tap_done","invs":[]},{"id":"sc_new_draft_existing","name":"New draft on existing artifact","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_new_draft,tr_first_keystroke,tr_timer_expires,tr_tap_done","invs":[]},{"id":"sc_create_from_list","name":"Create artifact from FAB","given":"","when":"","then":"","screen":"default","path":"tr_tap_create_artifact,tr_first_keystroke,tr_timer_expires,tr_tap_done","invs":[]},{"id":"sc_pause_resume","name":"Pause and resume mid-flow","given":"","when":"","then":"","screen":"default","path":"tr_tap_write_nav,tr_first_keystroke,tr_pause,tr_resume,tr_timer_expires,tr_tap_done","invs":[]},{"id":"sc_page_close_reopen","name":"Close page during flow","given":"","when":"","then":"","screen":"default","path":"tr_tap_write_nav,tr_first_keystroke,tr_close_page,tr_reopen_page,tr_resume,tr_timer_expires,tr_tap_done","invs":[]},{"id":"sc_restart_after_expire","name":"Restart timer after expiry","given":"","when":"","then":"","screen":"default","path":"tr_tap_write_nav,tr_first_keystroke,tr_timer_expires,tr_tap_restart","invs":[]}]},"cuj_edit_draft":{"name":"Writer views and edits a draft in edit mode","area":"writing","scenarios":[{"id":"sc_edit_recent","name":"Edit most recent draft","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_edit","invs":[]},{"id":"sc_copy_draft","name":"Copy draft to clipboard","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_copy","invs":[]},{"id":"sc_edit_then_flow","name":"Read draft then start new draft","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_new_draft,tr_first_keystroke","invs":[]},{"id":"sc_edit_and_save","name":"Edit draft and save","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_edit,tr_save_edit","invs":[]},{"id":"sc_edit_and_cancel","name":"Edit draft and cancel","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_edit,tr_cancel_edit","invs":[]},{"id":"sc_view_then_back","name":"View draft then return to list","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_back_from_edit","invs":[]}]},"cuj_create_draft":{"name":"Writer starts a new draft/session at any time","area":"writing","scenarios":[{"id":"sc_create_first","name":"First ever draft","given":"","when":"","then":"","screen":"default","path":"tr_tap_create_artifact,tr_first_keystroke","invs":[]},{"id":"sc_create_additional","name":"New draft on existing artifact","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_new_draft,tr_first_keystroke","invs":[]}]},"cuj_compare_drafts":{"name":"Writer views a previous draft side-by-side with current draft","area":"writing","scenarios":[{"id":"sc_compare_adjacent","name":"Compare adjacent drafts","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_compare","invs":[]},{"id":"sc_compare_switch","name":"Switch comparison draft","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_compare,tr_select_draft_to_compare","invs":[]},{"id":"sc_compare_then_back","name":"Compare drafts then return","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifact_row,tr_tap_compare,tr_back_from_compare","invs":[]}]},"cuj_manage_artifact":{"name":"Writer groups drafts, renames artifact, deletes drafts","area":"content","scenarios":[{"id":"sc_create_artifact","name":"Create new artifact","given":"","when":"","then":"","screen":"default","path":"tr_tap_create_artifact","invs":[]},{"id":"sc_manage_empty_list","name":"View empty artifact list","given":"","when":"","then":"","screen":"default","path":"tr_arrive_empty,tr_tap_create_from_empty","invs":[]}]},"cuj_browse_artifacts":{"name":"Writer views all artifacts in an index with sorting and searching","area":"content","scenarios":[{"id":"sc_search_by_title","name":"Search by title","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifacts_nav,tr_search","invs":[]},{"id":"sc_sort_by_date","name":"Sort by date","given":"","when":"","then":"","screen":"default","path":"tr_tap_artifacts_nav,tr_sort","invs":[]}]},"cuj_settings":{"name":"User configures preferences (default timer, theme, etc.)","area":"settings","scenarios":[{"id":"sc_change_timer","name":"Change default timer","given":"","when":"","then":"","screen":"default","path":"tr_tap_settings_nav,tr_tap_timer_field,tr_type_new_value,tr_tap_out_valid","invs":[]},{"id":"sc_change_timer_invalid_fix","name":"Enter invalid then fix","given":"","when":"","then":"","screen":"default","path":"tr_tap_settings_nav,tr_tap_timer_field,tr_type_new_value,tr_type_invalid,tr_type_valid,tr_tap_out_valid","invs":[]},{"id":"sc_change_timer_invalid_revert","name":"Enter invalid then tap out","given":"","when":"","then":"","screen":"default","path":"tr_tap_settings_nav,tr_tap_timer_field,tr_type_new_value,tr_type_invalid,tr_tap_out_invalid","invs":[]},{"id":"sc_change_theme_dark","name":"Switch to dark theme","given":"","when":"","then":"","screen":"default","path":"tr_tap_settings_nav,tr_toggle_theme_dark","invs":[]},{"id":"sc_change_theme_light","name":"Switch back to light theme","given":"","when":"","then":"","screen":"default","path":"tr_tap_settings_nav,tr_toggle_theme_dark,tr_toggle_theme_light","invs":[]}]}};
-const screens = [{"id":"screen_flow_mode","name":"Flow Mode","description":"Timer countdown, pause button, forward-only editor, immersive (no nav)","inferred":false,"components":[{"id":"comp_timer","name":"Timer","description":"Countdown display, pause button"},{"id":"comp_editor","name":"Editor","description":"Writing surface, serif font"}],"nav":"none"},{"id":"screen_edit_draft","name":"Edit Draft","description":"Full editor, edit/copy/compare buttons, nav bar","inferred":false,"components":[{"id":"comp_editor","name":"Editor","description":"Writing surface, serif font"}],"nav":"comp_nav_bar"},{"id":"screen_artifact_list","name":"Artifact List","description":"Search, artifact rows with draft count, nav bar","inferred":false,"components":[{"id":"comp_search","name":"Search","description":"Search input"},{"id":"comp_artifact_row","name":"Artifact Row","description":"Title, draft count, date"}],"nav":"comp_nav_bar"},{"id":"screen_compare","name":"Compare","description":"Side-by-side drafts, nav bar","inferred":false,"components":[{"id":"comp_editor","name":"Editor","description":"Writing surface, serif font"},{"id":"comp_editor","name":"Editor","description":"Writing surface, serif font"}],"nav":"comp_nav_bar"},{"id":"screen_settings","name":"Settings","description":"Timer, font, theme, account sections, nav bar","inferred":false,"components":[{"id":"comp_settings","name":"Settings","description":"Timer, font, theme, account setting rows"}],"nav":"comp_nav_bar"},{"id":"screen_upgrade","name":"Upgrade","description":"Email input, magic link button","inferred":false,"components":[{"id":"comp_email_input","name":"Email Input","description":"Email field for account upgrade"},{"id":"comp_magic_link_button","name":"Magic Link Button","description":"Send magic link CTA with no-password note"}],"nav":"none"},{"id":"screen_states","name":"states","inferred":false}];
-const transitions = [{"id":"tr_arrive","from":"st_external","to":"st_flow_idle","action":"User visits the app","trigger":"browser_url"},{"id":"tr_arrive_empty","from":"st_external","to":"st_artifact_list_empty","action":"Returning user with no artifacts","trigger":"browser_url"},{"id":"tr_tap_create_from_empty","from":"st_artifact_list_empty","to":"st_flow_idle","action":"Tap create button on empty state","trigger":"empty_state_cta"},{"id":"tr_arrive_returning","from":"st_external","to":"st_flow_running","action":"Returning user resumes session","trigger":"browser_url"},{"id":"tr_tap_write_nav","from":"st_artifact_list","to":"st_flow_idle","action":"Tap Write in nav bar","trigger":"comp_nav_bar"},{"id":"tr_tap_artifacts_nav","from":"st_settings","to":"st_artifact_list","action":"Tap Artifacts in nav bar","trigger":"comp_nav_bar"},{"id":"tr_tap_settings_nav","from":"st_artifact_list","to":"st_settings","action":"Tap Settings in nav bar","trigger":"comp_nav_bar"},{"id":"tr_tap_artifact_row","from":"st_artifact_list","to":"st_edit_readonly","action":"Tap an artifact row","trigger":"comp_artifact_row"},{"id":"tr_tap_create_artifact","from":"st_artifact_list","to":"st_flow_idle","action":"Tap + button","trigger":"fab_create"},{"id":"tr_search","from":"st_artifact_list","to":"st_artifact_list","action":"Type in search field","trigger":"comp_search"},{"id":"tr_sort","from":"st_artifact_list","to":"st_artifact_list","action":"Select sort option","trigger":"sort_control"},{"id":"tr_first_keystroke","from":"st_flow_idle","to":"st_flow_running","action":"User types first character","trigger":"comp_editor"},{"id":"tr_type_forward","from":"st_flow_running","to":"st_flow_running","action":"User types (forward only)","trigger":"comp_editor"},{"id":"tr_pause","from":"st_flow_running","to":"st_flow_paused","action":"Tap pause button","trigger":"comp_timer"},{"id":"tr_resume","from":"st_flow_paused","to":"st_flow_running","action":"Tap resume button","trigger":"comp_timer"},{"id":"tr_timer_expires","from":"st_flow_running","to":"st_flow_expired","action":"Timer reaches zero","trigger":"comp_timer"},{"id":"tr_tap_done","from":"st_flow_expired","to":"st_edit_readonly","action":"Tap Done","trigger":"action_done"},{"id":"tr_tap_restart","from":"st_flow_expired","to":"st_flow_running","action":"Tap Restart","trigger":"action_restart"},{"id":"tr_close_page","from":"st_flow_running","to":"st_external","action":"Close browser tab","trigger":"browser_close"},{"id":"tr_reopen_page","from":"st_external","to":"st_flow_paused","action":"Reopen the page","trigger":"browser_url"},{"id":"tr_tap_edit","from":"st_edit_readonly","to":"st_edit_writing","action":"Tap Edit button","trigger":"action_edit"},{"id":"tr_save_edit","from":"st_edit_writing","to":"st_edit_readonly","action":"Save changes","trigger":"action_save"},{"id":"tr_cancel_edit","from":"st_edit_writing","to":"st_edit_readonly","action":"Cancel editing","trigger":"action_cancel"},{"id":"tr_tap_new_draft","from":"st_edit_readonly","to":"st_flow_idle","action":"Tap New draft","trigger":"action_new_draft"},{"id":"tr_tap_compare","from":"st_edit_readonly","to":"st_compare","action":"Tap Compare","trigger":"action_compare"},{"id":"tr_tap_copy","from":"st_edit_readonly","to":"st_edit_readonly","action":"Tap Copy","trigger":"action_copy"},{"id":"tr_back_from_compare","from":"st_compare","to":"st_edit_readonly","action":"Tap back","trigger":"action_back"},{"id":"tr_select_draft_to_compare","from":"st_compare","to":"st_compare","action":"Select different draft","trigger":"draft_selector"},{"id":"tr_back_from_edit","from":"st_edit_readonly","to":"st_artifact_list","action":"Tap back / Artifacts nav","trigger":"comp_nav_bar"},{"id":"tr_tap_add_email","from":"st_settings","to":"st_upgrade","action":"Tap Add email in settings","trigger":"action_add_email"},{"id":"tr_send_magic_link","from":"st_upgrade","to":"st_upgrade_sent","action":"Enter email and tap Send","trigger":"comp_magic_link_button"},{"id":"tr_check_email","from":"st_upgrade_sent","to":"st_external","action":"Open email inbox","trigger":"external"},{"id":"tr_click_magic_link","from":"st_external","to":"st_artifact_list","action":"Click magic link in email","trigger":"email_link"},{"id":"tr_tap_login","from":"st_flow_idle","to":"st_upgrade","action":"Tap Log in","trigger":"action_login"},{"id":"tr_tap_timer_field","from":"st_settings","to":"st_settings_timer_focused","action":"Tap timer field to edit","trigger":"comp_settings"},{"id":"tr_type_new_value","from":"st_settings_timer_focused","to":"st_settings_editing_timer","action":"Type new timer value","trigger":"comp_settings"},{"id":"tr_type_invalid","from":"st_settings_editing_timer","to":"st_settings_editing_timer_invalid","action":"Type value outside 1-60 range","trigger":"comp_settings"},{"id":"tr_type_valid","from":"st_settings_editing_timer_invalid","to":"st_settings_editing_timer","action":"Correct value to valid range","trigger":"comp_settings"},{"id":"tr_tap_out_valid","from":"st_settings_editing_timer","to":"st_settings_timer_updated","action":"Tap out, value saved","trigger":"comp_settings"},{"id":"tr_tap_out_invalid","from":"st_settings_editing_timer_invalid","to":"st_settings","action":"Tap out, reverts to previous value","trigger":"comp_settings"},{"id":"tr_toggle_theme_dark","from":"st_settings","to":"st_settings_dark","action":"Switch to dark theme","trigger":"comp_settings"},{"id":"tr_toggle_theme_light","from":"st_settings_dark","to":"st_settings","action":"Switch to light theme","trigger":"comp_settings"},{"id":"tr_logout","from":"st_settings","to":"st_flow_idle","action":"Tap Logout","trigger":"action_logout"}];
-const screenHtmlMap = {"screen_flow_mode":"<div class=\"comp-box\"><div class=\"comp-label\">comp_timer</div><div class=\"comp-desc\">Countdown display, pause button</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div><div class=\"nav-footer\">no nav — immersive</div>","screen_edit_draft":"<div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div><div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","screen_artifact_list":"<div class=\"comp-box\"><div class=\"comp-label\">comp_search</div><div class=\"comp-desc\">Search input</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_artifact_row</div><div class=\"comp-desc\">Title, draft count, date</div></div><div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","screen_compare":"<div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div><div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","screen_settings":"<div class=\"comp-box\"><div class=\"comp-label\">comp_settings</div><div class=\"comp-desc\">Timer, font, theme, account setting rows</div></div><div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","screen_upgrade":"<div class=\"comp-box\"><div class=\"comp-label\">comp_email_input</div><div class=\"comp-desc\">Email field for account upgrade</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_magic_link_button</div><div class=\"comp-desc\">Send magic link CTA with no-password note</div></div><div class=\"nav-footer\">no nav — immersive</div>","screen_states":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">states</div>"};
+const cujs = {"cuj_init":{"name":"Developer initializes Bantay in an existing project","area":"init","scenarios":[{"id":"sc_init_prerequisites","name":"Verify prerequisites before init","given":"Developer runs bantay init","when":"Bantay checks the environment","then":"Bun runtime availability verified,If Bun not found, clear error with install instructions (link to bun.sh),No silent fallback to Node,Prerequisite check runs before any file system scanning","screen":"default","invs":["inv_bun_available"]},{"id":"sc_init_binary","name":"CLI is invocable by name","given":"Developer has installed Bantay via bun link, bunx, or npm","when":"Developer types bantay init","then":"Command resolves to the CLI entry point,bin field in package.json maps \"bantay\" to src/cli.ts,bunx @bantay/cli init works without global install,npx @bantay/cli init works for Node users","screen":"default","invs":["inv_cli_invocable"]},{"id":"sc_init_detect_stack","name":"Detect project stack","given":"Developer runs bantay init in a project directory","when":"Bantay scans the project","then":"Framework detected (Next.js, Express, Django, Rails, FastAPI, etc.),ORM detected (Prisma, Drizzle, SQLAlchemy, ActiveRecord, etc.),Auth library detected (Clerk, Auth.js, Supabase Auth, Passport, etc.),Detection results displayed to developer,If confidence is low for any detection, marked [manual] not guessed","screen":"default","invs":["inv_no_network"]},{"id":"sc_init_generate_invariants","name":"Generate starter invariants.md","given":"Stack detection is complete","when":"Bantay generates the invariants file","then":"invariants.md created with stack-appropriate defaults,Next.js + Prisma gets auth-on-routes, timestamps-on-tables, soft-deletes, no-raw-sql,Django + PostgreSQL gets different defaults than Next.js + Prisma,Each invariant has a unique stable ID,Each invariant has a category,Invariants reference built-in checkers by name where available,File is human-readable markdown with enough structure for bantay check to parse","screen":"default","invs":[]},{"id":"sc_init_generate_config","name":"Generate bantay.config.yml","given":"Stack detection is complete","when":"Bantay generates the config","then":"bantay.config.yml created with paths to source dirs, schema files, route definitions,Config references detected locations, not hardcoded paths,Developer can edit config to correct any misdetection","screen":"default","invs":[]},{"id":"sc_init_no_project","name":"Init in empty directory","given":"Developer runs bantay init in a directory with no recognizable project","when":"Bantay scans and finds nothing","then":"Warning displayed that no framework was detected,Minimal invariants.md generated with universal defaults only,Config generated with placeholder paths,Developer guided to edit both files","screen":"default","invs":[]},{"id":"sc_init_already_initialized","name":"Init when invariants.md already exists","given":"Developer runs bantay init in a project that already has invariants.md","when":"Bantay detects existing file","then":"Existing invariants.md is NOT overwritten,Developer warned that init was already run,Option to regenerate config only","screen":"default","invs":["inv_init_no_overwrite"]},{"id":"sc_init_speed","name":"Init completes quickly","given":"Project has up to 10,000 files","when":"Bantay scans","then":"Init completes in under 10 seconds,Scanning uses file system metadata and pattern matching, not full AST parsing","screen":"default","invs":[]}]},"cuj_check":{"name":"Developer checks invariants against their codebase","area":"check","scenarios":[{"id":"sc_check_full","name":"Full invariant check","given":"invariants.md and bantay.config.yml exist","when":"Developer runs bantay check","then":"Every invariant in invariants.md is evaluated against the codebase,Checker resolved for each invariant (built-in, community, or project),Each invariant reports PASS or FAIL,Failed invariants include file path and line number of violation,Summary shows total passed, total failed, total skipped,Exit code 0 if all pass, non-zero if any fail","screen":"default","invs":["inv_no_false_negatives","inv_exit_code","inv_no_source_modification"]},{"id":"sc_check_diff","name":"Diff-aware check","given":"Developer has uncommitted or recent changes","when":"Developer runs bantay check --diff HEAD~1","then":"Only invariants that could be affected by the diff are checked,Changed a route file — auth invariants run,Changed a migration — schema invariants run,Changed a log statement — PII invariants run,Results are a strict subset of full check,Any invariant that would fail on full check and is affected by the diff also fails here","screen":"default","invs":["inv_diff_subset","inv_check_speed"]},{"id":"sc_check_single","name":"Check single invariant","given":"Developer wants to verify one specific invariant","when":"Developer runs bantay check --id INV-003","then":"Only the specified invariant is checked,Result shows PASS or FAIL with details","screen":"default","invs":[]},{"id":"sc_check_no_invariants","name":"Check with no invariants file","given":"invariants.md does not exist","when":"Developer runs bantay check","then":"Clear error message suggesting bantay init,Exit code non-zero","screen":"default","invs":[]},{"id":"sc_check_unparseable_invariant","name":"Invariant with no checker available","given":"An invariant in invariants.md references no checker or a checker that isn't installed","when":"bantay check runs","then":"Invariant reported as SKIPPED, not PASS,Warning displayed that no checker was found,Skipped invariants do not cause non-zero exit code","screen":"default","invs":[]},{"id":"sc_check_speed","name":"Diff check completes quickly","given":"Diff is 500 lines or fewer, project has 50 invariants","when":"Developer runs bantay check --diff","then":"Check completes in under 5 seconds","screen":"default","invs":[]},{"id":"sc_check_no_execution","name":"Check never executes project code","given":"Project contains arbitrary code","when":"bantay check runs","then":"No project code is imported, required, or eval'd by bantay core,Built-in checkers use static analysis only,Project checkers run in sandboxed subprocess with no access to bantay internals,A malicious project cannot compromise the developer's machine through bantay check","screen":"default","invs":["inv_no_code_execution"]},{"id":"sc_diff_classified","name":"bantay diff classifies aide changes by entity type","given":"Aide has changed since lock","when":"Developer runs bantay diff","then":"Each change from aide diff is tagged with entity type and implied corrective action","screen":"default","invs":[]},{"id":"sc_diff_design_token","name":"bantay diff classifies design token changes","given":"A design_system child entity changed since lock","when":"Developer runs bantay diff","then":"Change classified as type: design_token with corrective action: screenshot diff + human review","screen":"default","invs":[]},{"id":"sc_check_wireframe_exists","name":"Checker verifies wireframe file exists for each component","given":"Aide has component entities (comp_*)","when":"bantay check runs","then":"Each component entity checked for wireframes/<comp_id>.html, missing files reported as failures","screen":"default","invs":["inv_wireframe_per_component"]}]},"cuj_checkers":{"name":"Developer extends invariant checking with custom or community checkers","area":"checkers","scenarios":[{"id":"sc_checker_builtin","name":"Built-in checkers ship with Bantay","given":"Developer installs @bantay/cli","when":"bantay check runs against a standard invariant category","then":"Built-in checkers available for auth, schema, logging, and other common patterns,No additional install required,Checkers are stack-aware (Next.js auth checker differs from Express auth checker),invariants.md generated by bantay init references built-in checkers by default","screen":"default","invs":[]},{"id":"sc_checker_community","name":"Install community checker from npm","given":"Developer needs a checker Bantay doesn't ship with","when":"Developer installs a community checker package","then":"bun add -d @bantay/checker-stripe installs the package,Invariant in invariants.md references it by package name,Format: checker: @bantay/checker-stripe/webhook-signature,bantay check discovers and runs it automatically,Community checker follows the same interface as built-in checkers","screen":"default","invs":[]},{"id":"sc_checker_project","name":"Write a project-specific checker","given":"Developer has an invariant unique to their codebase","when":"Developer creates a checker in .bantay/checkers/","then":".bantay/checkers/my-check.ts exports a check() function,Invariant in invariants.md references it: checker: ./my-check,bantay check discovers and runs it,Project checker follows the same interface as built-in checkers","screen":"default","invs":[]},{"id":"sc_checker_sandboxed","name":"Project checkers run sandboxed","given":"A project checker exists in .bantay/checkers/","when":"bantay check executes the checker","then":"Checker runs in a sandboxed subprocess,Checker cannot access bantay internals,Checker cannot modify files outside its output,Checker receives config (source paths, schema paths) as read-only input,Checker returns structured result (pass/fail, violations with file paths)","screen":"default","invs":["inv_checker_sandboxed"]},{"id":"sc_checker_interface","name":"All checkers follow a common interface","given":"A checker is built-in, community, or project","when":"bantay check loads the checker","then":"Checker exports: { name, description, check(config) → CheckResult },CheckResult: { pass: boolean, violations: Array<{file, line, message}> },Same interface regardless of where the checker comes from,Checker receives bantay.config.yml paths and invariant statement as input","screen":"default","invs":["inv_checker_interface_uniform"]},{"id":"sc_checker_missing","name":"Referenced checker not found","given":"An invariant references a checker that isn't installed or doesn't exist","when":"bantay check attempts to load the checker","then":"Invariant reported as SKIPPED,Warning names the missing checker and suggests install command,For npm: bun add -d @bantay/checker-foo,For project: create .bantay/checkers/foo.ts","screen":"default","invs":[]}]},"cuj_ci":{"name":"Developer adds Bantay as a required check on every PR","area":"ci","scenarios":[{"id":"sc_ci_github","name":"Generate GitHub Actions workflow","given":"Developer runs bantay ci --github-actions","when":"Bantay generates the workflow","then":".github/workflows/bantay.yml created,Workflow runs bantay check on every PR,Workflow installs Bantay via bunx,Workflow installs community checker packages if referenced in invariants.md,Status check reports pass/fail summary,Workflow file is valid YAML that GitHub Actions accepts","screen":"default","invs":[]},{"id":"sc_ci_gitlab","name":"Generate GitLab CI config","given":"Developer runs bantay ci --gitlab","when":"Bantay generates the config","then":".gitlab-ci.yml updated with bantay stage,If file already exists, Bantay stage is appended, existing stages untouched","screen":"default","invs":[]},{"id":"sc_ci_generic","name":"Generic CI instructions","given":"Developer runs bantay ci with no flag or unsupported CI","when":"Bantay cannot generate a specific config","then":"Prints the shell commands needed to run bantay check in any CI,Developer copies into their CI config manually","screen":"default","invs":[]},{"id":"sc_ci_existing_workflow","name":"CI generation when workflow already exists","given":".github/workflows/bantay.yml already exists","when":"Developer runs bantay ci --github-actions","then":"Existing file is NOT overwritten,Developer warned and given option to overwrite with --force","screen":"default","invs":[]},{"id":"sc_ci_audit_output","name":"CI produces audit-ready output","given":"CI check runs on a PR","when":"All invariants are evaluated","then":"JSON output includes timestamp, commit SHA, invariant IDs checked, pass/fail per invariant,Each result includes which checker was used (built-in, community package name, or project path),Output is machine-parseable for future dashboard ingestion,This is the seed of the compliance evidence trail","screen":"default","invs":["inv_ci_output_parseable"]}]},"cuj_export":{"name":"Developer exports invariants into agent context files","area":"export","scenarios":[{"id":"sc_export_claude","name":"Export to CLAUDE.md","given":"Developer runs bantay export --target claude","when":"Bantay writes to CLAUDE.md","then":"Invariants section appended/replaced in CLAUDE.md,Section has clear start/end markers,Content outside markers is untouched,Invariants formatted as rules the agent must follow,File is valid markdown","screen":"default","invs":[]},{"id":"sc_export_cursor","name":"Export to .cursorrules","given":"Developer runs bantay export --target cursor","when":"Bantay writes to .cursorrules","then":"Invariants section appended/replaced in .cursorrules,Follows Cursor's expected format,Existing rules outside markers untouched","screen":"default","invs":[]},{"id":"sc_export_codex","name":"Export to AGENTS.md","given":"Developer runs bantay export --target codex","when":"Bantay writes to AGENTS.md","then":"Invariants section appended/replaced in AGENTS.md,Works for Codex, Copilot, and any agent that reads AGENTS.md","screen":"default","invs":[]},{"id":"sc_export_idempotent","name":"Export is idempotent","given":"Developer runs export twice without changing invariants.md","when":"Second export runs","then":"Output file is byte-identical to first export,No spurious git diffs","screen":"default","invs":["inv_export_idempotent"]},{"id":"sc_export_no_clobber","name":"Export never destroys user content","given":"CLAUDE.md has user-written content outside the Bantay section","when":"bantay export runs","then":"All content outside the delimited Bantay section is preserved exactly,If no Bantay section exists, it is appended at the end,If Bantay section exists, only that section is replaced","screen":"default","invs":["inv_no_clobber"]}]},"cuj_aide":{"name":"Developer manages project aide structure and tracks changes","area":"aide","scenarios":[{"id":"sc_aide_diff","name":"Compare aide against lock file","given":"Developer has bantay.aide and bantay.aide.lock files","when":"Developer runs bantay aide diff","then":"Shows entities ADDED (in aide but not lock),Shows entities REMOVED (in lock but not aide),Shows entities MODIFIED (hash differs),Shows relationship changes,Classifies entity types by ID prefix (cuj_, sc_, inv_, con_, found_, wis_),Exit code 0 if no changes, exit code 1 if changes,Supports --json flag for machine-readable output","screen":"default","invs":[]},{"id":"sc_aide_init","name":"Initialize a new aide file","given":"Developer runs bantay aide init in a project","when":"No .aide file exists","then":"<dirname>.aide created with skeleton structure","screen":"default","invs":[]},{"id":"sc_aide_discovery","name":"Auto-discover aide file","given":"Developer runs any bantay aide subcommand","when":"Exactly one .aide file exists in the directory","then":"That file is used without --aide flag","screen":"default","invs":[]}]},"cuj_tasks":{"name":"Developer generates a task list from the aide","area":"tasks","scenarios":[{"id":"sc_tasks_all","name":"Generate tasks for full aide","given":"Developer runs bantay tasks --all","when":"Bantay reads the full aide","then":"Task list generated for every CUJ, ordered by depends_on","screen":"default","invs":[]},{"id":"sc_tasks_diff","name":"Generate tasks from diff","given":"Aide has changed since lock","when":"Developer runs bantay tasks","then":"Tasks generated only for added or modified entities","screen":"default","invs":[]},{"id":"sc_tasks_phases","name":"Tasks ordered into phases by dependencies","given":"CUJs have depends_on relationships","when":"bantay tasks generates the list","then":"CUJs with no dependencies come first, dependent CUJs come after","screen":"default","invs":[]},{"id":"sc_tasks_output","name":"Tasks written to tasks.md","given":"Task generation completes","when":"bantay tasks finishes","then":"tasks.md created with phases, scenarios as acceptance criteria, and checklist format","screen":"default","invs":[]},{"id":"sc_tasks_entity_level","name":"Tasks generated for individual entity changes not just CUJ changes","given":"bantay diff reports a new or modified scenario under an existing CUJ","when":"bantay tasks reads the diff","then":"Task generated for the individual scenario even if the parent CUJ is unchanged","screen":"default","invs":[]},{"id":"sc_tasks_design_token","name":"bantay tasks routes design token changes to visual review","given":"bantay diff reports a design_token change","when":"bantay tasks generates the work plan","then":"Task generated: apply token change to components, run screenshot diff against baselines, flag for human review","screen":"default","invs":[]},{"id":"sc_tasks_all_entity_types","name":"Tasks generated for all entity types not just scenarios","given":"bantay diff reports any entity change (constraint, foundation, invariant, design_token, wisdom, relationship)","when":"bantay tasks reads the diff","then":"Corrective action generated per entity type: design_token → apply tokens to code, constraint → enforce in codebase, foundation → apply to project, invariant → write checker, wisdom → update exports","screen":"default","invs":[]},{"id":"sc_tasks_metadata_only","name":"Metadata-only changes do not trigger implementation tasks","given":"A scenario was modified but only non-behavioral props changed (e.g. screen prop added)","when":"bantay tasks reads the classified diff","then":"No implementation task generated for that scenario, only metadata update tasks if applicable","screen":"default","invs":[]}]},"cuj_orchestrate":{"name":"Developer orchestrates multi-agent builds from aide","area":"orchestrate","scenarios":[{"id":"sc_orchestrate_spawn","name":"Spawn teammates for CUJ phases","given":"Developer runs /bantay-orchestrate","when":"Bantay orchestrates the build","then":"Maximum 2 teammates spawned at a time. Each teammate monitors context usage after every scenario — compact at 50%, request restart at 80%.","screen":"default","invs":[]},{"id":"sc_orchestrate_plan","name":"Write plan before spawning teammates","given":"Lead is about to spawn teammates for a CUJ","when":"Lead prepares the CUJ work assignment","then":"Lead writes .bantay/plans/<cuj_id>.md with ordered implementation steps, then validates plan against aide, codebase, interfaces, dependencies, and invariants before committing","screen":"default","invs":["inv_plan_validated"]},{"id":"sc_orchestrate_validate_plan","name":"Validate plan before committing","given":"Lead has written a plan for a CUJ","when":"Lead runs the 5-point validation checklist","then":"Plan is verified against aide scenarios, file references, interface contracts, dependency order, and invariant coverage. Only committed after all checks pass.","screen":"default","invs":["inv_plan_validated"]}]},"cuj_visualize_map":{"name":"Developer views the full screen map with draggable screens, transition arrows, and zoom/pan controls","area":"visualize","scenarios":[{"id":"sc_map_view_screens","name":"View all screens on canvas","given":"Developer opens the visualizer","when":"Map mode loads","then":"All screens rendered as cards on a pannable canvas with transition arrows between them","screen":"default","invs":[]},{"id":"sc_map_drag_screen","name":"Drag screen to reposition","given":"Developer viewing the map","when":"Developer drags a screen card","then":"Screen snaps to 20px grid, all connected arrows update live","screen":"default","invs":[]},{"id":"sc_map_zoom","name":"Zoom in and out","given":"Developer viewing the map","when":"Developer uses scroll wheel or toolbar buttons","then":"Canvas zooms with percentage displayed, fit-all and reset buttons available","screen":"default","invs":[]},{"id":"sc_map_pan","name":"Pan the canvas","given":"Developer viewing the map","when":"Developer clicks and drags on empty canvas","then":"Canvas pans, screens and arrows move together","screen":"default","invs":[]},{"id":"sc_map_arrows_component_level","name":"Arrows connect to specific components","given":"A scenario transitions between screens via a specific component","when":"Map renders the transition","then":"Arrow starts from the specific component element, not the screen card edge","screen":"default","invs":[]},{"id":"sc_map_self_loops","name":"Same-screen actions shown as self-loops","given":"Multiple scenarios stay on the same screen","when":"Map renders transitions","then":"Self-loop arc above the screen with action label","screen":"default","invs":[]},{"id":"sc_map_external_labels","name":"Screen IDs and invariants shown as external labels","given":"Screen has an ID and linked invariants","when":"Map renders the screen","then":"Screen ID floats above the card, invariant IDs float below","screen":"default","invs":[]},{"id":"sc_visualize_map_default_variants","name":"Map view uses default wireframe variants","given":"Map view renders all screens","when":"No scenario context is available","then":"Map view uses the default wireframe (no variant suffix) for all components","screen":"default","invs":[]},{"id":"sc_map_sidebar_list","name":"Persistent sidebar shared between map and walkthrough","given":"Developer opens the visualizer","when":"Any view renders","then":"Left sidebar with CUJ/scenario list is always visible and is the same DOM element in both map and walkthrough views. Selecting a scenario in the sidebar updates whichever view is active.","screen":"default","invs":[]},{"id":"sc_map_click_scenario_highlights","name":"Clicking a scenario auto-selects its CUJ and highlights the card","given":"Developer clicks any scenario in the sidebar","when":"The scenario belongs to a CUJ","then":"The CUJ's storyboard renders automatically, the clicked scenario's card is highlighted and auto-panned to center","screen":"default","invs":[]},{"id":"sc_map_linear_layout","name":"Storyboard shows unique screen states, not one card per scenario","given":"Developer selects a CUJ in the map sidebar","when":"Storyboard renders","then":"One card per unique (screen + component state) combination. Scenarios that share the same screen and state map to the same card. Cards ordered by first scenario appearance. Transition arrows only between cards with different states.","screen":"default","invs":[]},{"id":"sc_map_default_all_screens","name":"Default view shows one screen per screen entity","given":"Developer opens map with no CUJ selected","when":"Map renders","then":"Deduplicated screens shown (one per screen entity) with all transition arrows","screen":"default","invs":[]},{"id":"sc_map_screen_min_height","name":"Map screens use mobile portrait aspect ratio","given":"Map renders screen cards","when":"Screens are sized","then":"Each screen card has min-height 476px (iPhone portrait ratio at 220px width)","screen":"default","invs":[]},{"id":"sc_map_resizable_panels","name":"Map sidebar width is adjustable","given":"Developer viewing the map","when":"Developer drags the divider between sidebar and canvas","then":"Sidebar width adjusts, canvas reflows, preference persists during session","screen":"default","invs":[]},{"id":"sc_view_switch_preserves_selection","name":"Switching views preserves selected scenario","given":"Developer has a scenario highlighted in map view","when":"Developer switches to walkthrough","then":"Same CUJ and scenario are selected in walkthrough, and vice versa","screen":"default","invs":[]},{"id":"sc_panels_full_height","name":"Panels extend full window height","given":"Developer opens the visualizer","when":"Page renders","then":"Sidebar and canvas fill the full viewport height minus the mode bar","screen":"default","invs":[]},{"id":"sc_sidebar_independent_scroll","name":"Sidebar scrolls independently from canvas","given":"Developer hovers over the sidebar","when":"Developer scrolls with mouse wheel","then":"Only the sidebar scrolls. Canvas does not zoom or pan.","screen":"default","invs":[]},{"id":"sc_mode_toggle_in_canvas","name":"Map/Walkthrough toggle lives inside the canvas panel","given":"Developer opens the visualizer","when":"Page renders","then":"Mode toggle (Map/Walkthrough) is positioned inside the right canvas panel, not in a top-level bar. The sidebar is visually higher in hierarchy than the toggle.","screen":"default","invs":[]},{"id":"sc_map_labels_hidden_default","name":"Screen and component IDs hidden by default","given":"Developer opens the visualizer","when":"Map or walkthrough renders","then":"Screen IDs (s-tag), component IDs (comp-label), and variant names are not visible","screen":"default","invs":[]},{"id":"sc_map_debug_overlay","name":"Debug overlay toggle shows IDs and bounding boxes","given":"Developer wants to see screen and component IDs","when":"Developer clicks the debug overlay toggle button","then":"Semi-transparent overlay appears on all screens showing screen ID at top, dashed bounding box around each component with component ID and variant name. Overlay is slightly opaque so wireframe content is still visible underneath.","screen":"default","invs":[]},{"id":"sc_map_keyboard_nav","name":"Arrow keys navigate between scenarios within the current CUJ in map mode","given":"Developer has a scenario highlighted in map storyboard","when":"Developer presses left or right arrow key","then":"Highlight moves to the previous or next scenario within the same CUJ. Does not wrap around or jump to a different CUJ. No-ops at the first and last scenario.","screen":"default","invs":[]}]},"cuj_visualize_walkthrough":{"name":"Developer steps through a CUJ scenario by scenario with screen preview and given/when/then details","area":"visualize","scenarios":[{"id":"sc_walk_pick_cuj","name":"Pick a CUJ to walk through","given":"Developer switches to walkthrough mode","when":"Developer selects a CUJ from the picker","then":"First scenario displayed with screen preview and given/when/then","screen":"default","invs":[]},{"id":"sc_walk_step_forward","name":"Step forward through scenarios","given":"Developer viewing a scenario","when":"Developer clicks Next or presses arrow right","then":"Next scenario displayed, screen transitions if screen changes","screen":"default","invs":[]},{"id":"sc_walk_step_back","name":"Step backward through scenarios","given":"Developer past the first scenario","when":"Developer clicks Back or presses arrow left","then":"Previous scenario displayed","screen":"default","invs":[]},{"id":"sc_walk_progress_dots","name":"Progress dots show position in journey","given":"Developer walking through a CUJ","when":"Each step renders","then":"Dots show completed, current, and remaining steps","screen":"default","invs":[]},{"id":"sc_walk_screen_transition","name":"Screen transitions animate on navigation change","given":"Current scenario is on screen A","when":"Next scenario is on screen B","then":"Screen preview animates from A to B with slide transition","screen":"default","invs":[]},{"id":"sc_walk_invariants_shown","name":"Invariants displayed for each scenario","given":"Scenario has protected_by relationships","when":"Scenario step renders","then":"Linked invariants shown in the detail panel","screen":"default","invs":[]},{"id":"sc_walk_scenario_list","name":"Walkthrough shows all CUJs and scenarios as navigable list","given":"Developer opens walkthrough mode","when":"Walkthrough renders","then":"Left sidebar shows all CUJs grouped by area with scenarios listed under each. Current scenario highlighted. Clicking any scenario jumps to that step.","screen":"default","invs":[]},{"id":"sc_walk_direct_jump","name":"Click any scenario to jump directly to it","given":"Developer viewing the scenario list","when":"Developer clicks a scenario in the sidebar","then":"Walkthrough jumps to that CUJ and scenario step, screen preview updates","screen":"default","invs":[]},{"id":"sc_walk_resizable_panels","name":"Walkthrough panel widths are adjustable","given":"Developer viewing walkthrough","when":"Developer drags panel dividers","then":"Panel widths adjust, screen preview recenters","screen":"default","invs":[]}]},"cuj_visualize_generate":{"name":"Developer runs bantay visualize to generate an HTML screen map from any aide","area":"visualize","scenarios":[{"id":"sc_visualize_with_screens","name":"Generate visualizer from aide with screen entities","given":"Aide file has screen and component entities","when":"Developer runs bantay visualize","then":"HTML file generated with screen wireframes composed from components and design tokens","screen":"default","invs":["inv_visualize_aide_agnostic"]},{"id":"sc_visualize_without_screens","name":"Generate visualizer from aide without screen entities","given":"Aide file has CUJs and scenarios but no screen entities","when":"Developer runs bantay visualize","then":"Screens inferred from scenario given/then states, rendered as placeholder cards","screen":"default","invs":["inv_visualize_aide_agnostic"]},{"id":"sc_visualize_output_file","name":"Output is a single self-contained HTML file","given":"Developer runs bantay visualize","when":"Generation completes","then":"Single HTML file with zero external dependencies written to project root","screen":"default","invs":["inv_visualize_self_contained"]},{"id":"sc_visualize_injects_tokens","name":"Visualizer injects CSS variables into generated HTML","given":"Aide has design token entities","when":"bantay visualize generates the HTML","then":"CSS variables from tokens are embedded in a style block so wireframes can reference them","screen":"default","invs":[]},{"id":"sc_visualize_renders_wireframes","name":"Visualizer renders wireframe HTML files inside component boxes","given":"wireframes/<comp_id>.html exists for a component","when":"bantay visualize renders a screen containing that component","then":"Wireframe HTML injected into the component box instead of description text","screen":"default","invs":[]},{"id":"sc_visualize_fallback","name":"Visualizer falls back to description when no wireframe file exists","given":"No wireframes/<comp_id>.html exists for a component","when":"bantay visualize renders a screen containing that component","then":"Component box shows comp name and description text (current behavior)","screen":"default","invs":[]},{"id":"sc_visualize_wireframe_variants","name":"Visualizer renders component wireframe variants based on scenario state","given":"A scenario has component state props (e.g. comp_timer: idle)","when":"bantay visualize renders the walkthrough step for that scenario","then":"Engine looks up wireframes/comp_timer--idle.html. If found, renders it. If not, falls back to wireframes/comp_timer.html","screen":"default","invs":["inv_wireframe_variant_fallback"]},{"id":"sc_single_screen_instance","name":"Map and walkthrough share a single screen DOM element","given":"A scenario is selected","when":"The screen preview renders","then":"The same DOM element is used in both map and walkthrough views. Switching modes reparents the element, not recreates it.","screen":"default","invs":[]},{"id":"sc_visualize_exclude_containers","name":"sc_visualize_exclude_containers","given":"","when":"","then":"","screen":"default","invs":[]}]},"cuj_export_css":{"name":"Bantay exports CSS variables from structured design token entities in the aide","area":"export","scenarios":[{"id":"sc_export_css_from_tokens","name":"Generate CSS variables from design token entities","given":"Aide has entities under design_system with typed token props (colors, spacing, typography)","when":"Developer runs bantay export css","then":"CSS file generated with :root variables matching token names and values","screen":"default","invs":[]},{"id":"sc_export_css_idempotent","name":"CSS export is idempotent","given":"CSS file already exists","when":"Developer runs bantay export css again","then":"Output is byte-identical if tokens haven't changed","screen":"default","invs":[]}]},"cuj_visualize_graph":{"name":"Visualizer renders a state-transition graph from screen states and transitions in the aide","area":"visualize","scenarios":[{"id":"sc_graph_nodes_from_states","name":"Graph nodes from screen state entities","given":"Aide has st_* entities with screen and component variant props","when":"bantay visualize generates the graph view","then":"Each st_* entity renders as a node showing the screen wireframe with component variants applied","screen":"default","invs":[]},{"id":"sc_graph_edges_from_transitions","name":"Graph edges from transition entities","given":"Aide has tr_* entities with from, to, and action props","when":"bantay visualize generates the graph view","then":"Each tr_* entity renders as a directed edge between its from and to screen states with the action as a label","screen":"default","invs":[]},{"id":"sc_graph_highlight_scenario_path","name":"Selecting a scenario highlights its path through the graph","given":"A scenario has a path prop listing transition IDs","when":"Developer clicks the scenario in the sidebar","then":"The transitions in the path and their connected screen states are highlighted. All other nodes dim to 0.2 opacity.","screen":"default","invs":[]},{"id":"sc_storyboard_from_path","name":"Storyboard renders scenario path as horizontal strip","given":"A scenario has a path prop listing transition IDs","when":"Developer views the storyboard for that scenario","then":"Screen states are rendered left to right in path order with transition arrows between them. Each screen shows the wireframe with variant state.","screen":"default","invs":[]},{"id":"sc_graph_trigger_prop","name":"Transition trigger identifies which UI element is tapped","given":"A transition has a trigger prop referencing a component or action","when":"The transition edge is rendered","then":"The label on the edge shows the action text. In debug mode the trigger element is highlighted on the source screen.","screen":"default","invs":[]},{"id":"sc_graph_default_view","name":"sc_graph_default_view","given":"","when":"","then":"","screen":"default","invs":[]}]}};
+const screens = [{"id":"screen_maps","name":"Maps","inferred":true},{"id":"screen_results","name":"Results","inferred":true},{"id":"screen_no","name":"No","inferred":true},{"id":"screen_warning","name":"Warning","inferred":true},{"id":"screen_already","name":"Already","inferred":true},{"id":"screen_init","name":"Init","inferred":true},{"id":"screen_to","name":"To","inferred":true},{"id":"screen_could","name":"Could","inferred":true},{"id":"screen_would","name":"Would","inferred":true},{"id":"screen_full","name":"Full","inferred":true},{"id":"screen_isn","name":"Isn","inferred":true},{"id":"screen_patterns","name":"Patterns","inferred":true},{"id":"screen_every","name":"Every","inferred":true},{"id":"screen_github","name":"Github","inferred":true},{"id":"screen_output","name":"Output","inferred":true},{"id":"screen_appended","name":"Appended","inferred":true},{"id":"screen_invariants","name":"Invariants","inferred":true},{"id":"screen_expected","name":"Expected","inferred":true},{"id":"screen_reads","name":"Reads","inferred":true},{"id":"screen_exists","name":"Exists","inferred":true},{"id":"screen_end","name":"End","inferred":true},{"id":"screen_section","name":"Section","inferred":true},{"id":"screen_flag","name":"Flag","inferred":true},{"id":"screen_structure","name":"Structure","inferred":true},{"id":"screen_file","name":"File","inferred":true},{"id":"screen_relationships","name":"Relationships","inferred":true},{"id":"screen_completes","name":"Completes","inferred":true},{"id":"screen_checklist","name":"Checklist","inferred":true},{"id":"screen_run","name":"Run","inferred":true},{"id":"screen_generated","name":"Generated","inferred":true},{"id":"screen_task","name":"Task","inferred":true},{"id":"screen_scenario","name":"Scenario","inferred":true},{"id":"screen_50","name":"50","inferred":true},{"id":"screen_80","name":"80","inferred":true},{"id":"screen_steps","name":"Steps","inferred":true},{"id":"screen_arrows","name":"Arrows","inferred":true},{"id":"screen_all","name":"All","inferred":true},{"id":"screen_map","name":"Map","inferred":true},{"id":"screen_developer","name":"Developer","inferred":true},{"id":"screen_percentage","name":"Percentage","inferred":true},{"id":"screen_between","name":"Between","inferred":true},{"id":"screen_same","name":"Same","inferred":true},{"id":"screen_label","name":"Label","inferred":true},{"id":"screen_below","name":"Below","inferred":true},{"id":"screen_always","name":"Always","inferred":true},{"id":"screen_walkthrough","name":"Walkthrough","inferred":true},{"id":"screen_whichever","name":"Whichever","inferred":true},{"id":"screen_share","name":"Share","inferred":true},{"id":"screen_screens","name":"Screens","inferred":true},{"id":"screen_deduplicated","name":"Deduplicated","inferred":true},{"id":"screen_per","name":"Per","inferred":true},{"id":"screen_renders","name":"Renders","inferred":true},{"id":"screen_220px","name":"220px","inferred":true},{"id":"screen_each","name":"Each","inferred":true},{"id":"screen_not","name":"Not","inferred":true},{"id":"screen_screen","name":"Screen","inferred":true},{"id":"screen_see","name":"See","inferred":true},{"id":"screen_top","name":"Top","inferred":true},{"id":"screen_still","name":"Still","inferred":true},{"id":"screen_showing","name":"Showing","inferred":true},{"id":"screen_first","name":"First","inferred":true},{"id":"screen_if","name":"If","inferred":true},{"id":"screen_on","name":"On","inferred":true},{"id":"screen_step","name":"Step","inferred":true},{"id":"screen_cuj","name":"Cuj","inferred":true},{"id":"screen_text","name":"Text","inferred":true},{"id":"screen_props","name":"Props","inferred":true},{"id":"screen_as","name":"As","inferred":true},{"id":"screen_ids","name":"Ids","inferred":true},{"id":"screen_connected","name":"Connected","inferred":true},{"id":"screen_edge","name":"Edge","inferred":true},{"id":"screen_source","name":"Source","inferred":true}];
+const transitions = [];
+const screenHtmlMap = {"screen_maps":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Maps</div>","screen_results":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Results</div>","screen_no":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">No</div>","screen_warning":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Warning</div>","screen_already":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Already</div>","screen_init":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Init</div>","screen_to":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">To</div>","screen_could":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Could</div>","screen_would":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Would</div>","screen_full":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Full</div>","screen_isn":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Isn</div>","screen_patterns":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Patterns</div>","screen_every":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Every</div>","screen_github":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Github</div>","screen_output":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Output</div>","screen_appended":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Appended</div>","screen_invariants":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Invariants</div>","screen_expected":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Expected</div>","screen_reads":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Reads</div>","screen_exists":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Exists</div>","screen_end":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">End</div>","screen_section":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Section</div>","screen_flag":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Flag</div>","screen_structure":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Structure</div>","screen_file":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">File</div>","screen_relationships":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Relationships</div>","screen_completes":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Completes</div>","screen_checklist":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Checklist</div>","screen_run":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Run</div>","screen_generated":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Generated</div>","screen_task":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Task</div>","screen_scenario":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Scenario</div>","screen_50":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">50</div>","screen_80":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">80</div>","screen_steps":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Steps</div>","screen_arrows":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Arrows</div>","screen_all":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">All</div>","screen_map":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Map</div>","screen_developer":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Developer</div>","screen_percentage":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Percentage</div>","screen_between":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Between</div>","screen_same":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Same</div>","screen_label":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Label</div>","screen_below":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Below</div>","screen_always":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Always</div>","screen_walkthrough":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Walkthrough</div>","screen_whichever":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Whichever</div>","screen_share":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Share</div>","screen_screens":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Screens</div>","screen_deduplicated":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Deduplicated</div>","screen_per":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Per</div>","screen_renders":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Renders</div>","screen_220px":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">220px</div>","screen_each":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Each</div>","screen_not":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Not</div>","screen_screen":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Screen</div>","screen_see":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">See</div>","screen_top":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Top</div>","screen_still":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Still</div>","screen_showing":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Showing</div>","screen_first":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">First</div>","screen_if":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">If</div>","screen_on":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">On</div>","screen_step":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Step</div>","screen_cuj":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Cuj</div>","screen_text":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Text</div>","screen_props":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Props</div>","screen_as":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">As</div>","screen_ids":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Ids</div>","screen_connected":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Connected</div>","screen_edge":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Edge</div>","screen_source":"<div style=\"padding:20px;text-align:center;color:var(--hint);\">Source</div>"};
 const variantHtmlMap = {};
-const screenStates = [{"id":"st_artifact_list","screen":"screen_artifact_list","componentStates":{}},{"id":"st_artifact_list_empty","screen":"screen_artifact_list","componentStates":{"comp_artifact_row":"empty"}},{"id":"st_flow_idle","screen":"screen_flow_mode","componentStates":{"comp_timer":"idle","comp_editor":"empty"}},{"id":"st_flow_running","screen":"screen_flow_mode","componentStates":{"comp_timer":"running","comp_editor":"writing"}},{"id":"st_flow_paused","screen":"screen_flow_mode","componentStates":{"comp_timer":"paused","comp_editor":"writing"}},{"id":"st_flow_expired","screen":"screen_flow_mode","componentStates":{"comp_timer":"expired","comp_editor":"readonly"}},{"id":"st_edit_readonly","screen":"screen_edit_draft","componentStates":{"comp_editor":"readonly"}},{"id":"st_edit_writing","screen":"screen_edit_draft","componentStates":{"comp_editor":"writing"}},{"id":"st_compare","screen":"screen_compare","componentStates":{"comp_editor":"readonly"}},{"id":"st_settings","screen":"screen_settings","componentStates":{}},{"id":"st_settings_dark","screen":"screen_settings","componentStates":{"comp_settings":"dark"}},{"id":"st_settings_timer_focused","screen":"screen_settings","componentStates":{"comp_settings":"timer_focused"}},{"id":"st_settings_editing_timer","screen":"screen_settings","componentStates":{"comp_settings":"editing_timer"}},{"id":"st_settings_editing_timer_invalid","screen":"screen_settings","componentStates":{"comp_settings":"timer_error"}},{"id":"st_settings_timer_updated","screen":"screen_settings","componentStates":{"comp_settings":"timer_updated"}},{"id":"st_upgrade","screen":"screen_upgrade","componentStates":{}},{"id":"st_upgrade_sent","screen":"screen_upgrade","componentStates":{"comp_email_input":"sent"}},{"id":"st_external","screen":"external","componentStates":{}}];
-const stateHtmlMap = {"st_artifact_list":"<div class=\"comp-box\"><div class=\"comp-label\">comp_search</div><div class=\"comp-desc\">Search input</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_artifact_row</div><div class=\"comp-desc\">Title, draft count, date</div></div>","st_artifact_list_empty":"<div class=\"comp-box\"><div class=\"comp-label\">comp_search</div><div class=\"comp-desc\">Search input</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_artifact_row</div><div class=\"comp-desc\">Title, draft count, date</div></div>","st_flow_idle":"<div class=\"comp-box\"><div class=\"comp-label\">comp_timer</div><div class=\"comp-desc\">Countdown display, pause button</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div>","st_flow_running":"<div class=\"comp-box\"><div class=\"comp-label\">comp_timer</div><div class=\"comp-desc\">Countdown display, pause button</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div>","st_flow_paused":"<div class=\"comp-box\"><div class=\"comp-label\">comp_timer</div><div class=\"comp-desc\">Countdown display, pause button</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div>","st_flow_expired":"<div class=\"comp-box\"><div class=\"comp-label\">comp_timer</div><div class=\"comp-desc\">Countdown display, pause button</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div>","st_edit_readonly":"<div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div>","st_edit_writing":"<div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div>","st_compare":"<div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_editor</div><div class=\"comp-desc\">Writing surface, serif font</div></div>","st_settings":"<div class=\"comp-box\"><div class=\"comp-label\">comp_settings</div><div class=\"comp-desc\">Timer, font, theme, account setting rows</div></div>","st_settings_dark":"<div class=\"comp-box\"><div class=\"comp-label\">comp_settings</div><div class=\"comp-desc\">Timer, font, theme, account setting rows</div></div>","st_settings_timer_focused":"<div class=\"comp-box\"><div class=\"comp-label\">comp_settings</div><div class=\"comp-desc\">Timer, font, theme, account setting rows</div></div>","st_settings_editing_timer":"<div class=\"comp-box\"><div class=\"comp-label\">comp_settings</div><div class=\"comp-desc\">Timer, font, theme, account setting rows</div></div>","st_settings_editing_timer_invalid":"<div class=\"comp-box\"><div class=\"comp-label\">comp_settings</div><div class=\"comp-desc\">Timer, font, theme, account setting rows</div></div>","st_settings_timer_updated":"<div class=\"comp-box\"><div class=\"comp-label\">comp_settings</div><div class=\"comp-desc\">Timer, font, theme, account setting rows</div></div>","st_upgrade":"<div class=\"comp-box\"><div class=\"comp-label\">comp_email_input</div><div class=\"comp-desc\">Email field for account upgrade</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_magic_link_button</div><div class=\"comp-desc\">Send magic link CTA with no-password note</div></div>","st_upgrade_sent":"<div class=\"comp-box\"><div class=\"comp-label\">comp_email_input</div><div class=\"comp-desc\">Email field for account upgrade</div></div><div class=\"comp-box\"><div class=\"comp-label\">comp_magic_link_button</div><div class=\"comp-desc\">Send magic link CTA with no-password note</div></div>","st_external":"<div style=\"text-align:center;padding:40px 0;color:var(--hint);font-size:12px;\">st_external</div>"};
-const stateNavMap = {"st_artifact_list":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_artifact_list_empty":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_flow_idle":"<div class=\"nav-footer\">no nav — immersive</div>","st_flow_running":"<div class=\"nav-footer\">no nav — immersive</div>","st_flow_paused":"<div class=\"nav-footer\">no nav — immersive</div>","st_flow_expired":"<div class=\"nav-footer\">no nav — immersive</div>","st_edit_readonly":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_edit_writing":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_compare":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_settings":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_settings_dark":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_settings_timer_focused":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_settings_editing_timer":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_settings_editing_timer_invalid":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_settings_timer_updated":"<div class=\"nav-bar\"><span>Artifacts</span><span>Write</span><span>Settings</span></div>","st_upgrade":"<div class=\"nav-footer\">no nav — immersive</div>","st_upgrade_sent":"<div class=\"nav-footer\">no nav — immersive</div>","st_external":""};
-const hasGraphEntities = true;
-const cujGraphs = [{"cujId":"cuj_onboarding","stateIds":["st_external","st_flow_idle","st_flow_running","st_flow_expired","st_edit_readonly"],"transitionIds":["tr_arrive","tr_first_keystroke","tr_timer_expires","tr_tap_done","tr_arrive_returning"]},{"cujId":"cuj_account_upgrade","stateIds":["st_artifact_list","st_settings","st_upgrade","st_upgrade_sent","st_external"],"transitionIds":["tr_tap_settings_nav","tr_tap_add_email","tr_send_magic_link","tr_check_email","tr_click_magic_link"]},{"cujId":"cuj_login","stateIds":["st_flow_idle","st_upgrade","st_upgrade_sent","st_external","st_artifact_list","st_settings"],"transitionIds":["tr_tap_login","tr_send_magic_link","tr_check_email","tr_click_magic_link","tr_arrive","tr_tap_settings_nav","tr_logout"]},{"cujId":"cuj_flow_writing","stateIds":["st_artifact_list","st_flow_idle","st_flow_running","st_flow_expired","st_edit_readonly","st_flow_paused","st_external"],"transitionIds":["tr_tap_write_nav","tr_first_keystroke","tr_timer_expires","tr_tap_done","tr_tap_artifact_row","tr_tap_new_draft","tr_tap_create_artifact","tr_pause","tr_resume","tr_close_page","tr_reopen_page","tr_tap_restart"]},{"cujId":"cuj_edit_draft","stateIds":["st_artifact_list","st_edit_readonly","st_edit_writing","st_flow_idle","st_flow_running"],"transitionIds":["tr_tap_artifact_row","tr_tap_edit","tr_tap_copy","tr_tap_new_draft","tr_first_keystroke","tr_save_edit","tr_cancel_edit","tr_back_from_edit"]},{"cujId":"cuj_create_draft","stateIds":["st_artifact_list","st_flow_idle","st_flow_running","st_edit_readonly"],"transitionIds":["tr_tap_create_artifact","tr_first_keystroke","tr_tap_artifact_row","tr_tap_new_draft"]},{"cujId":"cuj_compare_drafts","stateIds":["st_artifact_list","st_edit_readonly","st_compare"],"transitionIds":["tr_tap_artifact_row","tr_tap_compare","tr_select_draft_to_compare","tr_back_from_compare"]},{"cujId":"cuj_manage_artifact","stateIds":["st_artifact_list","st_flow_idle","st_external","st_artifact_list_empty"],"transitionIds":["tr_tap_create_artifact","tr_arrive_empty","tr_tap_create_from_empty"]},{"cujId":"cuj_browse_artifacts","stateIds":["st_settings","st_artifact_list"],"transitionIds":["tr_tap_artifacts_nav","tr_search","tr_sort"]},{"cujId":"cuj_settings","stateIds":["st_artifact_list","st_settings","st_settings_timer_focused","st_settings_editing_timer","st_settings_timer_updated","st_settings_editing_timer_invalid","st_settings_dark"],"transitionIds":["tr_tap_settings_nav","tr_tap_timer_field","tr_type_new_value","tr_tap_out_valid","tr_type_invalid","tr_type_valid","tr_tap_out_invalid","tr_toggle_theme_dark","tr_toggle_theme_light"]}];
+const screenStates = [];
+const stateHtmlMap = {};
+const stateNavMap = {};
+const hasGraphEntities = false;
+const cujGraphs = [];
 const hasSeparateCujMaps = hasGraphEntities && cujGraphs.length > 0;
 
 let currentMode='map';
@@ -614,19 +848,16 @@ let selectedMapCuj=null;
 let activeCujSvg=null;
 let highlightedStoryboardIdx=null;
 let curCuj=null,curStep=0;
-let walkSteps=[];  // For graph mode: stores steps with state, fromState, transition info
-let currentScenarioIdx=0;  // Track which scenario is selected in walkthrough
+let walkSteps=[];
+let currentScenarioIdx=0;
 
-/* SCREEN NAME HELPER - looks up screen name from ID */
 function getScreenName(screenId){
   const screen=screens.find(s=>s.id===screenId||s.id==='screen_'+screenId);
   return screen?screen.name:(screenId||'default');
 }
 
-/* SCREEN HTML CACHE - caches rendered HTML strings */
 const screenHtmlCache={};
 function getScreenKey(screenId,scenario){
-  // Build key from screen + component variants
   const variants=Object.keys(scenario).filter(k=>k.startsWith('comp_')).sort().map(k=>k+'='+scenario[k]).join('|');
   return screenId+'::'+variants;
 }
@@ -638,7 +869,6 @@ function getScreenHtml(screenId,scenario){
   return screenHtmlCache[key];
 }
 
-/* MODE */
 function setMode(m){
   currentMode=m;
   document.getElementById('mode-map').classList.toggle('active',m==='map');
@@ -649,7 +879,7 @@ function setMode(m){
   document.getElementById('zoom-btns').style.display=m==='map'?'flex':'none';
   document.getElementById('zoom-label').style.display=m==='map'?'inline':'none';
   if(m==='walk'){
-    // Compute walkSteps for graph mode with paths
+    currentScenarioIdx=curStep;
     if(curCuj&&hasGraphEntities){
       const c=cujs[curCuj];
       const sc=c&&c.scenarios&&c.scenarios[currentScenarioIdx];
@@ -661,46 +891,47 @@ function setMode(m){
     renderStep();
   }
   if(m==='map'){
+    curStep=currentScenarioIdx;
     if(hasSeparateCujMaps&&selectedMapCuj){
-      // Show the previously selected CUJ's map
       showCujMap(selectedMapCuj);
-      requestAnimationFrame(()=>redrawArrows());
+      const cuj=cujs[selectedMapCuj];
+      const scenario=cuj&&cuj.scenarios&&cuj.scenarios[curStep];
+      if(scenario&&scenario.path){
+        highlightGraphPathInCuj(selectedMapCuj,scenario);
+        const pathIds=scenario.path.split(',').map(s=>s.trim());
+        drawCujArrows(selectedMapCuj,pathIds);
+      }else{
+        requestAnimationFrame(()=>redrawArrows());
+      }
     }else if(hasSeparateCujMaps){
-      // No CUJ selected, show first CUJ by default
       const firstCujId=Object.keys(cujs)[0];
       if(firstCujId)selectCuj(firstCujId);
     }else{
       requestAnimationFrame(()=>requestAnimationFrame(drawArrows));
     }
   }
-  // Update sidebar highlight based on current selection
   updateSidebarHighlight();
 }
 
-/* Compute walk steps from path - each step has state, fromState, transition info */
 function computeWalkSteps(path){
   const pathIds=path.split(',').map(s=>s.trim());
   const steps=[];
   for(const trId of pathIds){
     const tr=transitions.find(t=>t.id===trId);
     if(tr){
-      // Add starting state if this is the first transition
       if(steps.length===0){
         steps.push({state:tr.from,fromState:null,transition:null,transitionAction:null});
       }
-      // Add the destination state with transition info
       steps.push({state:tr.to,fromState:tr.from,transition:trId,transitionAction:tr.action});
     }
   }
   return steps;
 }
 
-/* Legacy: compute unique states from path (for backwards compat) */
 function computeWalkStates(path){
   return computeWalkSteps(path).map(s=>s.state);
 }
 
-/* DEBUG MODE */
 function toggleDebug(){
   const app=document.querySelector('.app');
   const btn=document.getElementById('debug-toggle');
@@ -708,7 +939,6 @@ function toggleDebug(){
   btn.classList.toggle('active');
 }
 
-/* SHARED SIDEBAR */
 function initSidebar(){
   const sidebar=document.getElementById('sidebar');
   const areas={};
@@ -731,17 +961,13 @@ function initSidebar(){
   sidebar.innerHTML=html;
 }
 
-/* CUJ MAP SWITCHING */
 function showCujMap(cujId){
   if(!hasSeparateCujMaps)return;
-  // Hide all CUJ maps
   document.querySelectorAll('.cuj-map').forEach(el=>{el.style.display='none';});
-  // Show the selected CUJ map
   const mapEl=document.getElementById('cuj-map-'+cujId);
   if(mapEl){
     mapEl.style.display='block';
     activeCujSvg=document.getElementById('arrows-'+cujId);
-    // Make nodes draggable within this map
     initCujMapDrag(cujId);
   }
 }
@@ -756,7 +982,6 @@ function initCujMapDrag(cujId){
   const mapEl=document.getElementById('cuj-map-'+cujId);
   if(!mapEl)return;
   mapEl.querySelectorAll('.graph-node').forEach(el=>{
-    // Remove any existing handlers
     el.onmousedown=null;
     el.addEventListener('mousedown',e=>{
       dragNode=el;
@@ -778,15 +1003,13 @@ function drawCujArrows(cujId,pathIds){
   if(!cujGraph)return;
   const cujTransitions=transitions.filter(t=>cujGraph.transitionIds.includes(t.id));
 
-  // Collect all node positions as obstacles
   const obstacles=[];
   mapEl.querySelectorAll('.graph-node').forEach(el=>{
     obstacles.push({el,x:parseInt(el.style.left)||0,y:parseInt(el.style.top)||0});
   });
 
-  // Assign ports to edges - track outgoing/incoming edge counts per node
-  const outPorts=new Map(); // node -> next outgoing port index
-  const inPorts=new Map();  // node -> next incoming port index
+  const outPorts=new Map();
+  const inPorts=new Map();
 
   let s='';
   const pathSet=pathIds?new Set(pathIds):null;
@@ -798,7 +1021,6 @@ function drawCujArrows(cujId,pathIds){
       const color=isInPath?'var(--accent)':'var(--hint)';
       const opacity=isInPath?1:0.15;
 
-      // Get port indices for this edge
       const outPort=outPorts.get(t.from)||0;
       const inPort=inPorts.get(t.to)||0;
       outPorts.set(t.from,(outPort+1));
@@ -813,10 +1035,10 @@ function drawCujArrows(cujId,pathIds){
 function selectScenario(cujId,stepIdx,scenarioId,screenId){
   curCuj=cujId;
   curStep=stepIdx;
+  currentScenarioIdx=stepIdx;
   highlightedScenarioId=scenarioId;
 
   if(currentMode==='map'){
-    // Map mode: highlight screen or storyboard card
     document.querySelectorAll('.screen.highlighted').forEach(el=>el.classList.remove('highlighted'));
     document.querySelectorAll('.storyboard-card.highlighted').forEach(el=>el.classList.remove('highlighted'));
     document.querySelectorAll('.graph-node.highlighted').forEach(el=>el.classList.remove('highlighted'));
@@ -825,27 +1047,21 @@ function selectScenario(cujId,stepIdx,scenarioId,screenId){
     const cuj=cujs[cujId];
     const scenario=cuj&&cuj.scenarios[stepIdx];
 
-    // Separate CUJ maps mode: show this CUJ's map, highlight path
     if(hasSeparateCujMaps&&scenario&&scenario.path){
       selectedMapCuj=cujId;
       showCujMap(cujId);
       document.getElementById('storyboard-container').classList.remove('active');
-      // Highlight path nodes within this CUJ's map
       highlightGraphPathInCuj(cujId,scenario);
-      // Draw arrows for this CUJ with path highlighting
       const pathIds=scenario.path.split(',').map(s=>s.trim());
       drawCujArrows(cujId,pathIds);
-      // Center the map
       requestAnimationFrame(()=>document.getElementById('zoom-fit').click());
     }else if(hasGraphEntities&&scenario&&scenario.path){
-      // Single map mode (legacy fallback)
       selectedMapCuj=cujId;
       document.getElementById('default-screens').classList.remove('hidden');
       document.getElementById('storyboard-container').classList.remove('active');
       highlightGraphPath(scenario);
       drawArrowsWithPath(scenario);
     }else{
-      // Legacy mode: render storyboard
       if(selectedMapCuj&&selectedMapCuj===cujId){
         highlightStoryboardCard(stepIdx);
       }else{
@@ -855,15 +1071,13 @@ function selectScenario(cujId,stepIdx,scenarioId,screenId){
       }
     }
   }else{
-    // Walkthrough mode: update walkthrough view
     currentScenarioIdx=stepIdx;
-    // Compute walkSteps for graph mode with paths
     if(hasGraphEntities){
       const cuj=cujs[cujId];
       const scenario=cuj&&cuj.scenarios[stepIdx];
       if(scenario&&scenario.path){
         walkSteps=computeWalkSteps(scenario.path);
-        curStep=0;  // Reset to first step in path
+        curStep=0;
       }
     }
     renderStep();
@@ -881,27 +1095,21 @@ function selectCuj(cujId){
     const cuj=cujs[cujId];
     const scenario=cuj&&cuj.scenarios[0];
 
-    // Separate CUJ maps mode: show this CUJ's map
     if(hasSeparateCujMaps){
       showCujMap(cujId);
       document.getElementById('storyboard-container').classList.remove('active');
-      // Show all nodes (no dimming), draw all arrows
       clearGraphHighlightsInCuj(cujId);
       drawCujArrows(cujId,null);
-      // Center the map
       requestAnimationFrame(()=>document.getElementById('zoom-fit').click());
     }else if(hasGraphEntities&&scenario&&scenario.path){
-      // Single map mode (legacy fallback)
       document.getElementById('default-screens').classList.remove('hidden');
       document.getElementById('storyboard-container').classList.remove('active');
       highlightGraphPath(scenario);
       drawArrowsWithPath(scenario);
     }else{
-      // Legacy mode: render storyboard
       renderStoryboard(cujId);
     }
   }else{
-    // Walkthrough mode: delegate to first scenario
     const cuj=cujs[cujId];
     if(cuj&&cuj.scenarios.length>0){
       const firstSc=cuj.scenarios[0];
@@ -913,18 +1121,13 @@ function selectCuj(cujId){
 }
 
 function updateSidebarHighlight(){
-  // Clear all highlights
   document.querySelectorAll('.sidebar .cuj-name.selected').forEach(el=>el.classList.remove('selected'));
   document.querySelectorAll('.sidebar .scenario-item.current').forEach(el=>el.classList.remove('current'));
 
-  // Highlight current CUJ if in storyboard mode
   if(currentMode==='map'&&selectedMapCuj){
     document.querySelectorAll('.sidebar .cuj-group[data-cuj="'+selectedMapCuj+'"] .cuj-name').forEach(el=>el.classList.add('selected'));
   }
 
-  // Highlight current scenario
-  // In walkthrough mode with graph entities, use currentScenarioIdx (scenario index)
-  // Otherwise use curStep (which is the scenario index in legacy mode)
   const scenarioIdx=(currentMode==='walk'&&hasGraphEntities)?currentScenarioIdx:curStep;
   if(curCuj&&scenarioIdx!==null){
     document.querySelectorAll('.sidebar .scenario-item[data-cuj="'+curCuj+'"][data-step="'+scenarioIdx+'"]').forEach(el=>el.classList.add('current'));
@@ -936,50 +1139,43 @@ function showDefaultScreens(){
   highlightedScenarioId=null;
   curCuj=null;
   curStep=0;
-  // Hide storyboard, show default screens
   document.getElementById('storyboard-container').classList.remove('active');
   document.getElementById('storyboard-container').innerHTML='';
 
   if(hasSeparateCujMaps){
-    // Hide all CUJ maps - user needs to select a CUJ
     hideCujMaps();
   }else{
     document.getElementById('default-screens').classList.remove('hidden');
   }
 
-  // Remove all highlighted states
   document.querySelectorAll('.screen.highlighted').forEach(el=>el.classList.remove('highlighted'));
   clearGraphHighlights();
   updateSidebarHighlight();
   if(!hasSeparateCujMaps)drawArrows();
 }
 
-/* STATE KEY - builds unique key from screen + component variants */
 function getStateKey(scenario){
   const variants=Object.keys(scenario).filter(k=>k.startsWith('comp_')).sort().map(k=>k+'='+scenario[k]).join('|');
   return scenario.screen+'::'+variants;
 }
 
-let stateCards=[];  // Array of {stateKey, screenId, scenario, scenarios, cardIdx}
-let scenarioToCard={};  // Map scenario index to card index
+let stateCards=[];
+let scenarioToCard={};
 
 function renderStoryboard(cujId){
   const cuj=cujs[cujId];
   if(!cuj)return;
 
-  // If graph mode and first scenario has path, delegate to path-based rendering
   if(hasGraphEntities&&cuj.scenarios[0]&&cuj.scenarios[0].path){
     renderPathStoryboard(cujId,0);
     return;
   }
 
-  // Hide default screens, show storyboard
   document.getElementById('default-screens').classList.add('hidden');
   const container=document.getElementById('storyboard-container');
   container.classList.add('active');
   container.innerHTML='';
 
-  // Group scenarios by state key (deduplicate)
   stateCards=[];
   scenarioToCard={};
   const seenKeys={};
@@ -994,7 +1190,6 @@ function renderStoryboard(cujId){
     scenarioToCard[i]=seenKeys[key].cardIdx;
   });
 
-  // Generate one card per unique state
   let xPos=80;
   stateCards.forEach((card,cardIdx)=>{
     const screenId=card.screenId;
@@ -1003,7 +1198,6 @@ function renderStoryboard(cujId){
     el.id='storyboard-'+cardIdx;
     el.style.left=xPos+'px';
     el.style.top='80px';
-    // Show all scenario names that map to this card
     const names=card.scenarios.map(s=>s.name).join('<br>');
     const navHtml=getNavHtml(screenId);
     el.innerHTML=`<div class="s-head"><span>${getScreenName(screenId)}</span></div><div class="s-body"></div>${navHtml}<div class="storyboard-label"><span class="scenario-name">${names}</span><span class="screen-id">${card.screenId||'default'}</span></div>`;
@@ -1016,18 +1210,14 @@ function renderStoryboard(cujId){
 }
 
 function highlightStoryboardCard(scenarioIdx){
-  // Map scenario index to card index
   const cardIdx=scenarioToCard[scenarioIdx];
   highlightedStoryboardIdx=cardIdx;
-  // Clear previous storyboard highlights
   document.querySelectorAll('.storyboard-card.highlighted').forEach(el=>el.classList.remove('highlighted'));
-  // Highlight the card at this card index
   const cardEl=document.getElementById('storyboard-'+cardIdx);
   if(cardEl){
     cardEl.classList.add('highlighted');
     panToCard(cardEl);
   }
-  // Redraw arrows with highlight
   drawStoryboardArrows(stateCards,highlightedStoryboardIdx);
 }
 
@@ -1039,17 +1229,14 @@ function panToCard(el){
   const cardY=parseInt(el.style.top)||0;
   const cardW=220;
   const cardH=el.offsetHeight||476;
-  // Center the card in the viewport
   panX=(vw/2)-(cardX+cardW/2)*zoom;
   panY=(vh/2)-(cardY+cardH/2)*zoom;
   applyTransform();
 }
 
-/* WALKTHROUGH */
 function walkStep(d){
   const c=cujs[curCuj];
   const scenario=c.scenarios[currentScenarioIdx];
-  // In graph mode with path, step through walkSteps
   const total=hasGraphEntities&&scenario&&scenario.path?walkSteps.length:c.scenarios.length;
   const n=curStep+d;
   if(n<0||n>=total)return;
@@ -1057,6 +1244,7 @@ function walkStep(d){
   renderStep();
   updateSidebarHighlight();
 }
+
 function renderScreenForStep(screenId,scenario){
   const screenData=screens.find(s=>s.id===screenId||s.name.toLowerCase()===scenario.screen);
   if(!screenData||!screenData.components||screenData.components.length===0){
@@ -1072,6 +1260,7 @@ function renderScreenForStep(screenId,scenario){
   }
   return html;
 }
+
 function getNavHtml(screenId){
   const screenData=screens.find(s=>s.id===screenId);
   if(!screenData)return '';
@@ -1082,18 +1271,17 @@ function getNavHtml(screenId){
   }
   return '';
 }
+
 function renderStep(){
   const c=cujs[curCuj],sc=c.scenarios[currentScenarioIdx];
   const w=document.getElementById('walk-screen');
 
-  // Graph mode with path: step through states
   if(hasGraphEntities&&sc&&sc.path){
     const tot=walkSteps.length;
     const step=walkSteps[curStep];
     if(!step)return;
     const st=screenStates.find(s=>s.id===step.state);
     if(st){
-      // Use pre-rendered HTML from stateHtmlMap for consistency with map view
       const bodyHtml=stateHtmlMap[step.state]||'<div style="padding:20px;text-align:center;color:var(--hint);">'+step.state+'</div>';
       const navHtml=stateNavMap[step.state]||'';
       w.innerHTML=`<div class="ws-head"><span>${getScreenName(st.screen)}</span></div><div class="ws-body">${bodyHtml}</div>${navHtml}`;
@@ -1104,7 +1292,6 @@ function renderStep(){
     document.getElementById('walk-step-counter').textContent=`Step ${curStep+1} of ${tot}`;
     document.getElementById('walk-scenario-name').textContent=sc.name;
     document.getElementById('walk-scenario-id').textContent=sc.id;
-    // Show transition info: from_state → action → to_state
     let transitionHtml='';
     if(step.transition){
       transitionHtml=`<div style="margin-bottom:12px;padding:8px;background:var(--bd);border-radius:6px;font-family:monospace;font-size:10px;">
@@ -1124,7 +1311,6 @@ function renderStep(){
     return;
   }
 
-  // Non-graph mode: step through scenarios
   const legacySc=c.scenarios[curStep],tot=c.scenarios.length;
   const screenId=legacySc.screen;
   w.innerHTML=`<div class="ws-head"><span>${getScreenName(screenId)}</span></div><div class="ws-body"></div>`;
@@ -1136,33 +1322,28 @@ function renderStep(){
   document.getElementById('walk-gherkin').innerHTML=`<div><span class="kw">Given </span>${legacySc.given}</div><div><span class="kw">When </span>${legacySc.when}</div><div><span class="kw">Then </span>${legacySc.then}</div>`;
   const iv=document.getElementById('walk-invariants');iv.innerHTML=legacySc.invs&&legacySc.invs.length?`<div class="walk-inv-title">Protected by</div>`+legacySc.invs.map(i=>`<div class="walk-inv-item">${i}</div>`).join(''):'';
   document.getElementById('walk-prev').disabled=curStep===0;document.getElementById('walk-next').disabled=curStep===tot-1;
-  // Highlight current scenario in sidebar
   document.querySelectorAll('.scenario-item').forEach(el=>{
     el.classList.toggle('current',el.dataset.cuj===curCuj&&parseInt(el.dataset.step)===curStep);
   });
 }
+
 document.addEventListener('keydown',e=>{
-  // Walkthrough mode keyboard nav
   if(document.getElementById('walk-canvas').classList.contains('active')){
     if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();walkStep(1);}
     if(e.key==='ArrowLeft'){e.preventDefault();walkStep(-1);}
     return;
   }
-  // Map mode storyboard keyboard nav (navigates between unique state cards)
   if(currentMode==='map'&&selectedMapCuj&&stateCards.length>0){
     const len=stateCards.length;
     if(e.key==='ArrowRight'){
       e.preventDefault();
-      // If no card highlighted yet, highlight first card
       if(highlightedStoryboardIdx===null){
         highlightedStoryboardIdx=0;
-        curStep=0;  // First scenario of first card
+        curStep=0;
         highlightStoryboardCard(0);
         updateSidebarHighlight();
       }else if(highlightedStoryboardIdx<len-1){
-        // Move to next card
         const nextCardIdx=highlightedStoryboardIdx+1;
-        // Find first scenario that maps to this card
         const firstScenarioIdx=Object.keys(scenarioToCard).find(k=>scenarioToCard[k]===nextCardIdx);
         curStep=parseInt(firstScenarioIdx)||0;
         highlightStoryboardCard(curStep);
@@ -1172,9 +1353,7 @@ document.addEventListener('keydown',e=>{
     if(e.key==='ArrowLeft'){
       e.preventDefault();
       if(highlightedStoryboardIdx!==null&&highlightedStoryboardIdx>0){
-        // Move to previous card
         const prevCardIdx=highlightedStoryboardIdx-1;
-        // Find first scenario that maps to this card
         const firstScenarioIdx=Object.keys(scenarioToCard).find(k=>scenarioToCard[k]===prevCardIdx);
         curStep=parseInt(firstScenarioIdx)||0;
         highlightStoryboardCard(curStep);
@@ -1184,7 +1363,6 @@ document.addEventListener('keydown',e=>{
   }
 });
 
-/* MAP: zoom/pan/drag */
 const mapCanvas=document.getElementById('map-canvas'),panLayer=document.getElementById('pan-layer'),svg=document.getElementById('arrows'),GRID=20;
 let zoom=0.5,panX=0,panY=0,isPanning=false,panStart={x:0,y:0};
 function applyTransform(){panLayer.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`;document.getElementById('zoom-label').textContent=Math.round(zoom*100)+'%';}
@@ -1192,7 +1370,6 @@ document.getElementById('zoom-in').onclick=()=>{zoom=Math.min(2,zoom+0.1);applyT
 document.getElementById('zoom-out').onclick=()=>{zoom=Math.max(0.15,zoom-0.1);applyTransform();redrawArrows();};
 document.getElementById('zoom-reset').onclick=()=>{zoom=1;panX=0;panY=0;applyTransform();redrawArrows();};
 document.getElementById('zoom-fit').onclick=()=>{
-  // Find visible nodes (in active CUJ map or default screens)
   let ns;
   if(hasSeparateCujMaps&&selectedMapCuj){
     ns=document.querySelectorAll('#cuj-map-'+selectedMapCuj+' .graph-node');
@@ -1217,19 +1394,16 @@ document.querySelectorAll('#pan-layer .screen,#pan-layer .graph-node').forEach(e
 window.addEventListener('mousemove',e=>{if(!dragNode)return;dragNode.style.left=snap(e.clientX/zoom-dragOff.x)+'px';dragNode.style.top=snap(e.clientY/zoom-dragOff.y)+'px';redrawArrows();});
 window.addEventListener('mouseup',()=>{if(dragNode){dragNode.classList.remove('dragging');dragNode=null;}});
 
-// Edge hover handlers - highlight connected nodes and edge
 document.addEventListener('mouseover',e=>{
   const target=e.target.closest('.edge-hover-target');
   if(target){
     const fromId=target.dataset.from;
     const toId=target.dataset.to;
-    // Find the parent CUJ map to scope the node search (avoids finding nodes in hidden CUJs)
     const parentMap=target.closest('.cuj-map')||document;
     const fromEl=parentMap.querySelector('[id="graph-node-'+fromId+'"]');
     const toEl=parentMap.querySelector('[id="graph-node-'+toId+'"]');
     if(fromEl)fromEl.classList.add('edge-hover');
     if(toEl)toEl.classList.add('edge-hover');
-    // Highlight the edge line (next sibling)
     const edgeLine=target.nextElementSibling;
     if(edgeLine&&edgeLine.classList.contains('edge-line')){
       edgeLine.classList.add('edge-hover');
@@ -1253,20 +1427,17 @@ function drawEdge(fEl,fS,tEl,tS,label,color,isHighlighted,opacity=1,obstacles=[]
   const cssClass=isHighlighted?'class="arrow-highlighted"':'';
   const opacityAttr=opacity<1?` opacity="${opacity}"`:'';
 
-  // Orthogonal routing that avoids obstacles
   const path=computeOrthogonalPath(a,b,fS,tS,fEl,tEl,obstacles,edgeOffset);
 
   let s=`<defs><marker id="${mid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>`;
   s+=`<path ${cssClass} d="${path}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"${opacityAttr} marker-end="url(#${mid})"/>`;
 
-  // Label at midpoint of longest horizontal segment
   if(label){
     const points=pathToPoints(path);
-    // Find the longest horizontal segment for label placement
     let bestSeg={x1:a.x,x2:b.x,y:a.y,len:0};
     for(let i=0;i<points.length-1;i++){
       const p1=points[i],p2=points[i+1];
-      if(Math.abs(p1.y-p2.y)<1){// Horizontal segment
+      if(Math.abs(p1.y-p2.y)<1){
         const len=Math.abs(p2.x-p1.x);
         if(len>bestSeg.len){
           bestSeg={x1:Math.min(p1.x,p2.x),x2:Math.max(p1.x,p2.x),y:p1.y,len};
@@ -1299,7 +1470,6 @@ function drawEdgeWithPorts(fEl,tEl,outPort,inPort,label,color,isHighlighted,opac
   const fromId=fEl.id.replace('graph-node-','');
   const toId=tEl.id.replace('graph-node-','');
 
-  // Calculate port positions along the right edge (for outgoing) and left edge (for incoming)
   const baseY=120;
   const outY=fRect.y+baseY+outPort*portSpacing;
   const inY=tRect.y+baseY+inPort*portSpacing;
@@ -1309,18 +1479,15 @@ function drawEdgeWithPorts(fEl,tEl,outPort,inPort,label,color,isHighlighted,opac
 
   const mid='ah-'+Math.random().toString(36).slice(2,8);
   const strokeWidth=isHighlighted?2.5:1.5;
-  const cssClass=isHighlighted?'class="arrow-highlighted"':'';
+  const edgeClasses=isHighlighted?'edge-line arrow-highlighted':'edge-line';
   const opacityAttr=opacity<1?` opacity="${opacity}"`:'';
 
-  // Compute path
   const path=computePortPath(a,b,fRect,tRect,nodeW,nodeH,obstacles);
 
   let s=`<defs><marker id="${mid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>`;
-  // Invisible wider path for easier hover detection
-  s+=`<path class="edge-hover-target" d="${path}" fill="none" stroke="transparent" stroke-width="12" data-from="${fromId}" data-to="${toId}" style="cursor:pointer;"/>`;
-  s+=`<path ${cssClass} class="edge-line" d="${path}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"${opacityAttr} marker-end="url(#${mid})" style="pointer-events:none;"/>`;
+  s+=`<path class="edge-hover-target" d="${path}" fill="none" stroke="transparent" stroke-width="12" data-from="${fromId}" data-to="${toId}" style="cursor:pointer;pointer-events:auto;"/>`;
+  s+=`<path class="${edgeClasses}" d="${path}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"${opacityAttr} marker-end="url(#${mid})" style="pointer-events:none;"/>`;
 
-  // Label on longest horizontal segment
   if(label){
     const points=pathToPoints(path);
     let bestSeg={x1:a.x,x2:b.x,y:a.y,len:0};
@@ -1344,52 +1511,41 @@ function computePortPath(a,b,fRect,tRect,nodeW,nodeH,obstacles){
   const margin=20;
   const dx=tRect.x-fRect.x;
 
-  // Self-loop
   if(fRect.x===tRect.x&&fRect.y===tRect.y){
     const loopH=50;
     return `M${a.x},${a.y} L${a.x+margin},${a.y} L${a.x+margin},${fRect.y-loopH} L${fRect.x-margin},${fRect.y-loopH} L${fRect.x-margin},${b.y} L${b.x},${b.y}`;
   }
 
-  // Backward edge
   if(dx<=0){
-    // Route above both nodes
     const routeY=Math.min(fRect.y,tRect.y)-40;
     return `M${a.x},${a.y} L${a.x+margin},${a.y} L${a.x+margin},${routeY} L${b.x-margin},${routeY} L${b.x-margin},${b.y} L${b.x},${b.y}`;
   }
 
-  // Forward edge - simple horizontal with vertical adjustment
   const midX=a.x+(b.x-a.x)/2;
   if(Math.abs(a.y-b.y)<10){
-    // Nearly horizontal
     return `M${a.x},${a.y} L${b.x},${b.y}`;
   }
-  // L-shape through midpoint
   return `M${a.x},${a.y} L${midX},${a.y} L${midX},${b.y} L${b.x},${b.y}`;
 }
 
 function computeOrthogonalPath(a,b,fS,tS,fEl,tEl,obstacles,edgeOffset=0){
   const nodeW=220,nodeH=476,margin=25,gap=40;
 
-  // Get source and target node bounds
   const fRect={x:parseInt(fEl.style.left)||0,y:parseInt(fEl.style.top)||0,w:nodeW,h:nodeH};
   const tRect={x:parseInt(tEl.style.left)||0,y:parseInt(tEl.style.top)||0,w:nodeW,h:nodeH};
 
   const dx=tRect.x-fRect.x;
   const dy=b.y-a.y;
 
-  // Self-loop: route above the node
   if(fEl===tEl){
     const loopH=gap+edgeOffset*20;
     return `M${a.x},${a.y} L${a.x+margin},${a.y} L${a.x+margin},${fRect.y-loopH} L${fRect.x-margin},${fRect.y-loopH} L${fRect.x-margin},${b.y} L${b.x},${b.y}`;
   }
 
-  // Mermaid-style: route through the gap between rows
-  // Find the gap Y position (between top row bottom and bottom row top)
   let row1Bottom=0, row2Top=Infinity;
   for(const o of obstacles){
     const oBottom=o.y+nodeH;
     const oTop=o.y;
-    // Classify nodes into rows based on Y position
     if(o.y<400){
       row1Bottom=Math.max(row1Bottom,oBottom);
     }else{
@@ -1398,19 +1554,15 @@ function computeOrthogonalPath(a,b,fS,tS,fEl,tEl,obstacles,edgeOffset=0){
   }
   const gapY=row1Bottom+(row2Top-row1Bottom)/2;
 
-  // Backward edge: target is to the left of source
   if(dx<=0){
-    // Route through the gap between rows, offset for multiple back edges
     const routeY=gapY+edgeOffset*20;
     const exitX=fRect.x+nodeW+margin;
     const entryX=tRect.x-margin;
     return `M${a.x},${a.y} L${exitX},${a.y} L${exitX},${routeY} L${entryX},${routeY} L${entryX},${b.y} L${b.x},${b.y}`;
   }
 
-  // Forward edge: simple routing
   const midX=a.x+(b.x-a.x)/2;
 
-  // Same row: direct or L-shape
   if(Math.abs(dy)<100){
     if(Math.abs(dy)<10){
       return `M${a.x},${a.y} L${b.x},${b.y}`;
@@ -1419,7 +1571,6 @@ function computeOrthogonalPath(a,b,fS,tS,fEl,tEl,obstacles,edgeOffset=0){
     }
   }
 
-  // Different rows: route through the gap
   const exitX=a.x+margin;
   const entryX=b.x-margin;
   return `M${a.x},${a.y} L${exitX},${a.y} L${exitX},${gapY} L${entryX},${gapY} L${entryX},${b.y} L${b.x},${b.y}`;
@@ -1486,16 +1637,13 @@ function drawArrowsWithPath(scenario){
 }
 
 function redrawArrows(){
-  // Check if using separate CUJ maps
   if(hasSeparateCujMaps&&selectedMapCuj){
-    // Redraw the arrows for the active CUJ
     const cuj=cujs[selectedMapCuj];
     const scenario=highlightedScenarioId?cuj.scenarios.find(s=>s.id===highlightedScenarioId):null;
     const pathIds=scenario&&scenario.path?scenario.path.split(',').map(s=>s.trim()):null;
     drawCujArrows(selectedMapCuj,pathIds);
     return;
   }
-  // Legacy mode
   if(hasGraphEntities&&selectedMapCuj){
     const cuj=cujs[selectedMapCuj];
     const scenario=cuj&&cuj.scenarios[0];
@@ -1506,13 +1654,13 @@ function redrawArrows(){
   }
   drawArrows();
 }
+
 function drawStoryboardArrows(scenarios,highlightedStoryboardIdx){
   let s='';
   for(let i=0;i<scenarios.length-1;i++){
     const fromEl=document.getElementById('storyboard-'+i);
     const toEl=document.getElementById('storyboard-'+(i+1));
     if(fromEl&&toEl){
-      // Highlight arrow if it points to the highlighted card (i+1===highlightedStoryboardIdx)
       const isHighlighted=i+1===highlightedStoryboardIdx;
       s+=drawEdge(fromEl,'right',toEl,'left',null,'var(--accent)',isHighlighted);
     }
@@ -1520,7 +1668,6 @@ function drawStoryboardArrows(scenarios,highlightedStoryboardIdx){
   svg.innerHTML=s;
 }
 
-/* RESIZE HANDLERS */
 let sidebarWidth=220;
 function initResize(){
   const handle=document.getElementById('resize-handle');
@@ -1555,40 +1702,32 @@ function initWalkResize(){
   window.addEventListener('mouseup',()=>{resizingLeft=false;resizingRight=false;});
 }
 
-/* SIDEBAR SCROLL PREVENTION */
 document.getElementById('sidebar').addEventListener('wheel',e=>{e.stopPropagation();},{passive:true});
 
-/* GRAPH MODE - path-based storyboard rendering */
 function renderPathStoryboard(cujId,scenarioIdx){
   const cuj=cujs[cujId];
   if(!cuj)return;
   const scenario=cuj.scenarios[scenarioIdx];
   if(!scenario||!scenario.path)return;
 
-  // Hide default screens, show storyboard
   document.getElementById('default-screens').classList.add('hidden');
   const container=document.getElementById('storyboard-container');
   container.classList.add('active');
   container.innerHTML='';
 
-  // Parse path (comma-separated tr_* IDs)
   const pathIds=scenario.path.split(',').map(s=>s.trim());
 
-  // Collect ordered screen states from path
   const visitedStates=[];
   for(const trId of pathIds){
     const tr=transitions.find(t=>t.id===trId);
     if(tr){
-      // Add from state (if not already last in list)
       if(visitedStates.length===0||visitedStates[visitedStates.length-1]!==tr.from){
         visitedStates.push(tr.from);
       }
-      // Add to state
       visitedStates.push(tr.to);
     }
   }
 
-  // Deduplicate consecutive identical states
   const uniqueStates=[];
   for(const stId of visitedStates){
     if(uniqueStates.length===0||uniqueStates[uniqueStates.length-1]!==stId){
@@ -1596,7 +1735,6 @@ function renderPathStoryboard(cujId,scenarioIdx){
     }
   }
 
-  // Generate cards for each state in path
   let xPos=80;
   stateCards=[];
   scenarioToCard={};
@@ -1610,7 +1748,6 @@ function renderPathStoryboard(cujId,scenarioIdx){
     el.style.left=xPos+'px';
     el.style.top='80px';
 
-    // Build scenario-like object with comp_* from screen state
     const stScenario={name:stId,screen:st.screen,...st.componentStates};
     const navHtml=getNavHtml(st.screen);
     el.innerHTML=`<div class="s-head"><span>${getScreenName(st.screen)}</span></div><div class="s-body"></div>${navHtml}<div class="storyboard-label"><span class="scenario-name">${stId}</span><span class="screen-id">${st.screen}</span></div>`;
@@ -1625,7 +1762,6 @@ function renderPathStoryboard(cujId,scenarioIdx){
   drawStoryboardArrows(stateCards,highlightedStoryboardIdx);
 }
 
-/* GRAPH MODE - highlight path nodes, dim others */
 function highlightGraphPath(scenario){
   if(!hasGraphEntities||!scenario||!scenario.path)return;
 
@@ -1639,7 +1775,6 @@ function highlightGraphPath(scenario){
     }
   }
 
-  // Dim all graph nodes that are NOT in the path
   document.querySelectorAll('.graph-node').forEach(el=>{
     const nodeId=el.id.replace('graph-node-','');
     if(pathStates.has(nodeId)){
@@ -1659,7 +1794,6 @@ function clearGraphHighlights(){
   });
 }
 
-/* CUJ-SPECIFIC HIGHLIGHTING */
 function highlightGraphPathInCuj(cujId,scenario){
   if(!hasSeparateCujMaps||!scenario||!scenario.path)return;
   const mapEl=document.getElementById('cuj-map-'+cujId);
@@ -1675,7 +1809,6 @@ function highlightGraphPathInCuj(cujId,scenario){
     }
   }
 
-  // Dim nodes NOT in the path, highlight nodes IN the path
   mapEl.querySelectorAll('.graph-node').forEach(el=>{
     const nodeId=el.id.replace('graph-node-','');
     if(pathStates.has(nodeId)){
@@ -1702,7 +1835,6 @@ initSidebar();
 initResize();
 initWalkResize();
 
-// Initialize: show first CUJ map if using separate maps
 if(hasSeparateCujMaps){
   const firstCujId=Object.keys(cujs)[0];
   if(firstCujId){
