@@ -4,6 +4,7 @@ import { authChecker } from "./auth";
 import { schemaChecker } from "./schema";
 import { loggingChecker } from "./logging";
 import { wireframeExistsChecker, wireframeStructuralChecker } from "./wireframe-exists";
+import { m3ComponentTypesChecker } from "./m3-component-types";
 
 const checkers: Map<string, Checker> = new Map();
 const structuralCheckers: StructuralChecker[] = [];
@@ -73,6 +74,7 @@ registerChecker(authChecker);
 registerChecker(schemaChecker);
 registerChecker(loggingChecker);
 registerChecker(wireframeExistsChecker);
+registerChecker(m3ComponentTypesChecker);
 
 // Register structural checkers
 registerStructuralChecker(wireframeStructuralChecker);
