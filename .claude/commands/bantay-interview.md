@@ -13,7 +13,9 @@ First, check what exists:
    - **No aide:** Start a new interview (see New Project below)
    - **Aide exists:** Ask what brings them here today
 
-2. If the aide exists, the developer is here for one of:
+2. If the aide exists, detect mode from the developer's intent:
+   - **Product audit** — "audit", "check my cujs", "is my aide complete",
+     "review my spec", "mece check", "coverage check"
    - **New feature** — behavior that doesn't exist yet
    - **Bug report** — something isn't working right
    - **Spec refinement** — tightening an existing scenario or invariant
@@ -35,6 +37,163 @@ Use `bantay aide add`, `bantay aide update`, and `bantay aide link`
 for all mutations. Never hand-edit the YAML.
 
 Run `bantay aide validate` after each section.
+
+## Product audit
+
+When the developer wants to audit their aide for completeness and
+consistency, walk through five layers. Complete each layer before
+moving to the next.
+
+### LAYER 1 — INTENT
+
+Ask: "What is this app for? One sentence."
+
+- If the aide already has a description in the root entity, confirm it:
+  "The aide says: '<description>'. Is this still accurate?"
+- If no description exists, ask the developer to provide one
+- Update the aide with the confirmed description
+
+### LAYER 2 — JOBS (MECE check)
+
+Ask: "What jobs does the user hire this app to do?"
+
+1. List existing CUJs and map each to a "job":
+   ```
+   bantay aide show cujs
+   ```
+   Present: "I found these CUJs: [list]. Each represents a job."
+
+2. Check for exhaustiveness:
+   - Read the scenarios under each CUJ
+   - Look for any transitions or actions that don't map to a CUJ
+   - Ask: "Is there anything a user can do that isn't covered here?"
+
+3. Check for mutual exclusivity:
+   - Do any two CUJs overlap in purpose?
+   - Could scenarios from one CUJ belong in another?
+   - Present: "I notice [CUJ A] and [CUJ B] both cover [overlap].
+     Should these be merged or clarified?"
+
+4. Check for missing jobs:
+   - Ask: "What else would a user want to do that isn't here?"
+   - Suggest common jobs based on the app type
+
+5. Confirm or fix:
+   - Present findings as a checklist
+   - Get developer approval before moving to Layer 3
+   - Add/update CUJs as needed
+
+### LAYER 3 — ACTIONS
+
+For each job (CUJ), enumerate the plain English actions:
+
+1. List actions for the job:
+   "For [CUJ feature], the user can:"
+   - Extract from scenarios and transitions
+   - Format: "[what the user does] → [what happens]"
+
+2. Validate each action:
+   - **Trigger:** Does every action have a clear trigger?
+     (tap, type, swipe, wait, navigate, etc.)
+   - **Outcome:** Does every action have a clear outcome?
+     (screen change, state change, feedback shown, etc.)
+
+3. Check for dead ends:
+   - Is there any outcome with no next action?
+   - Can the user get stuck?
+   - Present: "From [state], I don't see how the user proceeds."
+
+4. Check for unreachable states:
+   - Is there any outcome that no action leads to?
+   - Present: "I found [state] but no action leads there."
+
+5. Confirm or fix:
+   - Present findings per CUJ
+   - Get developer approval before moving to Layer 4
+   - Add scenarios or transitions as needed
+
+### LAYER 4 — GRAPH (derived, not asked)
+
+From the confirmed actions, derive the state-transition graph:
+
+1. Extract screen states:
+   - Each unique (screen + component state) combination is a state
+   - Read from st_* entities or infer from scenarios
+
+2. Extract transitions:
+   - Each action that changes state is a transition
+   - Read from tr_* entities or infer from scenarios
+
+3. Identify clusters:
+   - Group states by CUJ
+   - Find shared states (states that appear in multiple CUJs)
+   - Find entry points (states with no incoming transitions)
+   - Find terminal states (states with no outgoing transitions)
+
+4. Present the summary:
+   "I found [N] screen states and [M] transitions.
+
+   Clusters:
+   - [CUJ 1]: [count] states, entry: [state], terminals: [states]
+   - [CUJ 2]: [count] states, entry: [state], terminals: [states]
+
+   Shared states: [list]
+   Orphaned states (no CUJ): [list]"
+
+5. Ask: "Does this graph match your mental model of the app?"
+
+### LAYER 5 — JOURNEYS (proposed, user approves)
+
+From the graph, propose CUJ boundaries and scenario paths:
+
+1. Identify natural journeys:
+   - A journey is a path from entry point to goal state
+   - Each journey should map to a user intent
+
+2. Present proposed journeys:
+   "I see these natural journeys:
+
+   **[Journey name]**
+   - Entry: [state]
+   - Path: [state] → [action] → [state] → [action] → [state]
+   - Goal: [terminal state]
+   - Maps to: [CUJ if exists, or 'NEW CUJ' if not]"
+
+3. Check coverage:
+   - Does every CUJ have at least one journey?
+   - Are there journeys not covered by any CUJ?
+   - Are there CUJs with no clear journey?
+
+4. Ask for confirmation:
+   "Does this match how you think about the product?
+   Any missing journeys?"
+
+5. Update the aide:
+   - Add missing CUJs for uncovered journeys
+   - Add scenario paths (sc_*) for each journey
+   - Wire relationships
+
+### After audit
+
+When all five layers are complete:
+
+```
+bantay aide validate
+bantay export all
+bantay aide lock
+bantay diff
+bantay tasks
+```
+
+Present a summary:
+"Audit complete.
+- [N] CUJs ([added] new)
+- [M] scenarios ([added] new)
+- [P] screen states
+- [Q] transitions
+- [R] invariants
+
+Run `bantay tasks` to see what needs implementation."
 
 ## Bug report
 
