@@ -20,6 +20,20 @@ import { runCi, type CiOptions } from "./commands/ci";
 import { runTasks, formatTasks } from "./commands/tasks";
 import { handleDiff } from "./commands/diff";
 import { runVisualize } from "./commands/visualize";
+import { runDeriveGraph, formatDeriveGraphResult } from "./commands/derive-graph";
+import { runJourneys, formatJourneysResult } from "./commands/journeys";
+import { runReverse, formatReverseResult } from "./commands/reverse";
+import {
+  collectJourneyContext,
+  generateJourneyPrompt,
+  matchJourneysToExistingCUJs,
+  classifyJourneys,
+  formatApplyDiff,
+  generateCujId,
+  type JourneyProposal,
+  type ExistingCUJ,
+} from "./commands/journeys-llm";
+import { read, write, addEntity, removeEntity, tryResolveAidePath, type AideTree } from "./aide";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -51,6 +65,12 @@ async function main() {
     await handleDiff(args.slice(1));
   } else if (command === "visualize") {
     await handleVisualize(args.slice(1));
+  } else if (command === "derive-graph") {
+    await handleDeriveGraph(args.slice(1));
+  } else if (command === "journeys") {
+    await handleJourneys(args.slice(1));
+  } else if (command === "reverse") {
+    await handleReverse(args.slice(1));
   } else {
     console.error(`Unknown command: ${command}`);
     console.error('Run "bantay help" for usage information.');
@@ -90,6 +110,9 @@ Commands:
   status    Show scenario implementation status
   tasks     Generate task list from aide CUJs
   visualize Generate interactive HTML screen map from aide
+  derive-graph  Derive screen states and transitions from aide actions
+  journeys      Cluster graph and propose CUJ boundaries
+  reverse       Extract aide from existing codebase
 
 Options:
   -h, --help    Show this help message
@@ -114,6 +137,14 @@ Examples:
   bantay tasks --all         Generate tasks for all CUJs
   bantay visualize           Generate visualizer from aide
   bantay visualize --output docs/map.html   Custom output path
+  bantay derive-graph        Derive graph from aide actions
+  bantay derive-graph --json Output as JSON
+  bantay journeys            Cluster graph and propose journeys
+  bantay journeys --scenarios Generate scenarios from journeys
+  bantay journeys --prompt   Output prompt to paste into Claude for journey proposals
+  bantay journeys --apply <file.json>  Apply journey proposals to aide
+  bantay reverse --prompt    Generate prompt for aide extraction
+  bantay reverse --prompt --focus=frontend  Focus on frontend code only
 
 Run "bantay aide help" for aide subcommand details.
 `);
@@ -457,6 +488,322 @@ async function handleVisualize(args: string[]) {
       console.error(`Error: ${error.message}`);
     } else {
       console.error("Error running visualize:", error);
+    }
+    process.exit(1);
+  }
+}
+
+async function handleDeriveGraph(args: string[]) {
+  const projectPath = process.cwd();
+  const jsonOutput = args.includes("--json");
+
+  // Parse --aide option
+  const aideIndex = args.indexOf("--aide");
+  const aideFile = aideIndex !== -1 ? args[aideIndex + 1] : undefined;
+
+  try {
+    const result = await runDeriveGraph(projectPath, { aide: aideFile, json: jsonOutput });
+
+    if (jsonOutput) {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      console.log(formatDeriveGraphResult(result));
+    }
+
+    process.exit(0);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error running derive-graph:", error);
+    }
+    process.exit(1);
+  }
+}
+
+async function handleJourneys(args: string[]) {
+  const projectPath = process.cwd();
+  const jsonOutput = args.includes("--json");
+  const scenariosFlag = args.includes("--scenarios");
+  const promptFlag = args.includes("--prompt");
+
+  // Parse --aide option
+  const aideIndex = args.indexOf("--aide");
+  const aideFile = aideIndex !== -1 ? args[aideIndex + 1] : undefined;
+
+  // Parse --apply option
+  const applyIndex = args.indexOf("--apply");
+  const applyFile = applyIndex !== -1 ? args[applyIndex + 1] : undefined;
+
+  // Parse --confirm flag (search all args)
+  const confirmFlag = args.includes("--confirm");
+
+  try {
+    if (promptFlag) {
+      // Generate prompt for user to paste into Claude
+      const resolved = await tryResolveAidePath(projectPath, aideFile);
+      if (!resolved) {
+        throw new Error("Could not find aide file");
+      }
+
+      const aide = await read(resolved.path);
+      const context = collectJourneyContext({ entities: aide.entities });
+      const prompt = generateJourneyPrompt(context);
+
+      console.log(prompt);
+    } else if (applyFile) {
+      // Apply journey proposals from JSON file
+      const resolved = await tryResolveAidePath(projectPath, aideFile);
+      if (!resolved) {
+        throw new Error("Could not find aide file");
+      }
+
+      // Read the JSON file with proposals
+      const jsonPath = applyFile.startsWith("/") ? applyFile : `${projectPath}/${applyFile}`;
+      const jsonContent = await Bun.file(jsonPath).text();
+      const proposals = JSON.parse(jsonContent) as { journeys: JourneyProposal[] };
+
+      if (!proposals.journeys || !Array.isArray(proposals.journeys)) {
+        throw new Error("Invalid JSON: expected { journeys: [...] }");
+      }
+
+      // Read aide and collect existing CUJs
+      const aide = await read(resolved.path);
+      const context = collectJourneyContext({ entities: aide.entities });
+
+      // Convert existing CUJs to ExistingCUJ format with paths
+      const existingCUJs: ExistingCUJ[] = [];
+      for (const [id, entity] of Object.entries(aide.entities)) {
+        if (id.startsWith("cuj_") && entity.props) {
+          const scenarios: ExistingCUJ["scenarios"] = [];
+          // Find child scenarios
+          for (const [scId, scEntity] of Object.entries(aide.entities)) {
+            if (scId.startsWith("sc_") && scEntity.parent === id && scEntity.props) {
+              const props = scEntity.props as Record<string, unknown>;
+              let path: string[] | undefined;
+              if (props.path) {
+                if (typeof props.path === "string") {
+                  path = props.path.split(",").map((s: string) => s.trim());
+                } else if (Array.isArray(props.path)) {
+                  path = props.path as string[];
+                }
+              }
+              scenarios.push({
+                id: scId,
+                name: (props.name as string) || scId,
+                path,
+              });
+            }
+          }
+          existingCUJs.push({
+            id,
+            feature: (entity.props.feature as string) || "",
+            scenarios,
+          });
+        }
+      }
+
+      // Match and classify journeys
+      const matches = matchJourneysToExistingCUJs(proposals.journeys, existingCUJs);
+      const classification = classifyJourneys(matches, existingCUJs);
+
+      // Format and display the diff
+      if (jsonOutput) {
+        console.log(JSON.stringify(classification, null, 2));
+      } else {
+        console.log(formatApplyDiff(classification));
+
+        if (confirmFlag) {
+          // Apply the changes by manipulating the aide tree directly
+          console.log("");
+          console.log("Applying changes...");
+
+          let updatedAide = aide;
+
+          // Helper to generate scenario ID
+          const makeScId = (cujId: string, scenarioName: string) =>
+            `sc_${cujId.replace("cuj_", "")}_${scenarioName.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "")}`;
+
+          // Apply new journeys
+          for (const journey of classification.new) {
+            const cujId = generateCujId(journey.name);
+            updatedAide = addEntity(updatedAide, {
+              id: cujId,
+              parent: "cujs",
+              props: { feature: journey.description },
+            });
+
+            for (const scenario of journey.scenarios) {
+              const scId = makeScId(cujId, scenario.name);
+              updatedAide = addEntity(updatedAide, {
+                id: scId,
+                parent: cujId,
+                props: {
+                  name: scenario.name,
+                  given: scenario.given,
+                  path: scenario.path.join(", "),
+                },
+              });
+            }
+            console.log(`  + Created ${cujId}`);
+          }
+
+          // Apply matched journeys (update existing)
+          for (const match of classification.matched) {
+            const cujId = match.matchedCUJ!.id;
+
+            // Update feature description directly
+            if (updatedAide.entities[cujId]) {
+              updatedAide.entities[cujId].props = {
+                ...updatedAide.entities[cujId].props,
+                feature: match.proposedJourney.description,
+              };
+            }
+
+            // Remove old scenarios
+            for (const oldSc of match.matchedCUJ!.scenarios) {
+              updatedAide = removeEntity(updatedAide, oldSc.id, { force: true });
+            }
+
+            // Add new scenarios
+            for (const scenario of match.proposedJourney.scenarios) {
+              const scId = makeScId(cujId, scenario.name);
+              updatedAide = addEntity(updatedAide, {
+                id: scId,
+                parent: cujId,
+                props: {
+                  name: scenario.name,
+                  given: scenario.given,
+                  path: scenario.path.join(", "),
+                },
+              });
+            }
+            console.log(`  ~ Updated ${cujId}`);
+          }
+
+          // Handle merged journeys
+          for (const merge of classification.merged) {
+            const cujId = generateCujId(merge.proposedJourney.name);
+
+            // Remove absorbed CUJs and their scenarios
+            for (const absorbedId of merge.absorbedCUJs) {
+              const absorbed = existingCUJs.find(c => c.id === absorbedId);
+              if (absorbed) {
+                for (const sc of absorbed.scenarios) {
+                  updatedAide = removeEntity(updatedAide, sc.id, { force: true });
+                }
+                updatedAide = removeEntity(updatedAide, absorbedId, { force: true });
+              }
+            }
+
+            // Create new merged CUJ
+            updatedAide = addEntity(updatedAide, {
+              id: cujId,
+              parent: "cujs",
+              props: { feature: merge.proposedJourney.description },
+            });
+
+            for (const scenario of merge.proposedJourney.scenarios) {
+              const scId = makeScId(cujId, scenario.name);
+              updatedAide = addEntity(updatedAide, {
+                id: scId,
+                parent: cujId,
+                props: {
+                  name: scenario.name,
+                  given: scenario.given,
+                  path: scenario.path.join(", "),
+                },
+              });
+            }
+            console.log(`  ⊕ Merged ${merge.absorbedCUJs.join(", ")} → ${cujId}`);
+          }
+
+          // Remove orphaned CUJs and their scenarios
+          for (const orphan of classification.orphaned) {
+            for (const sc of orphan.scenarios) {
+              updatedAide = removeEntity(updatedAide, sc.id, { force: true });
+            }
+            updatedAide = removeEntity(updatedAide, orphan.id, { force: true });
+            console.log(`  - Removed ${orphan.id}`);
+          }
+
+          // Write the updated aide file
+          await write(resolved.path, updatedAide);
+
+          console.log("");
+          console.log("Done. Run 'bantay aide lock' to update the lock file.");
+        } else {
+          console.log("");
+          console.log("To apply these changes, re-run with --confirm");
+        }
+      }
+    } else {
+      // Algorithmic journey derivation (default)
+      const result = await runJourneys(projectPath, {
+        aide: aideFile,
+        scenarios: scenariosFlag,
+        json: jsonOutput,
+      });
+
+      if (jsonOutput) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(formatJourneysResult(result));
+      }
+    }
+
+    process.exit(0);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error running journeys:", error);
+    }
+    process.exit(1);
+  }
+}
+
+async function handleReverse(args: string[]) {
+  const projectPath = process.cwd();
+  const promptFlag = args.includes("--prompt");
+
+  // Parse --focus option
+  let focus: "frontend" | "backend" | "auth" | undefined;
+  for (const arg of args) {
+    if (arg.startsWith("--focus=")) {
+      const value = arg.split("=")[1];
+      if (value === "frontend" || value === "backend" || value === "auth") {
+        focus = value;
+      }
+    }
+  }
+
+  if (!promptFlag) {
+    console.error("Usage: bantay reverse --prompt [--focus=frontend|backend|auth]");
+    console.error("");
+    console.error("Options:");
+    console.error("  --prompt              Generate structured prompt for LLM");
+    console.error("  --focus=frontend      Only scan frontend code (components, pages)");
+    console.error("  --focus=backend       Only scan backend code (API routes, handlers)");
+    console.error("  --focus=auth          Only scan auth-related files");
+    process.exit(1);
+  }
+
+  try {
+    const result = await runReverse(projectPath, { prompt: promptFlag, focus });
+    console.log(formatReverseResult(result));
+
+    // Print warnings to stderr
+    for (const warning of result.warnings) {
+      console.error(`Warning: ${warning}`);
+    }
+
+    process.exit(0);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Error: ${error.message}`);
+    } else {
+      console.error("Error running reverse:", error);
     }
     process.exit(1);
   }

@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-25T19:10:24.682Z
+# Generated: 2026-03-30T16:57:43.845Z
 
 entities:
   bantay_cli: 40c228db
@@ -22,10 +22,13 @@ entities:
   cuj_check: 7a10da07 parent:cujs
   cuj_checkers: 072d1c3c parent:cujs
   cuj_ci: 6f639b53 parent:cujs
+  cuj_derive_graph: 28edd46b parent:cujs
   cuj_export: 5c436567 parent:cujs
   cuj_export_css: 47884cc6 parent:cujs
   cuj_init: 770a755a parent:cujs
+  cuj_journeys: 35eee5d7 parent:cujs
   cuj_orchestrate: 0f1088f0 parent:cujs
+  cuj_reverse: 055634e3 parent:cujs
   cuj_tasks: 68f341d8 parent:cujs
   cuj_visualize_generate: 7d1822d8 parent:cujs
   cuj_visualize_graph: 02889f1e parent:cujs
@@ -51,6 +54,7 @@ entities:
   inv_export_all_success: 2c15aef6 parent:invariants
   inv_export_idempotent: 7bca4b8f parent:invariants
   inv_init_no_overwrite: 4363bad4 parent:invariants
+  inv_m3_component_types: 7dc44d9f parent:invariants
   inv_no_clobber: 5bdcc536 parent:invariants
   inv_no_code_execution: 298a7a56 parent:invariants
   inv_no_false_negatives: 37441005 parent:invariants
@@ -86,6 +90,11 @@ entities:
   sc_ci_generic: 41e9e290 parent:cuj_ci bh:7c0fca1f
   sc_ci_github: 01821dd6 parent:cuj_ci bh:64a0e1c3
   sc_ci_gitlab: 7c40b2c0 parent:cuj_ci bh:413875e9
+  sc_derive_diff: 7c457a80 parent:cuj_derive_graph bh:78ebe380
+  sc_derive_idempotent: 65d008a9 parent:cuj_derive_graph bh:4e54cf3f
+  sc_derive_preview: 24ca8c83 parent:cuj_derive_graph bh:6aa53212
+  sc_derive_states: 48b5921a parent:cuj_derive_graph bh:7dc5b901
+  sc_derive_transitions: 39740176 parent:cuj_derive_graph bh:694c3751
   sc_diff_classified: 659a7870 parent:cuj_check bh:2e9b71f0
   sc_diff_design_token: 2c50555b parent:cuj_check bh:3370119e
   sc_export_claude: 68ea5984 parent:cuj_export bh:4d23d0ca
@@ -108,6 +117,16 @@ entities:
   sc_init_no_project: 247d51b9 parent:cuj_init bh:02eae540
   sc_init_prerequisites: 4fe816e2 parent:cuj_init bh:1917cbb7
   sc_init_speed: 1de396b0 parent:cuj_init bh:5c59ba55
+  sc_journeys_apply: 5180b0d7 parent:cuj_journeys bh:075f2c31
+  sc_journeys_apply_match: 220c6664 parent:cuj_journeys bh:1af9f646
+  sc_journeys_apply_no_duplicates: 2c30a667 parent:cuj_journeys bh:5fe3d880
+  sc_journeys_cluster: 31589a30 parent:cuj_journeys bh:4c5468fe
+  sc_journeys_entry_goal: 3f75c8ba parent:cuj_journeys bh:73d8c282
+  sc_journeys_handoffs: 0f80990a parent:cuj_journeys bh:101b86c5
+  sc_journeys_mece: 66fe0d63 parent:cuj_journeys bh:55af46cb
+  sc_journeys_prompt: 176eb69b parent:cuj_journeys bh:7f3f9cc3
+  sc_journeys_propose: 36f5f8a4 parent:cuj_journeys bh:3ed90176
+  sc_journeys_scenarios: 554780cb parent:cuj_journeys bh:2de9f856
   sc_map_arrows_component_level: 0cc44f64 parent:cuj_visualize_map bh:49833116
   sc_map_click_scenario_highlights: 187ca7b6 parent:cuj_visualize_map bh:7a836178
   sc_map_debug_overlay: 0f3c5c73 parent:cuj_visualize_map bh:79403bde
@@ -129,6 +148,10 @@ entities:
   sc_orchestrate_spawn: 3f36aa44 parent:cuj_orchestrate bh:7d062e13
   sc_orchestrate_validate_plan: 052156b0 parent:cuj_orchestrate bh:18d29900
   sc_panels_full_height: 0c1f53b7 parent:cuj_visualize_map bh:3132bc16
+  sc_reverse_apply: 6bca022e parent:cuj_reverse bh:7db2a774
+  sc_reverse_focus: 2ef37737 parent:cuj_reverse bh:14c31dc3
+  sc_reverse_fresh: 775561fa parent:cuj_reverse bh:76ae926c
+  sc_reverse_reconcile: 1b1ae140 parent:cuj_reverse bh:6879e296
   sc_sidebar_independent_scroll: 29c13123 parent:cuj_visualize_map bh:7efc19b6
   sc_single_screen_instance: 1a865036 parent:cuj_visualize_generate bh:3f21e432
   sc_storyboard_from_path: 39ae56a1 parent:cuj_visualize_graph bh:78572ef3
@@ -226,3 +249,7 @@ relationships:
   - sc_check_wireframe_exists:inv_wireframe_per_component:protected_by: 40b67a33
   - sc_visualize_wireframe_variants:inv_wireframe_variant_fallback:protected_by: 2bed778c
   - cuj_visualize_graph:cuj_visualize_generate:depends_on: 201a4d5e
+  - cuj_derive_graph:cuj_aide:depends_on: 168af1e6
+  - cuj_journeys:cuj_derive_graph:depends_on: 443dd564
+  - cuj_visualize_graph:cuj_journeys:depends_on: 03aed10f
+  - cuj_reverse:cuj_aide:depends_on: 4447bafa

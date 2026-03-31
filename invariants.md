@@ -77,3 +77,8 @@ Rules this project must never break. Generated from bantay.aide.
 
 - [ ] **inv_init_no_overwrite**: bantay init never overwrites an existing invariants.md
   - Threat: User's hand-edited invariants destroyed by re-running init
+
+## Visualize
+
+- [ ] **inv_m3_component_types**: Visual components (comp_*) must declare a type from the M3 component vocabulary
+  - Threat: Components with missing type, unknown type, or custom type without description

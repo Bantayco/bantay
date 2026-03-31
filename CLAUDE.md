@@ -168,4 +168,8 @@ Use bun:test. Every invariant from bantay.aide becomes a test:
 
 - **inv_init_no_overwrite**: bantay init never overwrites an existing invariants.md
 
+#### Visualize
+
+- **inv_m3_component_types**: Visual components (comp_*) must declare a type from the M3 component vocabulary
+
 <!-- bantay:end -->
