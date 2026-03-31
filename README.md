@@ -11,6 +11,24 @@ bantay export claude          # Export to CLAUDE.md for agent context
 bantay ci --github-actions    # Generate CI workflow
 ```
 
+## Extract aide from existing code
+
+```bash
+bantay reverse --prompt       # Generate prompt for LLM to propose aide
+bantay reverse --prompt --focus=frontend  # Focus on frontend only
+```
+
+Paste the output into Claude. It will analyze your codebase and generate `bantay aide add` commands.
+
+## Visualize your app
+
+```bash
+bantay visualize              # Generate interactive HTML screen map
+bantay visualize --output docs/map.html
+```
+
+Opens a draggable, zoomable map of screens with transition arrows and walkthrough mode.
+
 ## What invariants.md looks like
 
 ```markdown
@@ -44,18 +62,47 @@ See [bantay.aide](./bantay.aide) for the living spec.
 
 ## Commands
 
+### Core
 ```
 bantay init                   Initialize in current project
 bantay check                  Check all invariants
 bantay check --diff HEAD~1    Check only affected invariants
-bantay check --id inv_auth    Check single invariant
+bantay ci --github-actions    Generate GitHub Actions workflow
+```
+
+### Aide Management
+```
+bantay aide show              View the .aide entity tree
+bantay aide add <id>          Add entity to aide
+bantay aide link <a> <b>      Create relationship between entities
+bantay aide validate          Validate .aide syntax
+bantay aide lock              Create/update lock file
+bantay aide diff              Show changes since last lock
+```
+
+### Export
+```
+bantay export all             Export all targets
 bantay export invariants      Generate invariants.md from .aide
 bantay export claude          Export to CLAUDE.md
 bantay export cursor          Export to .cursorrules
-bantay export all             Export all targets
-bantay ci --github-actions    Generate GitHub Actions workflow
-bantay aide show              View the .aide entity tree
-bantay aide validate          Validate .aide syntax
+bantay export css             Export design tokens to CSS
+```
+
+### Visualization & Analysis
+```
+bantay visualize              Generate interactive HTML screen map
+bantay status                 Show scenario implementation status
+bantay tasks                  Generate task list from aide CUJs
+bantay diff                   Show classified aide changes
+```
+
+### Reverse Engineering
+```
+bantay reverse --prompt       Extract aide structure from codebase
+bantay derive-graph           Derive screen states from actions
+bantay journeys               Cluster graph and propose CUJ boundaries
+bantay journeys --prompt      Generate prompt for LLM journey analysis
 ```
 
 ## License
