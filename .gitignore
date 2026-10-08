@@ -34,3 +34,4 @@ Thumbs.db
 
 # test artifacts
 test-*.js
+.claude/settings.local.json

@@ -1044,6 +1044,75 @@ relationships: []
       expect(html).toContain("comp_toolbar");
       expect(html).toContain("comp_canvas");
     });
+
+    test("screen nav component renders its wireframe and state variant", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_home:
+    parent: screens
+    props:
+      name: Home
+      nav: comp_nav_bar
+  components:
+    parent: my_project
+  comp_nav_bar:
+    parent: components
+    props:
+      name: Nav Bar
+      type: navigation-bar
+  states:
+    parent: my_project
+  st_home:
+    parent: states
+    props:
+      screen: screen_home
+      comp_nav_bar: knowledge_active
+  transitions:
+    parent: my_project
+  tr_open:
+    parent: transitions
+    props:
+      from: st_home
+      to: st_home
+      action: Stay
+      trigger: comp_nav_bar
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+  sc_test:
+    parent: cuj_test
+    props:
+      name: Test
+      path: tr_open
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+      await mkdir(join(testDir, "wireframes"), { recursive: true });
+      await writeFile(
+        join(testDir, "wireframes", "comp_nav_bar.html"),
+        `<nav class="nav-default">Artifacts Knowledge Write Settings</nav>`
+      );
+      await writeFile(
+        join(testDir, "wireframes", "comp_nav_bar--knowledge_active.html"),
+        `<nav class="nav-knowledge-active">Knowledge active</nav>`
+      );
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      expect(html).toContain("Artifacts Knowledge Write Settings");
+      expect(html).toContain("Knowledge active");
+      expect(html).toContain('data-comp-id="comp_nav_bar" data-trigger="comp_nav_bar"');
+    });
   });
 
   // sc_visualize_injects_tokens: Visualizer injects CSS variables into generated HTML
@@ -4917,6 +4986,74 @@ relationships: []
       // tr_* entity data should include trigger prop
       expect(html).toContain("trigger");
       expect(html).toContain("comp_start_button");
+    });
+
+    test("walkthrough binds next transition trigger to matching component", async () => {
+      const aideContent = `
+entities:
+  my_project:
+    display: page
+  screens:
+    parent: my_project
+  screen_draft:
+    parent: screens
+    props:
+      name: Draft
+      components: comp_start_button
+  components:
+    parent: my_project
+  comp_start_button:
+    parent: components
+    props:
+      name: Start Button
+      description: Starts the timer
+  states:
+    parent: my_project
+  st_idle:
+    parent: states
+    props:
+      screen: screen_draft
+  st_running:
+    parent: states
+    props:
+      screen: screen_draft
+  transitions:
+    parent: my_project
+  tr_start:
+    parent: transitions
+    props:
+      from: st_idle
+      to: st_running
+      action: Start timer
+      trigger: comp_start_button
+  cujs:
+    display: table
+    parent: my_project
+  cuj_test:
+    parent: cujs
+    props:
+      feature: Test
+  sc_start:
+    parent: cuj_test
+    props:
+      name: Start timer
+      given: Idle
+      when: User taps start
+      then: Timer runs
+      path: tr_start
+relationships: []
+`;
+      await writeFile(join(testDir, "test.aide"), aideContent);
+
+      await runBantay(["visualize"], testDir);
+
+      const html = await readFile(join(testDir, "visualizer.html"), "utf-8");
+
+      expect(html).toContain('data-comp-id="comp_start_button" data-trigger="comp_start_button"');
+      expect(html).toContain("nextTransitionTrigger");
+      expect(html).toContain("bindWalkTrigger(step)");
+      expect(html).toContain("findWalkTriggerTargets(step.nextTransitionTrigger)");
+      expect(html).toContain("walk-trigger-target");
     });
 
     test("edge label shows action text from transition", async () => {

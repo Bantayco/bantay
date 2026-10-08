@@ -1407,6 +1407,40 @@ entities:
       given: Large codebase
       when: Developer runs bantay reverse --prompt --focus=frontend
       then: Only frontend code scanned and included in prompt
+  sc_reverse_data_model:
+    parent: cuj_reverse
+    props:
+      name: Extract product data model from code
+      given: Codebase has database schema, API models, or state management
+      when: bantay reverse --prompt scans the code
+      then: "Prompt asks the LLM to extract data entities: what the user creates, owns, and interacts with. Not database tables — product objects with their fields, ownership, and relationships."
+  sc_reverse_formal_spec:
+    parent: cuj_reverse
+    props:
+      name: Extract formal properties from code
+      given: Codebase has pure functions, state machines, or invariant checks
+      when: bantay reverse --prompt scans the code
+      then: "Prompt asks the LLM to identify properties expressible as Lean 4 theorems: purity, determinism, ordering invariants, isolation properties"
+  cuj_formalize:
+    parent: cujs
+    props:
+      feature: Bantay generates Lean 4 theorem statements from aide invariants
+      tier: secondary
+      area: verification
+  sc_formalize_invariant:
+    parent: cuj_formalize
+    props:
+      name: Generate Lean 4 theorem from invariant
+      given: Aide has an invariant with a formal prop
+      when: Developer runs bantay formalize
+      then: Lean 4 file generated with theorem statement, type definitions, and sorry placeholder for proof
+  sc_formalize_check:
+    parent: cuj_formalize
+    props:
+      name: Verify Lean proofs compile
+      given: Lean 4 files with completed proofs
+      when: Developer runs bantay formalize --check
+      then: Runs lean compiler on all proof files, reports pass/fail
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
@@ -1605,6 +1639,10 @@ relationships:
     type: depends_on
     cardinality: many_to_many
   - from: cuj_reverse
+    to: cuj_aide
+    type: depends_on
+    cardinality: many_to_many
+  - from: cuj_formalize
     to: cuj_aide
     type: depends_on
     cardinality: many_to_many

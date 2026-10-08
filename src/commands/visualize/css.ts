@@ -102,6 +102,12 @@ body { font-family: var(--sans); background: var(--bg); color: var(--fg); }
 
 .comp-box { padding:4px 0; margin-bottom:2px; position:relative; }
 .comp-label { font-size:8px; font-family:monospace; color:var(--accent); opacity:0.5; margin-bottom:2px; display:none; }
+.nav-comp { position:relative; }
+.walk-screen [data-trigger],
+.walk-screen [data-comp-id] { touch-action:manipulation; }
+.walk-trigger-target { outline:2px solid var(--accent); outline-offset:3px; border-radius:6px; box-shadow:0 0 0 3px rgba(26,137,23,0.16); cursor:pointer; }
+.walk-trigger-target * { cursor:pointer; }
+.walk-trigger-target:active { opacity:0.82; }
 
 /* DEBUG MODE */
 .app.debug-mode .s-tag-id { display:inline; }

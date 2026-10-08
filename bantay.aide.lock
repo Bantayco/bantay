@@ -1,6 +1,6 @@
 # bantay.aide.lock
 # Auto-generated. Do not edit manually.
-# Generated: 2026-03-30T16:57:43.845Z
+# Generated: 2026-04-01T23:41:47.992Z
 
 entities:
   bantay_cli: 40c228db
@@ -149,6 +149,7 @@ entities:
   sc_orchestrate_validate_plan: 052156b0 parent:cuj_orchestrate bh:18d29900
   sc_panels_full_height: 0c1f53b7 parent:cuj_visualize_map bh:3132bc16
   sc_reverse_apply: 6bca022e parent:cuj_reverse bh:7db2a774
+  sc_reverse_data_model: 56bd0598 parent:cuj_reverse bh:754af074
   sc_reverse_focus: 2ef37737 parent:cuj_reverse bh:14c31dc3
   sc_reverse_fresh: 775561fa parent:cuj_reverse bh:76ae926c
   sc_reverse_reconcile: 1b1ae140 parent:cuj_reverse bh:6879e296

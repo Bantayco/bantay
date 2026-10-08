@@ -396,4 +396,246 @@ async def get_product(product_id: int):
       expect(stdout).toContain("/about");
     });
   });
+
+  // sc_reverse_data_model: Extract product data model from code
+  describe("sc_reverse_data_model: Extract product data model from code", () => {
+    test("detects Pydantic models in Python backend", async () => {
+      // Given: Codebase has Pydantic models
+      await writeFile(
+        join(testDir, "pyproject.toml"),
+        `[project]
+name = "fastapi-app"
+dependencies = ["fastapi", "pydantic"]
+`
+      );
+      await mkdir(join(testDir, "backend", "models"), { recursive: true });
+      await writeFile(
+        join(testDir, "backend", "models", "user.py"),
+        `
+from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+
+class User(BaseModel):
+    id: str
+    email: str
+    name: Optional[str]
+    created_at: datetime
+
+class Aide(BaseModel):
+    id: str
+    title: str
+    content: dict
+    owner_id: str
+    published: bool = False
+`
+      );
+
+      // When: bantay reverse --prompt scans the code
+      const { stdout, exitCode } = await runBantay(["reverse", "--prompt"], testDir);
+
+      // Then: Prompt includes Data Model Hints section and extracts models
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Data Model Hints");
+      expect(stdout).toContain("User");
+      expect(stdout).toContain("Aide");
+      expect(stdout).toContain("de_"); // Data entity prefix in instructions
+    });
+
+    test("detects TypeScript interfaces and types", async () => {
+      // Given: Codebase has TypeScript interfaces
+      await writeFile(join(testDir, "package.json"), JSON.stringify({ name: "ts-app" }));
+      await mkdir(join(testDir, "src", "types"), { recursive: true });
+      await writeFile(
+        join(testDir, "src", "types", "models.ts"),
+        `
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  createdAt: Date;
+}
+
+export type Aide = {
+  id: string;
+  title: string;
+  content: Record<string, any>;
+  ownerId: string;
+  published: boolean;
+};
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+}
+`
+      );
+
+      // When: bantay reverse --prompt scans the code
+      const { stdout, exitCode } = await runBantay(["reverse", "--prompt"], testDir);
+
+      // Then: Prompt includes Data Model Hints section and extracts interfaces
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Data Model Hints");
+      expect(stdout).toContain("User");
+      expect(stdout).toContain("Aide");
+      expect(stdout).toContain("Project");
+    });
+
+    test("detects Prisma schema models", async () => {
+      // Given: Codebase has Prisma schema
+      await writeFile(join(testDir, "package.json"), JSON.stringify({
+        name: "prisma-app",
+        dependencies: { "@prisma/client": "^5.0.0" }
+      }));
+      await mkdir(join(testDir, "prisma"), { recursive: true });
+      await writeFile(
+        join(testDir, "prisma", "schema.prisma"),
+        `
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  aides     Aide[]
+  createdAt DateTime @default(now())
+}
+
+model Aide {
+  id        String   @id @default(cuid())
+  title     String
+  content   Json
+  published Boolean  @default(false)
+  owner     User     @relation(fields: [ownerId], references: [id])
+  ownerId   String
+}
+`
+      );
+
+      // When: bantay reverse --prompt scans the code
+      const { stdout, exitCode } = await runBantay(["reverse", "--prompt"], testDir);
+
+      // Then: Prompt includes Data Model Hints section with Prisma models
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Data Model Hints");
+      expect(stdout).toContain("User");
+      expect(stdout).toContain("Aide");
+    });
+
+    test("detects Drizzle schema models", async () => {
+      // Given: Codebase has Drizzle schema
+      await writeFile(join(testDir, "package.json"), JSON.stringify({
+        name: "drizzle-app",
+        dependencies: { "drizzle-orm": "^0.30.0" }
+      }));
+      await mkdir(join(testDir, "src", "db"), { recursive: true });
+      await writeFile(
+        join(testDir, "src", "db", "schema.ts"),
+        `
+import { pgTable, text, boolean, timestamp, uuid } from 'drizzle-orm/pg-core';
+
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  name: text('name'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const aides = pgTable('aides', {
+  id: uuid('id').primaryKey(),
+  title: text('title').notNull(),
+  content: text('content'),
+  published: boolean('published').default(false),
+  ownerId: uuid('owner_id').references(() => users.id),
+});
+`
+      );
+
+      // When: bantay reverse --prompt scans the code
+      const { stdout, exitCode } = await runBantay(["reverse", "--prompt"], testDir);
+
+      // Then: Prompt includes Data Model Hints section with Drizzle tables
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Data Model Hints");
+      expect(stdout).toContain("users");
+      expect(stdout).toContain("aides");
+    });
+
+    test("detects API response shapes", async () => {
+      // Given: Codebase has API handlers with typed responses
+      await writeFile(join(testDir, "package.json"), JSON.stringify({ name: "api-app", dependencies: { next: "^14.0.0" } }));
+      await mkdir(join(testDir, "app", "api", "users"), { recursive: true });
+      await writeFile(
+        join(testDir, "app", "api", "users", "route.ts"),
+        `
+interface UserResponse {
+  id: string;
+  email: string;
+  name: string | null;
+}
+
+interface CreateUserInput {
+  email: string;
+  name?: string;
+}
+
+export async function GET(): Promise<UserResponse[]> {
+  return [];
+}
+
+export async function POST(req: Request): Promise<UserResponse> {
+  const body: CreateUserInput = await req.json();
+  return { id: '1', email: body.email, name: body.name ?? null };
+}
+`
+      );
+
+      // When: bantay reverse --prompt scans the code
+      const { stdout, exitCode } = await runBantay(["reverse", "--prompt"], testDir);
+
+      // Then: Prompt includes Data Model Hints section with API shapes
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Data Model Hints");
+      expect(stdout).toContain("UserResponse");
+      expect(stdout).toContain("CreateUserInput");
+    });
+
+    test("prompt instructs LLM to extract data entities with de_ prefix", async () => {
+      // Given: Any codebase with models
+      await writeFile(join(testDir, "package.json"), JSON.stringify({ name: "data-app" }));
+      await mkdir(join(testDir, "src", "types"), { recursive: true });
+      await writeFile(
+        join(testDir, "src", "types", "index.ts"),
+        `
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+}
+`
+      );
+
+      // When: bantay reverse --prompt scans the code
+      const { stdout, exitCode } = await runBantay(["reverse", "--prompt"], testDir);
+
+      // Then: Task section includes data entity extraction instructions
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Data entities");
+      expect(stdout).toContain("de_");
+      expect(stdout).toContain("bantay aide add de_");
+    });
+
+    test("prompt instructs LLM to identify mutations on transitions", async () => {
+      // Given: Any codebase
+      await writeFile(join(testDir, "package.json"), JSON.stringify({ name: "mutation-app" }));
+
+      // When: bantay reverse --prompt scans the code
+      const { stdout, exitCode } = await runBantay(["reverse", "--prompt"], testDir);
+
+      // Then: Task section includes mutation tracking instructions
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("creates=");
+      expect(stdout).toContain("updates=");
+    });
+  });
 });

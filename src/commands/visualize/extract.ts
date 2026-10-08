@@ -142,6 +142,7 @@ export function extractVisualizerData(
   for (const [id, entity] of Object.entries(entities)) {
     if (id.startsWith("screen_")) {
       const componentsStr = entity.props?.components as string | undefined;
+      const nav = entity.props?.nav as string | undefined;
       const screenComponents: Component[] = [];
       if (componentsStr) {
         const compIds = componentsStr.split(",").map((s) => s.trim());
@@ -152,6 +153,10 @@ export function extractVisualizerData(
           }
         }
       }
+      const navComponent = nav ? componentMap.get(nav) : undefined;
+      if (navComponent && !screenComponents.some((comp) => comp.id === navComponent.id)) {
+        screenComponents.push(navComponent);
+      }
 
       explicitScreens.push({
         id,
@@ -159,7 +164,7 @@ export function extractVisualizerData(
         description: entity.props?.description as string | undefined,
         inferred: false,
         components: screenComponents.length > 0 ? screenComponents : undefined,
-        nav: entity.props?.nav as string | undefined,
+        nav,
       });
     }
   }

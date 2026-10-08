@@ -56,6 +56,13 @@ interface ExportedFunctionInfo {
   file: string;
 }
 
+interface DataModelInfo {
+  name: string;
+  file: string;
+  source: "pydantic" | "typescript" | "prisma" | "drizzle" | "api";
+  fields?: string[];
+}
+
 interface CodebaseSummary {
   project?: ProjectInfo;
   readme?: string;
@@ -65,6 +72,7 @@ interface CodebaseSummary {
   stateMachines: StateMachineInfo[];
   eventHandlers: EventHandlerInfo[];
   exportedFunctions: ExportedFunctionInfo[];
+  dataModels: DataModelInfo[];
   existingAide?: string;
 }
 
@@ -404,6 +412,138 @@ async function scanExportedFunctions(projectPath: string): Promise<ExportedFunct
   return functions;
 }
 
+async function scanPydanticModels(projectPath: string): Promise<DataModelInfo[]> {
+  const models: DataModelInfo[] = [];
+  const files = await globFiles("**/*.py", projectPath);
+  // Match: class Name(BaseModel) or class Name(Base)
+  const modelPattern = /class\s+([A-Z][a-zA-Z0-9]*)\s*\(\s*(?:BaseModel|Base)\s*\)/g;
+
+  for (const file of files) {
+    if (file.includes("venv") || file.includes(".venv") || file.includes("__pycache__")) continue;
+    const content = await readFileSafe(join(projectPath, file));
+    if (!content) continue;
+
+    let match;
+    while ((match = modelPattern.exec(content)) !== null) {
+      models.push({
+        name: match[1],
+        file,
+        source: "pydantic",
+      });
+    }
+  }
+
+  return models;
+}
+
+async function scanTypeScriptInterfaces(projectPath: string): Promise<DataModelInfo[]> {
+  const models: DataModelInfo[] = [];
+  const files = await globFiles("**/*.{ts,tsx}", projectPath);
+  // Match: export interface Name or export type Name =
+  const interfacePattern = /export\s+(?:interface|type)\s+([A-Z][a-zA-Z0-9]*)/g;
+
+  for (const file of files) {
+    if (file.includes("node_modules")) continue;
+    const content = await readFileSafe(join(projectPath, file));
+    if (!content) continue;
+
+    let match;
+    while ((match = interfacePattern.exec(content)) !== null) {
+      models.push({
+        name: match[1],
+        file,
+        source: "typescript",
+      });
+    }
+  }
+
+  return models;
+}
+
+async function scanPrismaModels(projectPath: string): Promise<DataModelInfo[]> {
+  const models: DataModelInfo[] = [];
+  const files = await globFiles("**/schema.prisma", projectPath);
+
+  for (const file of files) {
+    const content = await readFileSafe(join(projectPath, file));
+    if (!content) continue;
+
+    // Match: model Name {
+    const modelPattern = /model\s+([A-Z][a-zA-Z0-9]*)\s*\{/g;
+    let match;
+    while ((match = modelPattern.exec(content)) !== null) {
+      models.push({
+        name: match[1],
+        file,
+        source: "prisma",
+      });
+    }
+  }
+
+  return models;
+}
+
+async function scanDrizzleModels(projectPath: string): Promise<DataModelInfo[]> {
+  const models: DataModelInfo[] = [];
+  const files = await globFiles("**/*.{ts,tsx}", projectPath);
+  // Match: export const name = pgTable('name', ...) or sqliteTable, mysqlTable
+  const tablePattern = /export\s+const\s+([a-zA-Z][a-zA-Z0-9]*)\s*=\s*(?:pg|sqlite|mysql)Table/g;
+
+  for (const file of files) {
+    if (file.includes("node_modules")) continue;
+    const content = await readFileSafe(join(projectPath, file));
+    if (!content) continue;
+
+    let match;
+    while ((match = tablePattern.exec(content)) !== null) {
+      models.push({
+        name: match[1],
+        file,
+        source: "drizzle",
+      });
+    }
+  }
+
+  return models;
+}
+
+async function scanApiResponseTypes(projectPath: string): Promise<DataModelInfo[]> {
+  const models: DataModelInfo[] = [];
+  const files = await globFiles("**/*.{ts,tsx}", projectPath);
+  // Match: interface NameResponse or interface NameInput (API-related types)
+  const apiTypePattern = /interface\s+([A-Z][a-zA-Z0-9]*(?:Response|Input|Request|Payload|Result))/g;
+
+  for (const file of files) {
+    if (file.includes("node_modules")) continue;
+    const content = await readFileSafe(join(projectPath, file));
+    if (!content) continue;
+
+    let match;
+    while ((match = apiTypePattern.exec(content)) !== null) {
+      models.push({
+        name: match[1],
+        file,
+        source: "api",
+      });
+    }
+  }
+
+  return models;
+}
+
+async function scanDataModels(projectPath: string): Promise<DataModelInfo[]> {
+  const models: DataModelInfo[] = [];
+
+  // Scan all model sources
+  models.push(...await scanPydanticModels(projectPath));
+  models.push(...await scanTypeScriptInterfaces(projectPath));
+  models.push(...await scanPrismaModels(projectPath));
+  models.push(...await scanDrizzleModels(projectPath));
+  models.push(...await scanApiResponseTypes(projectPath));
+
+  return models;
+}
+
 async function scanExistingAide(projectPath: string): Promise<string | null> {
   const aideFiles = await globFiles("*.aide", projectPath);
   if (aideFiles.length === 0) return null;
@@ -459,6 +599,7 @@ async function scanCodebase(projectPath: string, focus?: "frontend" | "backend" 
     stateMachines: [],
     eventHandlers: [],
     exportedFunctions: [],
+    dataModels: [],
   };
 
   // Scan project info
@@ -490,6 +631,9 @@ async function scanCodebase(projectPath: string, focus?: "frontend" | "backend" 
   // Scan exported functions (for backend APIs)
   const allFunctions = await scanExportedFunctions(projectPath);
   summary.exportedFunctions = allFunctions.filter(f => shouldIncludeForFocus(f.file, "handler", focus));
+
+  // Scan data models
+  summary.dataModels = await scanDataModels(projectPath);
 
   // Check for existing aide
   summary.existingAide = await scanExistingAide(projectPath) ?? undefined;
@@ -564,6 +708,23 @@ function formatPrompt(summary: CodebaseSummary): string {
     sections.push("");
   }
 
+  // Data Model Hints
+  sections.push("## Data Model Hints\n");
+  sections.push("Scan for:");
+  sections.push("- Pydantic models in backend/models/ or similar");
+  sections.push("- TypeScript interfaces/types");
+  sections.push("- Database migration files (Alembic, Prisma, Drizzle)");
+  sections.push("- API response shapes");
+  sections.push("- State/store types\n");
+
+  if (summary.dataModels.length > 0) {
+    sections.push("### Detected Data Models\n");
+    for (const model of summary.dataModels) {
+      sections.push(`- ${model.name} (${model.file}) [${model.source}]`);
+    }
+    sections.push("");
+  }
+
   // State machines
   if (summary.stateMachines.length > 0) {
     sections.push("## Detected State Machines\n");
@@ -615,7 +776,11 @@ function formatPrompt(summary: CodebaseSummary): string {
   sections.push("Generate `bantay aide add` commands for:\n");
   sections.push("1. **Screens** (prefix: `screen_`) — One per user-facing route/page");
   sections.push("2. **Key Components** (prefix: `comp_`) — Major UI elements users interact with");
-  sections.push("3. **CUJs** (prefix: `cuj_`) — 3-5 critical user journeys (login, main task, etc.)\n");
+  sections.push("3. **CUJs** (prefix: `cuj_`) — 3-5 critical user journeys (login, main task, etc.)");
+  sections.push("4. **Scenarios** (prefix: `sc_`) — Specific test cases within CUJs");
+  sections.push("5. **Transitions** (prefix: `tr_`) — Navigation between screens");
+  sections.push("6. **Data entities** (prefix: `de_`) — What users create and own (e.g., de_project, de_document, de_comment). Focus on product objects that represent user-generated content, not internal system entities.");
+  sections.push("7. **Data mutations on transitions** — When a transition creates or updates data, add `creates=` or `updates=` props to the transition (e.g., `--prop \"creates=de_document\"` or `--prop \"updates=de_project\"`)\n");
   sections.push("**Do NOT include:**");
   sections.push("- Internal utilities, helpers, or infrastructure code");
   sections.push("- Every single component — only the important ones");
@@ -633,13 +798,22 @@ function formatPrompt(summary: CodebaseSummary): string {
   sections.push("# Screens");
   sections.push('bantay aide add screen_home --parent screens --prop "name=Home" --prop "route=/"');
   sections.push('bantay aide add screen_dashboard --parent screens --prop "name=Dashboard" --prop "route=/dashboard"');
+  sections.push('bantay aide add screen_editor --parent screens --prop "name=Editor" --prop "route=/editor/:id"');
   sections.push("");
   sections.push("# Components");
   sections.push('bantay aide add comp_navbar --parent components --prop "name=Navigation Bar"');
   sections.push("");
+  sections.push("# Data Entities");
+  sections.push('bantay aide add de_project --parent data_entities --prop "name=Project" --prop "fields=id, title, description, owner_id"');
+  sections.push('bantay aide add de_document --parent data_entities --prop "name=Document" --prop "fields=id, content, project_id"');
+  sections.push("");
   sections.push("# CUJs");
-  sections.push('bantay aide add cuj_login --parent cujs --prop "feature=User logs in to access dashboard"');
-  sections.push('bantay aide add sc_login_success --parent cuj_login --prop "name=Successful login" --prop "given=User has valid credentials" --prop "path=screen_login, screen_dashboard"');
+  sections.push('bantay aide add cuj_create_project --parent cujs --prop "feature=User creates a new project"');
+  sections.push('bantay aide add sc_create_success --parent cuj_create_project --prop "name=Successful creation" --prop "given=User is logged in" --prop "path=screen_dashboard, screen_editor"');
+  sections.push("");
+  sections.push("# Transitions with Data Mutations");
+  sections.push('bantay aide add tr_create_project --parent transitions --prop "from=screen_dashboard" --prop "to=screen_editor" --prop "trigger=Click New Project" --prop "creates=de_project"');
+  sections.push('bantay aide add tr_save_document --parent transitions --prop "from=screen_editor" --prop "to=screen_editor" --prop "trigger=Click Save" --prop "updates=de_document"');
   sections.push("");
   sections.push("# Relationships");
   sections.push("bantay aide link screen_home comp_navbar --type uses");

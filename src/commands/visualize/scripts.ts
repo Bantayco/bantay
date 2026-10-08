@@ -109,9 +109,14 @@ function computeWalkSteps(path){
     const tr=transitions.find(t=>t.id===trId);
     if(tr){
       if(steps.length===0){
-        steps.push({state:tr.from,fromState:null,transition:null,transitionAction:null});
+        steps.push({state:tr.from,fromState:null,transition:null,transitionAction:null,transitionTrigger:null,nextTransition:null,nextTransitionAction:null,nextTransitionTrigger:null,nextState:null});
       }
-      steps.push({state:tr.to,fromState:tr.from,transition:trId,transitionAction:tr.action});
+      const activeStep=steps[steps.length-1];
+      activeStep.nextTransition=trId;
+      activeStep.nextTransitionAction=tr.action;
+      activeStep.nextTransitionTrigger=tr.trigger||null;
+      activeStep.nextState=tr.to;
+      steps.push({state:tr.to,fromState:tr.from,transition:trId,transitionAction:tr.action,transitionTrigger:tr.trigger||null,nextTransition:null,nextTransitionAction:null,nextTransitionTrigger:null,nextState:null});
     }
   }
   return steps;
@@ -119,6 +124,60 @@ function computeWalkSteps(path){
 
 function computeWalkStates(path){
   return computeWalkSteps(path).map(s=>s.state);
+}
+
+function selectorAttrValue(value){
+  return String(value)
+    .replaceAll(String.fromCharCode(92),String.fromCharCode(92)+String.fromCharCode(92))
+    .replaceAll('"',String.fromCharCode(92)+'"');
+}
+
+function htmlAttrValue(value){
+  return String(value)
+    .replaceAll('&','&amp;')
+    .replaceAll('"','&quot;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;');
+}
+
+function findWalkTriggerTargets(trigger){
+  const w=document.getElementById('walk-screen');
+  if(!w||!trigger)return [];
+  const escaped=selectorAttrValue(trigger);
+  return Array.from(w.querySelectorAll('[data-trigger="'+escaped+'"],[data-comp-id="'+escaped+'"]'));
+}
+
+function clearWalkTriggerState(){
+  document.querySelectorAll('#walk-screen .walk-trigger-target').forEach(el=>{
+    el.classList.remove('walk-trigger-target');
+    el.removeAttribute('aria-current');
+  });
+}
+
+function bindWalkTrigger(step){
+  clearWalkTriggerState();
+  if(!step||!step.nextTransitionTrigger||curStep>=walkSteps.length-1)return;
+  const targets=findWalkTriggerTargets(step.nextTransitionTrigger);
+  targets.forEach(el=>{
+    el.classList.add('walk-trigger-target');
+    el.setAttribute('aria-current','step');
+    const tag=el.tagName.toLowerCase();
+    const nativeControl=['button','a','input','select','textarea'].includes(tag);
+    if(!nativeControl&&!el.hasAttribute('role'))el.setAttribute('role','button');
+    if(!nativeControl&&!el.hasAttribute('tabindex'))el.setAttribute('tabindex','0');
+    el.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      walkStep(1);
+    });
+    el.addEventListener('keydown',e=>{
+      if(e.key==='Enter'||e.key===' '){
+        e.preventDefault();
+        e.stopPropagation();
+        walkStep(1);
+      }
+    });
+  });
 }
 
 function toggleDebug(){
@@ -388,7 +447,7 @@ function renderStoryboard(cujId){
     el.style.left=xPos+'px';
     el.style.top='80px';
     const names=card.scenarios.map(s=>s.name).join('<br>');
-    const navHtml=getNavHtml(screenId);
+    const navHtml=getNavHtml(screenId,card.scenario);
     el.innerHTML=\`<div class="s-tag">\${getScreenName(screenId)}</div><div class="s-body"></div>\${navHtml}<div class="storyboard-label"><span class="scenario-name">\${names}</span><span class="screen-id">\${card.screenId||'default'}</span></div>\`;
     el.querySelector('.s-body').innerHTML=getScreenHtml(screenId,card.scenario);
     container.appendChild(el);
@@ -434,29 +493,62 @@ function walkStep(d){
   updateSidebarHighlight();
 }
 
+function isRuntimeFloatingComponent(comp){
+  return ['fab','fab-extended'].includes(comp.type);
+}
+
+function isRuntimeNavComponent(comp){
+  return ['navigation-bar','bottom-app-bar'].includes(comp.type);
+}
+
+function renderRuntimeFloatingComponent(comp){
+  const compId=htmlAttrValue(comp.id);
+  const wireframe=comp.wireframeHtml||'<span style="color:#fff; font-size:22px; font-weight:300; line-height:1;">+</span>';
+  return \`<div class="floating-comp" data-comp-id="\${compId}" data-trigger="\${compId}" style="position:absolute; bottom:8px; right:4px;">\${wireframe}</div>\`;
+}
+
+function renderRuntimeNavComponent(comp,scenario){
+  const variant=scenario&&scenario[comp.id];
+  const variantKey=variant?comp.id+'--'+variant:null;
+  const wireframe=(variantKey&&variantHtmlMap[variantKey])||comp.wireframeHtml||'<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>';
+  const compId=htmlAttrValue(comp.id);
+  return \`<div class="nav-comp" data-comp-id="\${compId}" data-trigger="\${compId}">\${wireframe}</div>\`;
+}
+
 function renderScreenForStep(screenId,scenario){
   const screenData=screens.find(s=>s.id===screenId||s.name.toLowerCase()===scenario.screen);
   if(!screenData||!screenData.components||screenData.components.length===0){
     return \`<div style="padding:20px;text-align:center;color:var(--hint);">\${scenario.name}</div>\`;
   }
+  const regularComponents=screenData.components.filter(comp=>!isRuntimeFloatingComponent(comp)&&!isRuntimeNavComponent(comp));
+  const floatingComponents=screenData.components.filter(comp=>isRuntimeFloatingComponent(comp));
   let html='';
-  for(const comp of screenData.components){
+  if(regularComponents.length===0){
+    html+=\`<div style="padding:20px;text-align:center;color:var(--hint);">\${scenario.name}</div>\`;
+  }
+  for(const comp of regularComponents){
     const variant=scenario[comp.id];
     const variantKey=variant?comp.id+'--'+variant:null;
     const wireframe=(variantKey&&variantHtmlMap[variantKey])||comp.wireframeHtml||\`<div class="comp-desc">\${comp.description||comp.name}</div>\`;
     const label=variant?comp.id+' · '+variant:comp.id;
-    html+=\`<div class="comp-box"><div class="comp-label">\${label}</div>\${wireframe}</div>\`;
+    const compId=htmlAttrValue(comp.id);
+    html+=\`<div class="comp-box" data-comp-id="\${compId}" data-trigger="\${compId}"><div class="comp-label">\${label}</div>\${wireframe}</div>\`;
   }
+  html+=floatingComponents.map(comp=>renderRuntimeFloatingComponent(comp)).join('');
   return html;
 }
 
-function getNavHtml(screenId){
+function getNavHtml(screenId,scenario){
   const screenData=screens.find(s=>s.id===screenId);
   if(!screenData)return '';
+  const navComponents=(screenData.components||[]).filter(comp=>isRuntimeNavComponent(comp));
+  if(navComponents.length>0){
+    return navComponents.map(comp=>renderRuntimeNavComponent(comp,scenario)).join('');
+  }
   if(screenData.nav==='none'){
     return '<div class="nav-footer">no nav — immersive</div>';
   }else if(screenData.nav){
-    return '<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>';
+    return \`<div class="nav-bar" data-trigger="\${htmlAttrValue(screenData.nav)}"><span>Artifacts</span><span>Write</span><span>Settings</span></div>\`;
   }
   return '';
 }
@@ -482,27 +574,31 @@ function renderStep(){
     document.getElementById('walk-scenario-name').textContent=sc.name;
     document.getElementById('walk-scenario-id').textContent=sc.id;
     let transitionHtml='';
-    if(step.transition){
+    if(step.nextTransition){
+      const triggerHtml=step.nextTransitionTrigger?\`<div style="color:var(--hint);font-size:9px;margin-bottom:4px;">trigger · \${step.nextTransitionTrigger}</div>\`:'';
       transitionHtml=\`<div style="margin-bottom:12px;padding:8px;background:var(--bd);border-radius:6px;font-family:monospace;font-size:10px;">
-        <div style="color:var(--hint);margin-bottom:4px;">\${step.fromState}</div>
-        <div style="color:var(--accent);margin-bottom:4px;">↓ \${step.transitionAction}</div>
-        <div style="color:var(--fg);font-weight:600;">\${step.state}</div>
+        <div style="color:var(--fg);font-weight:600;margin-bottom:4px;">\${step.state}</div>
+        \${triggerHtml}
+        <div style="color:var(--accent);margin-bottom:4px;">→ \${step.nextTransitionAction}</div>
+        <div style="color:var(--hint);">\${step.nextState}</div>
       </div>\`;
     }else{
       transitionHtml=\`<div style="margin-bottom:12px;padding:8px;background:var(--bd);border-radius:6px;font-family:monospace;font-size:10px;">
         <div style="color:var(--fg);font-weight:600;">\${step.state}</div>
-        <div style="color:var(--hint);font-size:9px;margin-top:4px;">Starting state</div>
+        <div style="color:var(--hint);font-size:9px;margin-top:4px;">End state</div>
       </div>\`;
     }
     document.getElementById('walk-gherkin').innerHTML=transitionHtml;
     const iv=document.getElementById('walk-invariants');iv.innerHTML=sc.invs&&sc.invs.length?\`<div class="walk-inv-title">Protected by</div>\`+sc.invs.map(i=>\`<div class="walk-inv-item">\${i}</div>\`).join(''):'';
     document.getElementById('walk-prev').disabled=curStep===0;document.getElementById('walk-next').disabled=curStep===tot-1;
+    bindWalkTrigger(step);
     return;
   }
 
   const legacySc=c.scenarios[curStep],tot=c.scenarios.length;
   const screenId=legacySc.screen;
-  w.innerHTML=\`<div class="ws-tag">\${getScreenName(screenId)}</div><div class="ws-body"></div>\`;
+  const legacyNavHtml=getNavHtml(screenId,legacySc);
+  w.innerHTML=\`<div class="ws-tag">\${getScreenName(screenId)}</div><div class="ws-body"></div>\${legacyNavHtml}\`;
   w.querySelector('.ws-body').innerHTML=getScreenHtml(screenId,legacySc);
   document.getElementById('walk-progress').innerHTML=c.scenarios.map((_,i)=>\`<div class="walk-dot \${i<curStep?'done':''} \${i===curStep?'current':''}"></div>\`).join('');
   document.getElementById('walk-step-counter').textContent=\`Step \${curStep+1} of \${tot}\`;
@@ -511,6 +607,7 @@ function renderStep(){
   document.getElementById('walk-gherkin').innerHTML=\`<div><span class="kw">Given </span>\${legacySc.given}</div><div><span class="kw">When </span>\${legacySc.when}</div><div><span class="kw">Then </span>\${legacySc.then}</div>\`;
   const iv=document.getElementById('walk-invariants');iv.innerHTML=legacySc.invs&&legacySc.invs.length?\`<div class="walk-inv-title">Protected by</div>\`+legacySc.invs.map(i=>\`<div class="walk-inv-item">\${i}</div>\`).join(''):'';
   document.getElementById('walk-prev').disabled=curStep===0;document.getElementById('walk-next').disabled=curStep===tot-1;
+  clearWalkTriggerState();
   document.querySelectorAll('.scenario-item').forEach(el=>{
     el.classList.toggle('current',el.dataset.cuj===curCuj&&parseInt(el.dataset.step)===curStep);
   });

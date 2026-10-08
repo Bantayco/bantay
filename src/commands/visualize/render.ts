@@ -33,27 +33,41 @@ function isNavComponent(comp: Component): boolean {
   return comp.type ? NAV_TYPES.has(comp.type) : false;
 }
 
+function escapeAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function componentAttrs(comp: Component): string {
+  const id = escapeAttr(comp.id);
+  return `data-comp-id="${id}" data-trigger="${id}"`;
+}
+
 /**
  * Render a floating component (FAB, etc.)
  */
 function renderFloatingComponent(comp: Component): string {
   // Use wireframe if available, otherwise render default FAB
   if (comp.wireframeHtml) {
-    return `<div style="position:absolute; bottom:8px; right:4px;">${comp.wireframeHtml}</div>`;
+    return `<div class="floating-comp" ${componentAttrs(comp)} style="position:absolute; bottom:8px; right:4px;">${comp.wireframeHtml}</div>`;
   }
   // Default FAB rendering
-  return `<div style="position:absolute; bottom:8px; right:4px; width:44px; height:44px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.25);"><span style="color:#fff; font-size:22px; font-weight:300; line-height:1;">+</span></div>`;
+  return `<div class="floating-comp" ${componentAttrs(comp)} style="position:absolute; bottom:8px; right:4px; width:44px; height:44px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.25);"><span style="color:#fff; font-size:22px; font-weight:300; line-height:1;">+</span></div>`;
 }
 
 /**
  * Render a navigation component
  */
-function renderNavComponent(comp: Component): string {
-  if (comp.wireframeHtml) {
-    return comp.wireframeHtml;
+function renderNavComponent(comp: Component, overrideHtml?: string): string {
+  const wireframeHtml = overrideHtml || comp.wireframeHtml;
+  if (wireframeHtml) {
+    return `<div class="nav-comp" ${componentAttrs(comp)}>${wireframeHtml}</div>`;
   }
   // Default navigation bar rendering
-  return '<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>';
+  return `<div class="nav-comp" ${componentAttrs(comp)}><div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div></div>`;
 }
 
 /**
@@ -76,14 +90,16 @@ export function buildScreenHtmlMap(
       const floatingComponents = screen.components.filter(c => isFloatingComponent(c));
       const navComponents = screen.components.filter(c => isNavComponent(c));
 
-      bodyHtml = regularComponents
-        .map((comp) => {
-          const content = comp.wireframeHtml
-            ? comp.wireframeHtml
-            : `<div class="comp-desc">${comp.description || comp.name}</div>`;
-          return `<div class="comp-box"><div class="comp-label">${comp.id}</div>${content}</div>`;
-        })
-        .join("");
+      bodyHtml = regularComponents.length > 0
+        ? regularComponents
+          .map((comp) => {
+            const content = comp.wireframeHtml
+              ? comp.wireframeHtml
+              : `<div class="comp-desc">${comp.description || comp.name}</div>`;
+            return `<div class="comp-box" ${componentAttrs(comp)}><div class="comp-label">${comp.id}</div>${content}</div>`;
+          })
+          .join("")
+        : `<div style="padding:20px;text-align:center;color:var(--hint);">${screen.description || screen.name}</div>`;
 
       // Render floating components (FABs)
       floatingHtml = floatingComponents.map(comp => renderFloatingComponent(comp)).join("");
@@ -100,7 +116,7 @@ export function buildScreenHtmlMap(
       if (screen.nav === "none") {
         navHtml = '<div class="nav-footer">no nav — immersive</div>';
       } else if (screen.nav && screen.nav !== "") {
-        navHtml = '<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>';
+        navHtml = `<div class="nav-bar" data-trigger="${escapeAttr(screen.nav)}"><span>Artifacts</span><span>Write</span><span>Settings</span></div>`;
       }
     }
 
@@ -144,19 +160,21 @@ export function buildStateHtmlMap(
       const regularComponents = screen.components.filter(c => !isFloatingComponent(c) && !isNavComponent(c));
       const floatingComponents = screen.components.filter(c => isFloatingComponent(c));
 
-      bodyContent = regularComponents
-        .map((comp) => {
-          const variant = state.componentStates[comp.id];
-          let content: string;
-          if (variant) {
-            const variantKey = `${comp.id}--${variant}`;
-            content = variantHtmlMap[variantKey] || comp.wireframeHtml || `<div class="comp-desc">${comp.description || comp.name}</div>`;
-          } else {
-            content = comp.wireframeHtml || `<div class="comp-desc">${comp.description || comp.name}</div>`;
-          }
-          return `<div class="comp-box"><div class="comp-label">${comp.id}</div>${content}</div>`;
-        })
-        .join("");
+      bodyContent = regularComponents.length > 0
+        ? regularComponents
+          .map((comp) => {
+            const variant = state.componentStates[comp.id];
+            let content: string;
+            if (variant) {
+              const variantKey = `${comp.id}--${variant}`;
+              content = variantHtmlMap[variantKey] || comp.wireframeHtml || `<div class="comp-desc">${comp.description || comp.name}</div>`;
+            } else {
+              content = comp.wireframeHtml || `<div class="comp-desc">${comp.description || comp.name}</div>`;
+            }
+            return `<div class="comp-box" ${componentAttrs(comp)}><div class="comp-label">${comp.id}</div>${content}</div>`;
+          })
+          .join("")
+        : `<div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">${state.id}</div>`;
 
       // Render floating components (FABs)
       floatingHtml = floatingComponents.map(comp => renderFloatingComponent(comp)).join("");
@@ -169,11 +187,15 @@ export function buildStateHtmlMap(
     // Check for nav components first, then fall back to screen.nav
     const navComponents = screen?.components?.filter(c => isNavComponent(c)) || [];
     if (navComponents.length > 0) {
-      stateNavMapObj[state.id] = navComponents.map(comp => renderNavComponent(comp)).join("");
+      stateNavMapObj[state.id] = navComponents.map((comp) => {
+        const variant = state.componentStates[comp.id];
+        const variantHtml = variant ? variantHtmlMap[`${comp.id}--${variant}`] : undefined;
+        return renderNavComponent(comp, variantHtml);
+      }).join("");
     } else if (screen?.nav === "none") {
       stateNavMapObj[state.id] = `<div class="nav-footer">no nav — immersive</div>`;
     } else if (screen?.nav && screen.nav !== "") {
-      stateNavMapObj[state.id] = `<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>`;
+      stateNavMapObj[state.id] = `<div class="nav-bar" data-trigger="${escapeAttr(screen.nav)}"><span>Artifacts</span><span>Write</span><span>Settings</span></div>`;
     } else {
       stateNavMapObj[state.id] = "";
     }
@@ -304,19 +326,32 @@ export function generateMapScreenHtml(
         const y = 80;
 
         let bodyContent: string;
+        let floatingContent = "";
+        let navContent = "";
         if (screen.components && screen.components.length > 0) {
-          bodyContent = screen.components
-            .map((comp) => {
-              const content = comp.wireframeHtml
-                ? comp.wireframeHtml
-                : `<div class="comp-desc">${comp.description || comp.name}</div>`;
-              return `
-        <div class="comp-box">
+          const regularComponents = screen.components.filter(c => !isFloatingComponent(c) && !isNavComponent(c));
+          const floatingComponents = screen.components.filter(c => isFloatingComponent(c));
+          const navComponents = screen.components.filter(c => isNavComponent(c));
+
+          bodyContent = regularComponents.length > 0
+            ? regularComponents
+              .map((comp) => {
+                const content = comp.wireframeHtml
+                  ? comp.wireframeHtml
+                  : `<div class="comp-desc">${comp.description || comp.name}</div>`;
+                return `
+        <div class="comp-box" ${componentAttrs(comp)}>
           <div class="comp-label">${comp.id}</div>
           ${content}
         </div>`;
-            })
-            .join("");
+              })
+              .join("")
+            : `
+        <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
+          ${screen.description || (screen.inferred ? "(Inferred from scenarios)" : "")}
+        </div>`;
+          floatingContent = floatingComponents.map(comp => renderFloatingComponent(comp)).join("");
+          navContent = navComponents.map(comp => renderNavComponent(comp)).join("");
         } else {
           bodyContent = `
         <div style="text-align:center;padding:40px 0;color:var(--hint);font-size:12px;">
@@ -324,17 +359,18 @@ export function generateMapScreenHtml(
         </div>`;
         }
 
-        let navContent = "";
-        if (screen.nav === "none") {
-          navContent = `<div class="nav-footer">no nav — immersive</div>`;
-        } else if (screen.nav && screen.nav !== "") {
-          navContent = `<div class="nav-bar"><span>Artifacts</span><span>Write</span><span>Settings</span></div>`;
+        if (!navContent) {
+          if (screen.nav === "none") {
+            navContent = `<div class="nav-footer">no nav — immersive</div>`;
+          } else if (screen.nav && screen.nav !== "") {
+            navContent = `<div class="nav-bar" data-trigger="${escapeAttr(screen.nav)}"><span>Artifacts</span><span>Write</span><span>Settings</span></div>`;
+          }
         }
 
         return `
     <div class="screen" id="node-${screen.id}" style="left:${x}px;top:${y}px;">
       <div class="s-tag">${screen.name}<span class="s-tag-id">${screen.id}</span></div>
-      <div class="s-body">${bodyContent}</div>${navContent}
+      <div class="s-body">${bodyContent}${floatingContent}</div>${navContent}
     </div>`;
       })
       .join("\n");
