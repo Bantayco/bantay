@@ -10,7 +10,7 @@
 
 import { existsSync } from "fs";
 import { readFile, readdir } from "fs/promises";
-import { read, type AideTree } from "../aide";
+import { read, type AideTree } from "@bantay/aide/node";
 
 /**
  * Container parents that define entity types

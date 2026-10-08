@@ -1,7 +1,7 @@
 import { readFile, readdir, access } from "fs/promises";
 import { join, relative } from "path";
 import * as yaml from "js-yaml";
-import { tryResolveAidePath } from "../aide";
+import { tryResolveAidePath } from "@bantay/aide/node";
 
 export interface StatusOptions {
   json?: boolean;

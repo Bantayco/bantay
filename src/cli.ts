@@ -33,7 +33,7 @@ import {
   type JourneyProposal,
   type ExistingCUJ,
 } from "./commands/journeys-llm";
-import { read, write, addEntity, removeEntity, tryResolveAidePath, type AideTree } from "./aide";
+import { read, write, addEntity, removeEntity, tryResolveAidePath, type AideTree } from "@bantay/aide/node";
 
 const args = process.argv.slice(2);
 const command = args[0];

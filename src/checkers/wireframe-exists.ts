@@ -20,7 +20,7 @@ import type { Invariant } from "../generators/invariants";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import * as yaml from "js-yaml";
-import { resolveAidePath } from "../aide/discovery";
+import { resolveAidePath } from "@bantay/aide/node";
 
 interface AideEntity {
   display?: string;

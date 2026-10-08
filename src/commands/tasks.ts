@@ -2,7 +2,7 @@ import { readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import * as yaml from "js-yaml";
-import { resolveAidePath } from "../aide/discovery";
+import { resolveAidePath } from "@bantay/aide/node";
 import { runDiff, type ClassifiedChange } from "./diff";
 
 interface Entity {

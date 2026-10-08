@@ -2,7 +2,7 @@
  * Helpers to extract entities from the aide tree for export
  */
 
-import type { AideTree, Entity } from "../aide";
+import type { AideTree, Entity } from "@bantay/aide/node";
 import type {
   ExtractedInvariant,
   ExtractedConstraint,

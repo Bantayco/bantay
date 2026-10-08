@@ -16,7 +16,7 @@ import type {
 import type { Invariant } from "../generators/invariants";
 import { readFile } from "fs/promises";
 import * as yaml from "js-yaml";
-import { resolveAidePath } from "../aide/discovery";
+import { resolveAidePath } from "@bantay/aide/node";
 
 interface AideEntity {
   props?: Record<string, unknown>;

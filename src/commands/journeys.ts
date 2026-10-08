@@ -5,7 +5,7 @@
  * Implements cuj_journeys scenarios.
  */
 
-import { read, tryResolveAidePath } from "../aide";
+import { read, tryResolveAidePath } from "@bantay/aide/node";
 import { deriveStates, deriveTransitions, type DerivedState, type DerivedTransition } from "./derive-graph";
 
 export interface StateCluster {

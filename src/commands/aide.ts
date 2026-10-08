@@ -9,8 +9,8 @@ import {
   addRelationship,
   validate,
   type AideTree,
-} from "../aide";
-import type { RelationshipType, Cardinality } from "../aide/types";
+} from "@bantay/aide/node";
+import type { RelationshipType, Cardinality } from "@bantay/aide/node";
 
 /**
  * Entity type classification based on ID prefix

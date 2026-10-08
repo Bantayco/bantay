@@ -5,7 +5,7 @@
  * Implements cuj_derive_graph scenarios.
  */
 
-import { read, tryResolveAidePath, type AideTree } from "../aide";
+import { read, tryResolveAidePath, type AideTree } from "@bantay/aide/node";
 
 export interface DeriveGraphOptions {
   aide?: string;

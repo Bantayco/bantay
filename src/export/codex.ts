@@ -5,7 +5,7 @@
 
 import { readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
-import { read as readAide, resolveAidePath } from "../aide";
+import { read as readAide, resolveAidePath } from "@bantay/aide/node";
 import {
   extractConstraints,
   extractFoundations,

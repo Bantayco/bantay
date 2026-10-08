@@ -5,7 +5,7 @@
 import { join } from "path";
 import { readFile, writeFile } from "fs/promises";
 import * as yaml from "js-yaml";
-import { resolveAidePath } from "../aide/discovery";
+import { resolveAidePath } from "@bantay/aide/node";
 import type { ExportOptions, ExportResult } from "./types";
 
 interface AideEntity {

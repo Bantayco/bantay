@@ -6,7 +6,7 @@ import { runChecker, hasChecker, runStructuralCheckers } from "../checkers/regis
 import { loadConfig } from "../config";
 import { getGitDiff, shouldCheckInvariant } from "../diff";
 import type { CheckResult, CheckerContext, StructuralCheckResult } from "../checkers/types";
-import { read as readAide, tryResolveAidePath } from "../aide";
+import { read as readAide, tryResolveAidePath } from "@bantay/aide/node";
 
 export interface CheckOptions {
   id?: string;
