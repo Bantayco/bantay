@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Omnibox</string>
+    <string name="settings_title">Omnibox settings</string>
+    <string name="widget_label">Omnibox search bar</string>
+    <string name="widget_description">Search apps, contacts, answers and the web</string>
+    <string name="widget_hint">Search</string>
+    <string name="tile_label">Omnibox search</string>
+    <string name="process_text_label">Omnibox</string>
+    <string name="share_label">Search with Omnibox</string>
+    <string name="voice_search">Voice search</string>
+    <string name="lens_search">Search with your camera</string>
+</resources>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_bar"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:layout_gravity="center"
+    android:background="@drawable/widget_bg"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingEnd="8dp">
+
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_search" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:singleLine="true"
+        android:text="@string/widget_hint"
+        android:textColor="@color/widget_fg"
+        android:textSize="16sp" />
+
+    <ImageView
+        android:id="@+id/widget_mic"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:contentDescription="@string/voice_search"
+        android:padding="8dp"
+        android:src="@drawable/ic_mic" />
+
+    <ImageView
+        android:id="@+id/widget_lens"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:contentDescription="@string/lens_search"
+        android:padding="8dp"
+        android:src="@drawable/ic_lens" />
+</LinearLayout>
