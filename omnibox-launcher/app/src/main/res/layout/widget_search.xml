@@ -2,43 +2,50 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_bar"
     android:layout_width="match_parent"
-    android:layout_height="56dp"
+    android:layout_height="64dp"
     android:layout_gravity="center"
     android:background="@drawable/widget_bg"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="16dp"
+    android:paddingStart="20dp"
     android:paddingEnd="8dp">
 
     <ImageView
-        android:layout_width="24dp"
-        android:layout_height="24dp"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
         android:importantForAccessibility="no"
-        android:src="@drawable/ic_search" />
+        android:src="@drawable/ic_search"
+        android:tint="@color/widget_fg_color" />
 
-    <TextView
+    <FrameLayout
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_weight="1"
-        android:singleLine="true"
-        android:text="@string/widget_hint"
-        android:textColor="@color/widget_fg"
-        android:textSize="16sp" />
+        android:layout_height="match_parent"
+        android:layout_weight="1" />
+
+    <ImageView
+        android:id="@+id/widget_song"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:contentDescription="@string/song_search"
+        android:padding="12dp"
+        android:src="@drawable/ic_music"
+        android:tint="@color/widget_fg_color" />
 
     <ImageView
         android:id="@+id/widget_mic"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:contentDescription="@string/voice_search"
-        android:padding="8dp"
-        android:src="@drawable/ic_mic" />
+        android:padding="12dp"
+        android:src="@drawable/ic_mic"
+        android:tint="@color/widget_fg_color" />
 
     <ImageView
         android:id="@+id/widget_lens"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:contentDescription="@string/lens_search"
-        android:padding="8dp"
-        android:src="@drawable/ic_lens" />
+        android:padding="12dp"
+        android:src="@drawable/ic_lens"
+        android:tint="@color/widget_fg_color" />
 </LinearLayout>

@@ -25,6 +25,7 @@ class SettingsActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
+        Palette.apply(this)
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(8), 0, dp(32))
@@ -76,6 +77,12 @@ class SettingsActivity : Activity() {
         }
 
         header("Home screen")
+        toggle("Search bar at the bottom", "Pixel-style: dock and search bar at the bottom; swipe up for all apps", prefs.barAtBottom) {
+            prefs.barAtBottom = it
+        }
+        toggle("Themed icons", "Tint app icons to match your wallpaper (Android 13+)", prefs.themedIcons) {
+            prefs.themedIcons = it
+        }
         toggle("Open keyboard on Home", "Pressing Home goes straight to typing", prefs.keyboardOnHome) {
             prefs.keyboardOnHome = it
         }

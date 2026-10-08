@@ -7,7 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 
-/** Home-screen search bar widget: tap to search, mic for voice, camera for Lens. */
+/** Home-screen search bar widget: tap to search, ♪ for song search, mic for voice, camera for Lens. */
 class SearchWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
         for (id in appWidgetIds) {
@@ -15,6 +15,7 @@ class SearchWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_bar, pending(context, 0, MainActivity.searchIntent(context)))
             views.setOnClickPendingIntent(R.id.widget_mic, pending(context, 1, MainActivity.searchIntent(context, voice = true)))
             views.setOnClickPendingIntent(R.id.widget_lens, pending(context, 2, MainActivity.searchIntent(context, lens = true)))
+            views.setOnClickPendingIntent(R.id.widget_song, pending(context, 3, MainActivity.searchIntent(context, song = true)))
             manager.updateAppWidget(id, views)
         }
     }

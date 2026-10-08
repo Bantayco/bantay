@@ -41,17 +41,38 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("clipboard", true)
         set(value) = sp.edit().putBoolean("clipboard", value).apply()
 
-    // --- Search history -------------------------------------------------------------------
+    /** Pixel-style layout: dock + search bar at the bottom of the home screen. */
+    var barAtBottom: Boolean
+        get() = sp.getBoolean("bar_at_bottom", true)
+        set(value) = sp.edit().putBoolean("bar_at_bottom", value).apply()
 
-    fun history(): List<String> = synchronized(lock) {
-        val json = sp.getString("history", null) ?: return emptyList()
-        try {
+    var themedIcons: Boolean
+        get() = sp.getBoolean("themed_icons", true)
+        set(value) = sp.edit().putBoolean("themed_icons", value).apply()
+
+    // --- Dock (pinned apps above the bar) -------------------------------------------------
+
+    fun dock(): List<String> = synchronized(lock) { readList("dock") }
+
+    fun setDocked(key: String, docked: Boolean) = synchronized(lock) {
+        val list = readList("dock").filterNot { it == key }.toMutableList()
+        if (docked) list.add(key)
+        sp.edit().putString("dock", JSONArray(list.take(MAX_DOCK)).toString()).apply()
+    }
+
+    private fun readList(name: String): List<String> {
+        val json = sp.getString(name, null) ?: return emptyList()
+        return try {
             val arr = JSONArray(json)
             List(arr.length()) { arr.getString(it) }
         } catch (e: Exception) {
             emptyList()
         }
     }
+
+    // --- Search history -------------------------------------------------------------------
+
+    fun history(): List<String> = synchronized(lock) { readList("history") }
 
     fun addHistory(query: String) = synchronized(lock) {
         val q = query.trim()
@@ -95,5 +116,6 @@ class Prefs(context: Context) {
 
     companion object {
         private const val MAX_HISTORY = 50
+        const val MAX_DOCK = 5
     }
 }

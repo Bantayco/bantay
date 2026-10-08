@@ -25,7 +25,9 @@ import android.text.InputType
 import android.text.TextWatcher
 import android.util.Log
 import android.view.Gravity
+import android.view.GestureDetector
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
@@ -42,6 +44,7 @@ import android.widget.TextClock
 import android.widget.TextView
 import android.widget.Toast
 import java.util.concurrent.Executors
+import kotlin.math.abs
 import kotlin.math.max
 
 /**
@@ -63,6 +66,8 @@ class MainActivity : Activity(), Host {
     private lateinit var clearButton: ImageView
     private lateinit var settingsButton: ImageView
     private lateinit var chipScroll: HorizontalScrollView
+    private lateinit var homeSpace: View
+    private lateinit var dock: LinearLayout
     private lateinit var list: ListView
     private lateinit var adapter: ResultAdapter
 
@@ -78,9 +83,19 @@ class MainActivity : Activity(), Host {
     private var clipStamp = 0L
     private var ownClip: String? = null
 
+    /** App drawer open without typing (swipe up on the home screen, or scrolled the list). */
+    private var drawerOpen = false
+    private var dockKeys: List<String> = emptyList()
+    private var appliedBottomBar = true
+    private var appliedThemedIcons = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
+        Palette.apply(this)
+        appliedBottomBar = prefs.barAtBottom
+        appliedThemedIcons = prefs.themedIcons
+        IconStyle.themed = appliedThemedIcons
         repo = AppRepository(this)
         torch = TorchController(this)
         providers = listOf(
@@ -113,10 +128,13 @@ class MainActivity : Activity(), Host {
 
     override fun onResume() {
         super.onResume()
+        if (prefs.barAtBottom != appliedBottomBar || prefs.themedIcons != appliedThemedIcons) {
+            recreate() // layout or icon style changed in settings
+            return
+        }
         if (resetOnResume) {
             resetOnResume = false
-            setQuery("")
-            hideKeyboard()
+            closeSearch()
         } else {
             refresh() // history, launch counts or permissions may have changed
         }
@@ -140,7 +158,7 @@ class MainActivity : Activity(), Host {
     override fun onBackPressed() {
         when {
             input.text.isNotEmpty() -> setQuery("")
-            input.hasFocus() -> hideKeyboard()
+            input.hasFocus() || drawerOpen -> closeSearch()
             !isDefaultHome() -> @Suppress("DEPRECATION") super.onBackPressed()
             else -> list.setSelection(0)
         }
@@ -163,14 +181,32 @@ class MainActivity : Activity(), Host {
             }
             intent.getBooleanExtra(EXTRA_VOICE, false) || intent.action == Intent.ACTION_SEARCH_LONG_PRESS -> startVoice()
             intent.getBooleanExtra(EXTRA_LENS, false) -> openLens()
+            intent.getBooleanExtra(EXTRA_SONG, false) -> openSongSearch()
             intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME) -> goHome()
             else -> showKeyboard() // app icon, widget, quick settings tile, assist gesture
         }
     }
 
     private fun goHome() {
+        if (prefs.keyboardOnHome) {
+            setQuery("")
+            showKeyboard()
+        } else {
+            closeSearch()
+        }
+        list.setSelection(0)
+    }
+
+    /** Back to the idle home screen: empty query, keyboard down, drawer closed. */
+    private fun closeSearch() {
+        drawerOpen = false
         if (input.text.isNotEmpty()) setQuery("")
-        if (prefs.keyboardOnHome) showKeyboard() else hideKeyboard()
+        hideKeyboard()
+    }
+
+    private fun openDrawer() {
+        drawerOpen = true
+        updateChrome()
         list.setSelection(0)
     }
 
@@ -249,6 +285,18 @@ class MainActivity : Activity(), Host {
         header.addView(date)
         root.addView(header)
 
+        // Pixel-style home: wallpaper space, a dock of pinned apps, then the search bar at the bottom.
+        // While searching, these collapse and the bar sits at the top with results under it.
+        homeSpace = View(this).apply { setOnTouchListener(homeGestures()) }
+        root.addView(homeSpace, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        dock = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(dp(12), dp(4), dp(12), dp(4))
+            setOnTouchListener(homeGestures())
+        }
+        root.addView(dock, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+
         root.addView(buildSearchBar(), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(buildChips())
 
@@ -261,7 +309,10 @@ class MainActivity : Activity(), Host {
             setPadding(0, dp(4), 0, dp(24))
             setOnScrollListener(object : AbsListView.OnScrollListener {
                 override fun onScrollStateChanged(view: AbsListView?, scrollState: Int) {
-                    if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL) hideKeyboard()
+                    if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL && input.hasFocus()) {
+                        drawerOpen = true // keep the results open while browsing them
+                        hideKeyboard()
+                    }
                 }
 
                 override fun onScroll(view: AbsListView?, first: Int, visible: Int, total: Int) = Unit
@@ -280,12 +331,12 @@ class MainActivity : Activity(), Host {
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            background = rounded(Palette.BAR, dpf(28f))
-            elevation = dpf(4f)
+            background = rounded(Palette.BAR, dpf(32f))
+            elevation = dpf(2f)
             setPadding(dp(16), 0, dp(4), 0)
             setOnClickListener { showKeyboard() }
         }
-        bar.addView(ImageView(this).apply { setImageDrawable(tintedIcon(R.drawable.ic_search)) }, LinearLayout.LayoutParams(dp(22), dp(22)))
+        bar.addView(ImageView(this).apply { setImageDrawable(tintedIcon(R.drawable.ic_search, Palette.ACCENT)) }, LinearLayout.LayoutParams(dp(26), dp(26)))
 
         input = EditText(this).apply {
             background = null
@@ -311,7 +362,7 @@ class MainActivity : Activity(), Host {
             }
             setOnFocusChangeListener { _, _ -> updateChrome() }
         }
-        bar.addView(input, LinearLayout.LayoutParams(0, dp(56), 1f))
+        bar.addView(input, LinearLayout.LayoutParams(0, dp(64), 1f))
 
         clearButton = barButton(R.drawable.ic_close, "Clear") {
             setQuery("")
@@ -320,19 +371,20 @@ class MainActivity : Activity(), Host {
         settingsButton = barButton(R.drawable.ic_settings, "Settings") {
             launch(Intent(this, SettingsActivity::class.java))
         }
+        val song = barButton(R.drawable.ic_music, getString(R.string.song_search)) { openSongSearch() }
         val mic = barButton(R.drawable.ic_mic, getString(R.string.voice_search)) { startVoice() }
         val lens = barButton(R.drawable.ic_lens, getString(R.string.lens_search)) { openLens() }
-        for (b in listOf(clearButton, mic, lens, settingsButton)) bar.addView(b, LinearLayout.LayoutParams(dp(44), dp(44)))
+        for (b in listOf(clearButton, song, mic, lens, settingsButton)) bar.addView(b, LinearLayout.LayoutParams(dp(48), dp(48)))
 
         container.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         return container
     }
 
     private fun barButton(icon: Int, description: String, onClick: () -> Unit) = ImageView(this).apply {
-        setImageDrawable(tintedIcon(icon))
+        setImageDrawable(tintedIcon(icon, Palette.BAR_ICON))
         contentDescription = description
-        setPadding(dp(10), dp(10), dp(10), dp(10))
-        setRippleBackground(dpf(22f))
+        setPadding(dp(12), dp(12), dp(12), dp(12))
+        setRippleBackground(dpf(24f))
         setOnClickListener { onClick() }
     }
 
@@ -360,12 +412,81 @@ class MainActivity : Activity(), Host {
 
     private fun updateChrome() {
         val empty = input.text.isEmpty()
-        val idle = empty && !input.hasFocus()
-        header.visibility = if (idle) View.VISIBLE else View.GONE
+        val searching = !empty || input.hasFocus() || drawerOpen
+        val bottom = appliedBottomBar
+        // Bottom layout: idle = clock, wallpaper, dock, bar. Searching = bar at top, results below.
+        // Top layout: the bar stays at the top and the app list is always shown.
+        header.visibility = if (!searching) View.VISIBLE else View.GONE
+        homeSpace.visibility = if (bottom && !searching) View.VISIBLE else View.GONE
+        dock.visibility = if (bottom && !searching && dock.childCount > 0) View.VISIBLE else View.GONE
+        list.visibility = if (searching || !bottom) View.VISIBLE else View.GONE
         chipScroll.visibility = if (empty) View.GONE else View.VISIBLE
         clearButton.visibility = if (empty) View.GONE else View.VISIBLE
-        settingsButton.visibility = if (empty) View.VISIBLE else View.GONE
-        root.setBackgroundColor(if (idle) Palette.SCRIM_HOME else Palette.SCRIM_SEARCH)
+        settingsButton.visibility = if (empty && !(bottom && !searching)) View.VISIBLE else View.GONE
+        root.setBackgroundColor(if (searching) Palette.SCRIM_SEARCH else Palette.SCRIM_HOME)
+    }
+
+    /** Swipe up on the home screen opens the app drawer; long-press offers wallpaper and settings. */
+    private fun homeGestures(): View.OnTouchListener {
+        val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent) = true
+
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (velocityY < -dp(600) && abs(velocityY) > abs(velocityX)) {
+                    openDrawer()
+                    return true
+                }
+                return false
+            }
+
+            override fun onLongPress(e: MotionEvent) = showHomeMenu()
+        })
+        return View.OnTouchListener { v, event ->
+            val handled = detector.onTouchEvent(event)
+            if (event.action == MotionEvent.ACTION_UP && !handled) v.performClick()
+            handled
+        }
+    }
+
+    private fun showHomeMenu() {
+        val popup = PopupMenu(this, homeSpace, Gravity.CENTER)
+        popup.menu.add(0, 1, 0, "Wallpaper & style")
+        popup.menu.add(0, 2, 1, "Omnibox settings")
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> launch(Intent("android.intent.action.WALLPAPER_STYLE"), Intent(Intent.ACTION_SET_WALLPAPER))
+                else -> launch(Intent(this, SettingsActivity::class.java))
+            }
+            true
+        }
+        popup.show()
+    }
+
+    /** Pinned apps, or the most-used ones until something is pinned. */
+    private fun renderDock() {
+        val byKey = repo.apps.associateBy { it.key }
+        val pinned = prefs.dock().mapNotNull { byKey[it] }
+        val apps = pinned.ifEmpty {
+            val counts = prefs.launchCounts()
+            repo.apps.filter { (counts[it.key] ?: 0) > 0 }.sortedByDescending { counts[it.key] ?: 0 }
+        }.take(Prefs.MAX_DOCK)
+        dockKeys = apps.map { it.key }
+        dock.removeAllViews()
+        for (app in apps) {
+            val icon = ImageView(this).apply {
+                setImageDrawable(app.icon())
+                contentDescription = app.label
+                setPadding(dp(6), dp(6), dp(6), dp(6))
+                setRippleBackground(dpf(36f))
+                setOnClickListener { launchApp(app) }
+                setOnLongClickListener { v ->
+                    showAppMenu(app, v)
+                    true
+                }
+            }
+            dock.addView(icon, LinearLayout.LayoutParams(0, dp(72), 1f))
+        }
+        updateChrome()
     }
 
     private fun showKeyboard() {
@@ -524,6 +645,10 @@ class MainActivity : Activity(), Host {
         }
     }
 
+    private fun openSongSearch() {
+        launch(ActionProvider.songIntent(), *ActionProvider.songFallbacks(this))
+    }
+
     private fun openLens() {
         launch(ActionProvider.lensIntent(), *ActionProvider.lensFallbacks(this))
     }
@@ -601,6 +726,10 @@ class MainActivity : Activity(), Host {
         val popup = PopupMenu(this, anchor)
         val shortcuts = repo.shortcutsFor(app).take(4)
         shortcuts.forEachIndexed { i, s -> popup.menu.add(0, MENU_SHORTCUT + i, i, s.shortLabel ?: s.id) }
+        val docked = app.key in prefs.dock()
+        if (docked || prefs.dock().size < Prefs.MAX_DOCK) {
+            popup.menu.add(1, MENU_DOCK, 9, if (docked) "Remove from dock" else "Add to dock")
+        }
         popup.menu.add(1, MENU_INFO, 10, "App info")
         popup.menu.add(1, MENU_UNINSTALL, 11, "Uninstall")
         popup.menu.add(1, MENU_STORE, 12, "View in Play Store")
@@ -610,6 +739,14 @@ class MainActivity : Activity(), Host {
                     repo.showAppDetails(app)
                 } catch (e: Exception) {
                     toast("Couldn't open app info")
+                }
+                MENU_DOCK -> {
+                    if (!docked && prefs.dock().isEmpty()) {
+                        // First pin: keep the frequent apps that were showing, then add this one.
+                        dockKeys.forEach { prefs.setDocked(it, true) }
+                    }
+                    prefs.setDocked(app.key, !docked)
+                    renderDock()
                 }
                 MENU_UNINSTALL -> launch(Intent(Intent.ACTION_DELETE, Uri.fromParts("package", app.packageName, null)))
                 MENU_STORE -> launch(
@@ -668,7 +805,11 @@ class MainActivity : Activity(), Host {
     private fun reloadApps() {
         localExecutor.execute {
             repo.load()
-            main.post { refresh() }
+            repo.apps.forEach { it.icon() } // warm the icon cache off the main thread
+            main.post {
+                renderDock()
+                refresh()
+            }
         }
     }
 
@@ -681,11 +822,13 @@ class MainActivity : Activity(), Host {
         private const val MENU_INFO = 1
         private const val MENU_UNINSTALL = 2
         private const val MENU_STORE = 3
+        private const val MENU_DOCK = 4
         private const val MENU_SHORTCUT = 100
 
         const val ACTION_OPEN_SEARCH = "dev.omnibox.launcher.action.OPEN_SEARCH"
         const val EXTRA_VOICE = "dev.omnibox.launcher.extra.VOICE"
         const val EXTRA_LENS = "dev.omnibox.launcher.extra.LENS"
+        const val EXTRA_SONG = "dev.omnibox.launcher.extra.SONG"
 
         private val EMPTY_ORDER = listOf(Section.CLIPBOARD, Section.FREQUENT, Section.HISTORY, Section.APPS)
         private val TYPED_ORDER = listOf(
@@ -694,11 +837,12 @@ class MainActivity : Activity(), Host {
         )
 
         /** Intent used by the widget and quick settings tile to open the omnibox. */
-        fun searchIntent(context: Context, voice: Boolean = false, lens: Boolean = false): Intent =
+        fun searchIntent(context: Context, voice: Boolean = false, lens: Boolean = false, song: Boolean = false): Intent =
             Intent(context, MainActivity::class.java)
                 .setAction(ACTION_OPEN_SEARCH)
                 .putExtra(EXTRA_VOICE, voice)
                 .putExtra(EXTRA_LENS, lens)
+                .putExtra(EXTRA_SONG, song)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 }

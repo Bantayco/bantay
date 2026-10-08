@@ -4,8 +4,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
+import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Handler
 import android.os.UserHandle
 import android.os.UserManager
@@ -15,6 +18,7 @@ class AppEntry(
     val component: ComponentName,
     val user: UserHandle,
     private val info: LauncherActivityInfo,
+    private val packageManager: PackageManager,
 ) {
     val key: String = component.flattenToShortString() + "#" + user.hashCode()
     val packageName: String get() = component.packageName
@@ -22,8 +26,34 @@ class AppEntry(
     @Volatile
     private var cachedIcon: Drawable? = null
 
-    /** Loads (and caches) the badged icon. Safe to call off the main thread. */
-    fun icon(): Drawable = cachedIcon ?: info.getBadgedIcon(0).also { cachedIcon = it }
+    @Volatile
+    private var cachedStyle: Int = 0
+
+    /** Loads (and caches) the icon, themed when [IconStyle] asks for it. Safe off the main thread. */
+    fun icon(): Drawable {
+        val style = IconStyle.signature()
+        cachedIcon?.let { if (cachedStyle == style) return it }
+        val icon = themedIcon() ?: info.getBadgedIcon(0)
+        cachedIcon = icon
+        cachedStyle = style
+        return icon
+    }
+
+    private fun themedIcon(): Drawable? {
+        if (!IconStyle.themed || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null
+        val base = info.getIcon(0) as? AdaptiveIconDrawable ?: return null
+        val mono = base.monochrome ?: return null
+        val themed = ThemedIconDrawable(mono, Palette.ICON_BG, Palette.ICON_FG)
+        return packageManager.getUserBadgedIcon(themed, user)
+    }
+}
+
+/** Whether app icons are drawn as themed (monochrome) icons. Set by [MainActivity] from prefs. */
+object IconStyle {
+    @Volatile
+    var themed = false
+
+    fun signature(): Int = if (themed) 31 * Palette.ICON_BG + Palette.ICON_FG else 1
 }
 
 /** Installed launchable apps and their shortcuts, across work/personal profiles. */
@@ -52,7 +82,7 @@ class AppRepository(private val context: Context) {
             }
             for (info in activities) {
                 if (info.componentName.packageName == context.packageName) continue
-                list += AppEntry(info.label.toString(), info.componentName, user, info)
+                list += AppEntry(info.label.toString(), info.componentName, user, info, context.packageManager)
             }
         }
         list.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })

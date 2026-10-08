@@ -73,6 +73,11 @@ class ActionProvider(private val context: Context, private val torch: TorchContr
             "timer", "timers", "show timers" -> out += action("timers", "Show timers", "Clock", "⏱️", 700, true) {
                 it.launch(Intent(AlarmClock.ACTION_SHOW_TIMERS))
             }
+            "song", "what song is this", "what's this song", "whats this song", "identify song", "song search",
+            "name that song", "what song is playing", "hum to search", "shazam" ->
+                out += action("song", "What's this song?", "Listen and identify music playing nearby", "🎵", 900, true) {
+                    it.launch(songIntent(), *songFallbacks(context))
+                }
             "lens", "google lens", "search image", "image search", "visual search", "scan" ->
                 out += action("lens", "Search with your camera", "Google Lens", "📷", 900, true) {
                     it.launch(lensIntent(), *lensFallbacks())
@@ -170,6 +175,17 @@ class ActionProvider(private val context: Context, private val torch: TorchContr
     }
 
     companion object {
+        /** Google's "Search a song" (also hum-to-search), with Shazam / SoundHound as fallbacks. */
+        fun songIntent(): Intent =
+            Intent("com.google.android.googlequicksearchbox.MUSIC_SEARCH")
+                .setPackage("com.google.android.googlequicksearchbox")
+
+        fun songFallbacks(context: Context? = null): Array<Intent> = listOfNotNull(
+            context?.packageManager?.getLaunchIntentForPackage("com.shazam.android"),
+            context?.packageManager?.getLaunchIntentForPackage("com.melodis.midomiMusicIdentifier.freemium"),
+            Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=identify%20song")),
+        ).toTypedArray()
+
         fun lensIntent(): Intent =
             Intent(Intent.ACTION_VIEW, Uri.parse("googleapp://lens")).setPackage("com.google.android.googlequicksearchbox")
 

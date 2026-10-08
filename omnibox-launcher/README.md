@@ -11,6 +11,7 @@ Kotlin, framework APIs only (no AndroidX, no third-party libraries). Min Android
 | --- | --- |
 | Web search with live suggestions | ✅ Google, DuckDuckGo, Bing, Brave or Ecosia; suggestions as you type, tap ↖ to refine |
 | Images / Videos / News / Shopping / Maps tabs | ✅ Chips under the bar, plus YouTube, Play Store, Wikipedia, Translate |
+| Song search (♪) | ✅ "Search a song" / hum to search via the Google app, falling back to Shazam or SoundHound; also `what's this song` |
 | Voice search | ✅ Mic button. Commands like "set a timer for 10 minutes" run directly |
 | Google Lens | ✅ Camera button opens Lens (falls back to lens.google.com) |
 | Find apps | ✅ Fuzzy matching ("gm" → Google Maps), ranked by how often you open them |
@@ -35,6 +36,21 @@ Kotlin, framework APIs only (no AndroidX, no third-party libraries). Min Android
 | Clipboard suggestion | ✅ Offers to search what you just copied |
 | Home-screen widget | ✅ Search bar widget with mic and Lens buttons |
 | Search from anywhere | ✅ Quick Settings tile, "Omnibox" in the text-selection menu, share-to-search, assistant gesture, `WEB_SEARCH` handler |
+
+### Replacing the Pixel Launcher search bar
+
+The Pixel Launcher's bottom search bar is part of that launcher, and no other app can remove or
+replace it. To get rid of it, make Omnibox your home app (*Settings › Apps › Default apps › Home app*).
+By default Omnibox then looks like the Pixel home screen:
+
+- a dock of up to 5 pinned apps (long-press an app › *Add to dock*; until you pin any, it shows your most-used apps)
+- a search bar at the bottom with **♪ song search**, **mic** and **Lens**, colored from your wallpaper (Material You, Android 12+)
+- themed icons (Android 13+) using the same colors Pixel Launcher uses
+- swipe up for all apps; long-press the wallpaper for *Wallpaper & style*
+
+When you tap the bar, it moves to the top with results underneath, like Pixel's search.
+Settings has *Search bar at the bottom* and *Themed icons* switches if you prefer the original top-bar layout.
+Omnibox doesn't host home-screen widgets or folders yet.
 
 The home screen shows the time and date (tap for alarms / calendar), your most-used apps, recent
 searches, and every installed app (work profile included). Long-press an app for its shortcuts,
