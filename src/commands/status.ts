@@ -1,7 +1,7 @@
 import { readFile, readdir, access } from "fs/promises";
 import { join, relative } from "path";
 import * as yaml from "js-yaml";
-import { tryResolveAidePath } from "@bantay/aide/node";
+import { tryResolveAidePath, readMerged } from "@bantay/aide/node";
 
 export interface StatusOptions {
   json?: boolean;
@@ -180,8 +180,7 @@ export async function runStatus(
   // Parse aide file
   let aideContent: AideFile;
   try {
-    const rawContent = await readFile(aidePath, "utf-8");
-    aideContent = yaml.load(rawContent) as AideFile;
+    aideContent = (await readMerged(aidePath)) as unknown as AideFile;
   } catch (e) {
     return {
       scenarios: [],

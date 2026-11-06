@@ -2,7 +2,7 @@ import { readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import * as yaml from "js-yaml";
-import { resolveAidePath } from "@bantay/aide/node";
+import { resolveAidePath, readMerged } from "@bantay/aide/node";
 import { runDiff, type ClassifiedChange } from "./diff";
 
 interface Entity {
@@ -69,8 +69,7 @@ export async function runTasks(
   }
 
   // Parse the aide file
-  const aideContent = await readFile(aidePath, "utf-8");
-  const aideData = yaml.load(aideContent) as AideData;
+  const aideData = (await readMerged(aidePath)) as unknown as AideData;
 
   // Entity types that generate tasks with corrective actions
   const ENTITY_TYPES_WITH_TASKS = ["design_token", "constraint", "foundation", "invariant", "wisdom", "relationship"];

@@ -1,0 +1,145 @@
+spec: '1.0'
+entities:
+  export:
+    display: page
+    props:
+      title: bantay export
+      description: Developer exports the aide to invariants.md, CLAUDE.md, .cursorrules, AGENTS.md and CSS tokens
+  cujs:
+    display: table
+    parent: export
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  invariants:
+    display: checklist
+    parent: export
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  constraints:
+    display: list
+    parent: export
+    props:
+      title: Architectural Constraints
+      _pattern: flat_list
+      _group_by: domain
+  cuj_export:
+    parent: cujs
+    props:
+      feature: Developer exports invariants into agent context files
+      tier: primary
+      area: export
+  sc_export_claude:
+    parent: cuj_export
+    props:
+      name: Export to CLAUDE.md
+      given: Developer runs bantay export --target claude
+      when: Bantay writes to CLAUDE.md
+      then:
+      - Invariants section appended/replaced in CLAUDE.md
+      - Section has clear start/end markers
+      - Content outside markers is untouched
+      - Invariants formatted as rules the agent must follow
+      - File is valid markdown
+  sc_export_cursor:
+    parent: cuj_export
+    props:
+      name: Export to .cursorrules
+      given: Developer runs bantay export --target cursor
+      when: Bantay writes to .cursorrules
+      then:
+      - Invariants section appended/replaced in .cursorrules
+      - Follows Cursor's expected format
+      - Existing rules outside markers untouched
+  sc_export_codex:
+    parent: cuj_export
+    props:
+      name: Export to AGENTS.md
+      given: Developer runs bantay export --target codex
+      when: Bantay writes to AGENTS.md
+      then:
+      - Invariants section appended/replaced in AGENTS.md
+      - Works for Codex, Copilot, and any agent that reads AGENTS.md
+  sc_export_idempotent:
+    parent: cuj_export
+    props:
+      name: Export is idempotent
+      given: Developer runs export twice without changing invariants.md
+      when: Second export runs
+      then:
+      - Output file is byte-identical to first export
+      - No spurious git diffs
+  sc_export_no_clobber:
+    parent: cuj_export
+    props:
+      name: Export never destroys user content
+      given: CLAUDE.md has user-written content outside the Bantay section
+      when: bantay export runs
+      then:
+      - All content outside the delimited Bantay section is preserved exactly
+      - If no Bantay section exists, it is appended at the end
+      - If Bantay section exists, only that section is replaced
+  inv_export_idempotent:
+    parent: invariants
+    props:
+      statement: Running bantay export twice produces identical output
+      category: integrity
+      threat_signal: Spurious git diffs after export
+      done: false
+      checker: ./export-idempotent
+  inv_no_clobber:
+    parent: invariants
+    props:
+      statement: bantay export never modifies content outside its delimited section
+      category: integrity
+      threat_signal: User content in CLAUDE.md altered after export
+      done: false
+      checker: ./no-clobber
+  con_section_markers:
+    parent: constraints
+    props:
+      text: "Agent context exports use unambiguous start/end markers that regex can find. Format: <!-- bantay:start --> and <!-- bantay:end -->."
+      domain: export
+      rationale: The export must be able to find and replace its own section without parsing the full markdown document. HTML comments are invisible in rendered markdown and won't collide with user content.
+  cuj_export_css:
+    parent: cujs
+    props:
+      feature: Bantay exports CSS variables from structured design token entities in the aide
+      tier: primary
+      area: export
+  sc_export_css_from_tokens:
+    parent: cuj_export_css
+    props:
+      name: Generate CSS variables from design token entities
+      given: Aide has entities under design_system with typed token props (colors, spacing, typography)
+      when: Developer runs bantay export css
+      then: "CSS file generated with :root variables matching token names and values"
+  sc_export_css_idempotent:
+    parent: cuj_export_css
+    props:
+      name: CSS export is idempotent
+      given: CSS file already exists
+      when: Developer runs bantay export css again
+      then: Output is byte-identical if tokens haven't changed
+relationships:
+- from: sc_export_idempotent
+  to: inv_export_idempotent
+  type: protected_by
+  cardinality: many_to_many
+- from: sc_export_no_clobber
+  to: inv_no_clobber
+  type: protected_by
+  cardinality: many_to_many
+- from: con_section_markers
+  to: inv_no_clobber
+  type: implements
+  cardinality: many_to_one
+- from: con_section_markers
+  to: inv_export_idempotent
+  type: implements
+  cardinality: many_to_one

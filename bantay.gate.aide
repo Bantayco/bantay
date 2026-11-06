@@ -1,0 +1,112 @@
+spec: '1.0'
+entities:
+  gate:
+    display: page
+    props:
+      title: bantay gate
+      description: Agent asks the decision oracle whether a proposed change is a declared transition
+  cujs:
+    display: table
+    parent: gate
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  invariants:
+    display: checklist
+    parent: gate
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  constraints:
+    display: list
+    parent: gate
+    props:
+      title: Architectural Constraints
+      _pattern: flat_list
+      _group_by: domain
+  cuj_gate:
+    parent: cujs
+    props:
+      feature: Agent asks the decision oracle whether a proposed change is a declared transition before applying it
+      tier: primary
+      area: governance
+  sc_gate_allow:
+    parent: cuj_gate
+    props:
+      name: Proposal matches one declared transition
+      given: Aide declares tr_* transitions and a decision provider is configured
+      when: Agent runs bantay gate "<proposal>"
+      then:
+      - Oracle answers one choice question over the closed set of tr_* ids plus out_of_vocabulary
+      - Oracle answers one noul question per invariant (would the proposal violate it)
+      - Confidence >= threshold and no invariant at risk → ALLOW, exit 0, transition id reported
+  sc_gate_out_of_vocabulary:
+    parent: cuj_gate
+    props:
+      name: Proposal is not a declared transition
+      given: Proposal adds new behavior, combines transitions, or edits the spec
+      when: Oracle confidently picks out_of_vocabulary
+      then:
+      - REJECT, exit 1
+      - Agent is told to add a tr_* to the aide or ask the organizer
+  sc_gate_escalate:
+    parent: cuj_gate
+    props:
+      name: Oracle is not confident
+      given: Choice confidence below threshold, or an invariant in the uncertain band
+      when: Agent runs bantay gate
+      then:
+      - ESCALATE, exit 2
+      - Organizer decides; the agent does not apply the change
+  sc_gate_invariant_risk:
+    parent: cuj_gate
+    props:
+      name: Proposal would violate an invariant
+      given: Transition matches but P(violated) >= threshold for some invariant
+      when: Agent runs bantay gate
+      then:
+      - REJECT, exit 1
+      - Reason names the invariant and its probability
+  sc_gate_from_state:
+    parent: cuj_gate
+    props:
+      name: Gate from a known current state
+      given: Agent passes --from st_x
+      when: Agent runs bantay gate
+      then:
+      - Choice vocabulary is narrowed to transitions leaving st_x
+      - A matched transition that does not start at st_x is rejected
+  inv_transition_vocabulary_closed:
+    parent: invariants
+    props:
+      statement: The gate only ever allows a change that maps to exactly one declared tr_* transition
+      category: governance
+      threat_signal: Agent applies a state change the aide never declared
+      test: tests/gate.test.ts
+  con_confidence_threshold_escalates:
+    parent: constraints
+    props:
+      text: Decisions below the configured confidence threshold escalate to the organizer instead of defaulting to allow or reject.
+      domain: architecture
+      rationale: Calibrated probabilities are the whole point of a decision model. Collapsing the uncertain band into a binary answer throws that information away and either blocks good changes or lets bad ones through.
+relationships:
+- from: sc_gate_allow
+  to: inv_transition_vocabulary_closed
+  type: protected_by
+  cardinality: many_to_many
+- from: sc_gate_out_of_vocabulary
+  to: inv_transition_vocabulary_closed
+  type: protected_by
+  cardinality: many_to_many
+- from: sc_gate_escalate
+  to: inv_oracle_fails_closed
+  type: protected_by
+  cardinality: many_to_many
+- from: con_confidence_threshold_escalates
+  to: inv_transition_vocabulary_closed
+  type: implements
+  cardinality: many_to_one

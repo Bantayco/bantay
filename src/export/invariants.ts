@@ -4,7 +4,7 @@
 
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
-import { read as readAide, resolveAidePath } from "@bantay/aide/node";
+import { readMerged as readAide, resolveAidePath } from "@bantay/aide/node";
 import { extractInvariants, groupBy } from "./aide-reader";
 import type { ExportOptions, ExportResult, ExtractedInvariant } from "./types";
 

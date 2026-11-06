@@ -1,0 +1,93 @@
+spec: '1.0'
+entities:
+  journeys:
+    display: page
+    props:
+      title: bantay journeys
+      description: Bantay clusters the state graph and proposes CUJ boundaries
+  cujs:
+    display: table
+    parent: journeys
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  cuj_journeys:
+    parent: cujs
+    props:
+      feature: Bantay clusters the state-transition graph and proposes CUJ boundaries
+      tier: primary
+      area: graph
+  sc_journeys_cluster:
+    parent: cuj_journeys
+    props:
+      name: Cluster states by screen identity
+      given: Aide has st_* entities with screen props
+      when: Developer runs bantay journeys
+      then: States grouped by their screen prop into clusters. Each cluster named after the screen.
+  sc_journeys_handoffs:
+    parent: cuj_journeys
+    props:
+      name: Identify handoff transitions between clusters
+      given: Graph has transitions between states in different clusters
+      when: Developer runs bantay journeys
+      then: Handoff transitions listed with from-cluster and to-cluster. These are the natural CUJ boundaries.
+  sc_journeys_entry_goal:
+    parent: cuj_journeys
+    props:
+      name: Find entry points and goal states
+      given: Graph has transitions from st_external
+      when: Developer runs bantay journeys
+      then: Entry states (reachable from external) and goal states (where users rest or accomplish something) identified
+  sc_journeys_propose:
+    parent: cuj_journeys
+    props:
+      name: Propose journeys as paths through clusters
+      given: Clusters, handoffs, entries, and goals identified
+      when: Developer runs bantay journeys
+      then: Candidate journeys proposed as named paths from entry to goal through handoff edges. Developer approves, renames, or adjusts.
+  sc_journeys_mece:
+    parent: cuj_journeys
+    props:
+      name: MECE check on proposed journeys
+      given: Journeys proposed
+      when: Developer reviews
+      then: Every transition in the graph belongs to at least one journey. No journey is a subset of another. Gaps and overlaps reported.
+  sc_journeys_scenarios:
+    parent: cuj_journeys
+    props:
+      name: Generate scenarios as path permutations
+      given: Journeys approved
+      when: Developer runs bantay journeys --scenarios
+      then: For each journey, enumerate distinct paths through the graph (different entry points, branches). Each path becomes a scenario with a given and a path prop.
+  sc_journeys_prompt:
+    parent: cuj_journeys
+    props:
+      name: Generate prompt for LLM journey analysis
+      given: Aide has screen states and transitions
+      when: Developer runs bantay journeys --prompt
+      then: Formatted prompt output with all states, transitions, and instructions for the LLM to propose journeys
+  sc_journeys_apply:
+    parent: cuj_journeys
+    props:
+      name: Apply journey proposals from JSON file
+      given: Developer has a journeys.json from LLM output
+      when: Developer runs bantay journeys --apply journeys.json
+      then: Diffs proposed journeys against existing CUJs. Shows matches, new, merged, and orphaned. Asks for confirmation before writing.
+  sc_journeys_apply_match:
+    parent: cuj_journeys
+    props:
+      name: Match proposed journeys to existing CUJs by transition overlap
+      given: Aide has existing CUJs with scenario paths
+      when: bantay journeys --apply runs
+      then: Each proposed journey matched to existing CUJ if 80%+ of core transitions overlap. Unmatched journeys are new. Unmatched CUJs are orphaned.
+  sc_journeys_apply_no_duplicates:
+    parent: cuj_journeys
+    props:
+      name: Apply never creates duplicate CUJs
+      given: A proposed journey matches an existing CUJ
+      when: Developer approves the update
+      then: Existing CUJ is updated in place, not duplicated. Scenarios are merged or replaced.
+relationships: []

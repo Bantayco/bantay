@@ -1,0 +1,65 @@
+spec: '1.0'
+entities:
+  reverse:
+    display: page
+    props:
+      title: bantay reverse
+      description: Developer extracts an aide from an existing codebase
+  cujs:
+    display: table
+    parent: reverse
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  cuj_reverse:
+    parent: cujs
+    props:
+      feature: Bantay extracts or reconciles an aide from existing code
+      tier: primary
+      area: reverse
+  sc_reverse_fresh:
+    parent: cuj_reverse
+    props:
+      name: Extract aide from code with no existing aide
+      given: A codebase with no .aide file
+      when: Developer runs bantay reverse --prompt
+      then: Structured prompt output with codebase summary for the LLM to propose a complete aide
+  sc_reverse_reconcile:
+    parent: cuj_reverse
+    props:
+      name: Reconcile code changes against existing aide
+      given: A codebase with an existing .aide file where code has drifted
+      when: Developer runs bantay reverse --prompt
+      then: Prompt includes both codebase summary and current aide contents. LLM proposes aide updates for new, changed, and missing entities.
+  sc_reverse_apply:
+    parent: cuj_reverse
+    props:
+      name: Apply reverse proposals from JSON
+      given: Developer has proposals from LLM output
+      when: Developer runs bantay reverse --apply proposals.json --confirm
+      then: Diffs proposals against existing aide. Applies new, updated, and removes orphaned entities.
+  sc_reverse_focus:
+    parent: cuj_reverse
+    props:
+      name: Focus scan on specific part of codebase
+      given: Large codebase
+      when: Developer runs bantay reverse --prompt --focus=frontend
+      then: Only frontend code scanned and included in prompt
+  sc_reverse_data_model:
+    parent: cuj_reverse
+    props:
+      name: Extract product data model from code
+      given: Codebase has database schema, API models, or state management
+      when: bantay reverse --prompt scans the code
+      then: "Prompt asks the LLM to extract data entities: what the user creates, owns, and interacts with. Not database tables — product objects with their fields, ownership, and relationships."
+  sc_reverse_formal_spec:
+    parent: cuj_reverse
+    props:
+      name: Extract formal properties from code
+      given: Codebase has pure functions, state machines, or invariant checks
+      when: bantay reverse --prompt scans the code
+      then: "Prompt asks the LLM to identify properties expressible as Lean 4 theorems: purity, determinism, ordering invariants, isolation properties"
+relationships: []

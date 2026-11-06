@@ -1,0 +1,51 @@
+spec: '1.0'
+entities:
+  aide:
+    display: page
+    props:
+      title: bantay aide
+      description: Developer edits, validates, locks and inspects the .aide file
+  cujs:
+    display: table
+    parent: aide
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  cuj_aide:
+    parent: cujs
+    props:
+      feature: Developer manages project aide structure and tracks changes
+      tier: secondary
+      area: aide
+  sc_aide_diff:
+    parent: cuj_aide
+    props:
+      name: Compare aide against lock file
+      given: Developer has bantay.aide and bantay.aide.lock files
+      when: Developer runs bantay aide diff
+      then:
+      - Shows entities ADDED (in aide but not lock)
+      - Shows entities REMOVED (in lock but not aide)
+      - Shows entities MODIFIED (hash differs)
+      - Shows relationship changes
+      - Classifies entity types by ID prefix (cuj_, sc_, inv_, con_, found_, wis_)
+      - Exit code 0 if no changes, exit code 1 if changes
+      - Supports --json flag for machine-readable output
+  sc_aide_init:
+    parent: cuj_aide
+    props:
+      name: Initialize a new aide file
+      given: Developer runs bantay aide init in a project
+      when: No .aide file exists
+      then: <dirname>.aide created with skeleton structure
+  sc_aide_discovery:
+    parent: cuj_aide
+    props:
+      name: Auto-discover aide file
+      given: Developer runs any bantay aide subcommand
+      when: Exactly one .aide file exists in the directory
+      then: That file is used without --aide flag
+relationships: []

@@ -31,7 +31,7 @@
     "url": "https://github.com/zcancio/bantay.git"
   },
   "dependencies": {
-    "@bantay/aide": "github:Bantayco/aide",
+    "@bantay/aide": "github:Bantayco/aide#feat/spec-1.0",
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {

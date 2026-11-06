@@ -16,6 +16,15 @@ Read CLAUDE.md and the .aide file before doing anything.
 - No teammate is spawned without a validated and committed `.bantay/plans/<cuj_id>.md`
 - Teammates work in separate git worktrees
 - Run `bantay check` after merging each branch
+- **Gate every state change.** Before a teammate (or you) changes application
+  behavior, describe the change and run `bantay gate "<proposal>" --json`
+  (add `--from <st_id>` when the current state is known). Exit 0 = apply.
+  Exit 1 = rejected: do not apply; either add the missing `tr_*` to the aide
+  (which is a spec change for the organizer) or drop the change. Exit 2 =
+  escalate: stop, write the proposal and the gate's reason into
+  `.bantay/builds/current.md`, and ask the organizer. Never work around the
+  gate. If no decision provider is configured, say so and ask the organizer
+  before proceeding.
 - Commit and `git push` after every checkpoint update
 
 ## Phase 0 — Foundation (you do this directly)

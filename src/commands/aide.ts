@@ -8,6 +8,8 @@ import {
   removeEntity,
   addRelationship,
   validate,
+  lintFile,
+  resolveAidePath,
   type AideTree,
 } from "@bantay/aide/node";
 import type { RelationshipType, Cardinality } from "@bantay/aide/node";
@@ -90,38 +92,15 @@ async function discoverAideFiles(cwd: string): Promise<{ found: string[]; error?
  */
 async function getAidePath(options: AideCommandOptions): Promise<string> {
   const cwd = process.cwd();
-
-  // If explicit path provided, use it (resolve relative to cwd)
-  if (options.aidePath) {
-    if (options.aidePath.startsWith("/")) {
-      return options.aidePath;
-    }
-    return `${cwd}/${options.aidePath}`;
-  }
-
-  // Auto-discover
-  const { found, error } = await discoverAideFiles(cwd);
-
-  if (error) {
-    console.error(`Error discovering aide files: ${error}`);
+  try {
+    // Kernel discovery: explicit path wins; otherwise the root aide (SPEC COMP-6/7),
+    // so child aides (bantay.visualize.aide) never shadow bantay.aide.
+    const resolved = await resolveAidePath(cwd, options.aidePath);
+    return resolved.path;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
-
-  if (found.length === 0) {
-    console.error("No .aide file found. Run 'bantay aide init' to create one.");
-    process.exit(1);
-  }
-
-  if (found.length > 1) {
-    console.error("Multiple .aide files found. Specify one with --aide <path>");
-    console.error("Found:");
-    for (const f of found) {
-      console.error(`  - ${f}`);
-    }
-    process.exit(1);
-  }
-
-  return `${cwd}/${found[0]}`;
 }
 
 /**
@@ -409,20 +388,34 @@ export async function handleAideValidate(args: string[]): Promise<void> {
   const aidePath = await getAidePath(options);
 
   try {
+    // Root → whole project (W11, S8); child → that aide with ancestors visible (COMP-8/12)
+    const { errors, warnings, aides } = await lintFile(aidePath);
+    const refs = Object.keys(aides);
     const tree = await read(aidePath);
-    const errors = validate(tree);
 
     if (errors.length === 0) {
-      console.log("Aide file is valid.");
-      const entityCount = Object.keys(tree.entities).length;
-      const relCount = tree.relationships.length;
-      console.log(`  Entities: ${entityCount}`);
-      console.log(`  Relationships: ${relCount}`);
+      console.log(refs.length > 1 ? `Aide project is valid (${refs.length} aides).` : "Aide file is valid.");
+      if (refs.length > 1) {
+        for (const ref of refs) {
+          console.log(`  ${ref}`);
+        }
+      } else {
+        console.log(`  Entities: ${Object.keys(tree.entities).length}`);
+        console.log(`  Relationships: ${tree.relationships.length}`);
+      }
     } else {
       console.error("Validation errors:");
       for (const error of errors) {
         console.error(`  - ${error}`);
       }
+    }
+    if (warnings.length > 0) {
+      console.log(`Warnings (${warnings.length}):`);
+      for (const w of warnings) {
+        console.log(`  - ${w}`);
+      }
+    }
+    if (errors.length > 0) {
       process.exit(1);
     }
   } catch (error) {

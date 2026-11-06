@@ -1,0 +1,175 @@
+spec: '1.0'
+entities:
+  init:
+    display: page
+    props:
+      title: bantay init
+      description: "Developer initializes Bantay in a project: stack detection, invariants.md, config, slash commands"
+  cujs:
+    display: table
+    parent: init
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  invariants:
+    display: checklist
+    parent: init
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  constraints:
+    display: list
+    parent: init
+    props:
+      title: Architectural Constraints
+      _pattern: flat_list
+      _group_by: domain
+  cuj_init:
+    parent: cujs
+    props:
+      feature: Developer initializes Bantay in an existing project
+      tier: primary
+      area: init
+  sc_init_prerequisites:
+    parent: cuj_init
+    props:
+      name: Verify prerequisites before init
+      given: Developer runs bantay init
+      when: Bantay checks the environment
+      then:
+      - Bun runtime availability verified
+      - If Bun not found, clear error with install instructions (link to bun.sh)
+      - No silent fallback to Node
+      - Prerequisite check runs before any file system scanning
+  sc_init_binary:
+    parent: cuj_init
+    props:
+      name: CLI is invocable by name
+      given: Developer has installed Bantay via bun link, bunx, or npm
+      when: Developer types bantay init
+      then:
+      - Command resolves to the CLI entry point
+      - bin field in package.json maps "bantay" to src/cli.ts
+      - bunx @bantay/cli init works without global install
+      - npx @bantay/cli init works for Node users
+  sc_init_detect_stack:
+    parent: cuj_init
+    props:
+      name: Detect project stack
+      given: Developer runs bantay init in a project directory
+      when: Bantay scans the project
+      then:
+      - Framework detected (Next.js, Express, Django, Rails, FastAPI, etc.)
+      - ORM detected (Prisma, Drizzle, SQLAlchemy, ActiveRecord, etc.)
+      - Auth library detected (Clerk, Auth.js, Supabase Auth, Passport, etc.)
+      - Detection results displayed to developer
+      - If confidence is low for any detection, marked [manual] not guessed
+  sc_init_generate_invariants:
+    parent: cuj_init
+    props:
+      name: Generate starter invariants.md
+      given: Stack detection is complete
+      when: Bantay generates the invariants file
+      then:
+      - invariants.md created with stack-appropriate defaults
+      - Next.js + Prisma gets auth-on-routes, timestamps-on-tables, soft-deletes, no-raw-sql
+      - Django + PostgreSQL gets different defaults than Next.js + Prisma
+      - Each invariant has a unique stable ID
+      - Each invariant has a category
+      - Invariants reference built-in checkers by name where available
+      - File is human-readable markdown with enough structure for bantay check to parse
+  sc_init_generate_config:
+    parent: cuj_init
+    props:
+      name: Generate bantay.config.yml
+      given: Stack detection is complete
+      when: Bantay generates the config
+      then:
+      - bantay.config.yml created with paths to source dirs, schema files, route definitions
+      - Config references detected locations, not hardcoded paths
+      - Developer can edit config to correct any misdetection
+  sc_init_no_project:
+    parent: cuj_init
+    props:
+      name: Init in empty directory
+      given: Developer runs bantay init in a directory with no recognizable project
+      when: Bantay scans and finds nothing
+      then:
+      - Warning displayed that no framework was detected
+      - Minimal invariants.md generated with universal defaults only
+      - Config generated with placeholder paths
+      - Developer guided to edit both files
+  sc_init_already_initialized:
+    parent: cuj_init
+    props:
+      name: Init when invariants.md already exists
+      given: Developer runs bantay init in a project that already has invariants.md
+      when: Bantay detects existing file
+      then:
+      - Existing invariants.md is NOT overwritten
+      - Developer warned that init was already run
+      - Option to regenerate config only
+  sc_init_speed:
+    parent: cuj_init
+    props:
+      name: Init completes quickly
+      given: Project has up to 10,000 files
+      when: Bantay scans
+      then:
+      - Init completes in under 10 seconds
+      - Scanning uses file system metadata and pattern matching, not full AST parsing
+  inv_cli_invocable:
+    parent: invariants
+    props:
+      statement: bantay command resolves to the CLI entry point via bin field in package.json
+      category: prerequisites
+      threat_signal: User must type bun run src/cli.ts instead of bantay
+      done: false
+      checker: ./bin-field
+  inv_no_network:
+    parent: invariants
+    props:
+      statement: Bantay CLI makes zero network requests during init, check, ci, or export
+      category: security
+      threat_signal: DNS or HTTP request observed during offline operation
+      done: false
+      checker: ./no-network
+  inv_init_no_overwrite:
+    parent: invariants
+    props:
+      statement: bantay init never overwrites an existing invariants.md
+      category: trust
+      threat_signal: User's hand-edited invariants destroyed by re-running init
+      done: false
+      checker: ./init-no-overwrite
+  con_bin_field:
+    parent: constraints
+    props:
+      text: package.json bin field maps 'bantay' to src/cli.ts. Bun runs TypeScript directly — no build step.
+      domain: stack
+      rationale: A CLI that can't be invoked by its name isn't a CLI. The bin field is what makes bunx @bantay/cli init, bun link, and npm global install work. Without it the user types bun run src/cli.ts which is not a product.
+relationships:
+- from: sc_init_prerequisites
+  to: inv_bun_available
+  type: protected_by
+  cardinality: many_to_many
+- from: sc_init_binary
+  to: inv_cli_invocable
+  type: protected_by
+  cardinality: many_to_many
+- from: sc_init_already_initialized
+  to: inv_init_no_overwrite
+  type: protected_by
+  cardinality: many_to_many
+- from: sc_init_detect_stack
+  to: inv_no_network
+  type: protected_by
+  cardinality: many_to_many
+- from: con_bin_field
+  to: inv_cli_invocable
+  type: implements
+  cardinality: many_to_one

@@ -3,17 +3,23 @@ import { spawn } from "bun";
 import { join } from "path";
 import { parseInvariants, type Invariant } from "../generators/invariants";
 import { runChecker, hasChecker, runStructuralCheckers } from "../checkers/registry";
+import { createDecisionModel, DecisionError, type DecisionModel, type NoulQuestion } from "../decision";
 import { loadConfig } from "../config";
-import { getGitDiff, shouldCheckInvariant } from "../diff";
+import { getGitDiff, getGitDiffText, shouldCheckInvariant } from "../diff";
 import type { CheckResult, CheckerContext, StructuralCheckResult } from "../checkers/types";
-import { read as readAide, tryResolveAidePath } from "@bantay/aide/node";
+import { readMerged as readAide, tryResolveAidePath } from "@bantay/aide/node";
 
 export interface CheckOptions {
+  /** Inject a decision model (tests). Overrides config. */
+  decisionModel?: DecisionModel;
+  /** Disable the decision oracle even if configured. */
+  noOracle?: boolean;
   id?: string;
   diff?: string;
 }
 
 export interface CheckSummary {
+  review: number;
   passed: number;
   failed: number;
   skipped: number;
@@ -169,10 +175,28 @@ export async function runCheck(
 
   // Get diff info if in diff mode
   let affectedCategories: Set<string> | null = null;
+  let diffText = "";
   if (options.diff) {
     const diffResult = await getGitDiff(projectPath, options.diff);
     affectedCategories = diffResult.categories;
+    diffText = await getGitDiffText(projectPath, options.diff);
   }
+
+  // Resolve the decision oracle (Jev or a swappable stand-in)
+  let oracle: DecisionModel | null = null;
+  let threshold = 0.8;
+  if (!options.noOracle) {
+    if (options.decisionModel) {
+      oracle = options.decisionModel;
+      threshold = config.decision?.threshold ?? threshold;
+    } else {
+      const resolved = createDecisionModel(config.decision);
+      oracle = resolved.model;
+      threshold = resolved.threshold;
+    }
+  }
+  /** Invariants with no static enforcement, queued for the oracle. */
+  const oracleQueue: Invariant[] = [];
 
   // Get enforcement info (checker and test paths) from bantay.aide
   const enforcementInfo = await getEnforcementInfo(projectPath);
@@ -181,9 +205,10 @@ export async function runCheck(
   const results: CheckResult[] = [];
 
   for (const invariant of invariants) {
-    // In diff mode, skip invariants for unaffected categories
+    // In diff mode, invariants for unaffected categories have no static
+    // checker to run — but the oracle can still judge them against the diff.
     if (affectedCategories && !shouldCheckInvariant(invariant.category, affectedCategories)) {
-      // Skip this invariant entirely - don't even report it
+      if (oracle && diffText) oracleQueue.push(invariant);
       continue;
     }
 
@@ -219,11 +244,21 @@ export async function runCheck(
         violations: [],
         message: `Enforced by: ${enforcement.enforced}`,
       });
-    } else {
-      // Try built-in checker
+    } else if (hasChecker(invariant.category)) {
+      // Built-in checker
       const result = await runChecker(invariant, context);
       results.push(result);
+    } else if (oracle && diffText) {
+      oracleQueue.push(invariant);
+    } else {
+      results.push(await runChecker(invariant, context)); // yields "skipped"
     }
+  }
+
+  // One batched oracle call: every unenforced invariant as a noul question
+  // against the diff. Jev evaluates the questions in parallel.
+  if (oracle && oracleQueue.length > 0) {
+    results.push(...(await runOracle(oracle, threshold, diffText, oracleQueue)));
   }
 
   // Run structural checkers (independent of invariants)
@@ -234,6 +269,7 @@ export async function runCheck(
   const structuralFailed = structuralResults.filter((r) => r.status === "fail").length;
 
   const summary: CheckSummary = {
+    review: results.filter((r) => r.status === "review").length,
     passed: results.filter((r) => r.status === "pass").length + structuralPassed,
     failed: results.filter((r) => r.status === "fail").length + structuralFailed,
     skipped: results.filter((r) => r.status === "skipped").length,
@@ -252,8 +288,9 @@ export interface JsonCheckOutput {
   commit: string | null;
   results: Array<{
     id: string;
-    status: "pass" | "fail" | "skipped" | "tested" | "enforced";
+    status: "pass" | "fail" | "skipped" | "tested" | "enforced" | "review";
     message?: string;
+    oracle?: { provider: string; model: string; violationProbability: number; threshold: number };
     violations?: Array<{
       file: string;
       line?: number;
@@ -276,6 +313,7 @@ export interface JsonCheckOutput {
     skipped: number;
     tested: number;
     enforced: number;
+    review: number;
     total: number;
   };
 }
@@ -316,6 +354,7 @@ export async function formatCheckResultsJson(
       id: result.invariant.id,
       status: result.status,
       message: result.message,
+      oracle: result.oracle,
       violations:
         result.violations.length > 0
           ? result.violations.map((v) => ({
@@ -344,6 +383,7 @@ export async function formatCheckResultsJson(
       skipped: summary.skipped,
       tested: summary.tested,
       enforced: summary.enforced,
+      review: summary.review,
       total: summary.total,
     },
   };
@@ -361,6 +401,7 @@ export function formatCheckResults(summary: CheckSummary): string {
       : result.status === "fail" ? "✗"
       : result.status === "tested" ? "~"
       : result.status === "enforced" ? "◆"
+      : result.status === "review" ? "?"
       : "○";
     const statusText = result.status.toUpperCase();
 
@@ -423,4 +464,88 @@ export function formatCheckResults(summary: CheckSummary): string {
   lines.push(parts.join(", "));
 
   return lines.join("\n");
+}
+
+
+/**
+ * Ask the decision oracle whether the diff violates each invariant.
+ * One request, N noul questions. Verdict per invariant:
+ *   P(violated) >= threshold       → fail
+ *   P(violated) <= 1 - threshold   → pass
+ *   otherwise                      → review (escalate to a human)
+ */
+export async function runOracle(
+  oracle: DecisionModel,
+  threshold: number,
+  diffText: string,
+  invariants: Invariant[]
+): Promise<CheckResult[]> {
+  const questions: Record<string, NoulQuestion> = {};
+  for (const inv of invariants) {
+    questions[inv.id] = {
+      type: "noul",
+      instructions: `Does the code change in \`diff\` violate this invariant? Invariant (${inv.category}): ${inv.statement}`,
+      criteria: {
+        true: "The change introduces or leaves code that breaks the invariant.",
+        false: "The change does not touch the invariant, or preserves it.",
+      },
+    };
+  }
+
+  let response;
+  try {
+    response = await oracle.decide({ state: { diff: diffText }, questions });
+  } catch (err) {
+    const msg = err instanceof DecisionError ? err.message : String(err);
+    return invariants.map((invariant) => ({
+      invariant,
+      status: "skipped" as const,
+      violations: [],
+      message: `Decision oracle unavailable: ${msg}`,
+    }));
+  }
+
+  return invariants.map((invariant) => {
+    const a = response.answers[invariant.id];
+    if (!a || a.type !== "noul") {
+      return {
+        invariant,
+        status: "skipped" as const,
+        violations: [],
+        message: "Decision oracle returned no answer",
+      };
+    }
+    const p = a.probability;
+    const oracleInfo = {
+      provider: oracle.name,
+      model: response.model,
+      violationProbability: p,
+      threshold,
+    };
+    if (p >= threshold) {
+      return {
+        invariant,
+        status: "fail" as const,
+        violations: [{ filePath: "(diff)", message: `Oracle: P(violated)=${p.toFixed(2)}` }],
+        message: `Decision oracle (${oracle.name}) judged the diff violates this invariant`,
+        oracle: oracleInfo,
+      };
+    }
+    if (p <= 1 - threshold) {
+      return {
+        invariant,
+        status: "pass" as const,
+        violations: [],
+        message: `Decision oracle (${oracle.name}): P(violated)=${p.toFixed(2)}`,
+        oracle: oracleInfo,
+      };
+    }
+    return {
+      invariant,
+      status: "review" as const,
+      violations: [],
+      message: `Decision oracle (${oracle.name}) not confident: P(violated)=${p.toFixed(2)} — needs human review`,
+      oracle: oracleInfo,
+    };
+  });
 }

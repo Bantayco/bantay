@@ -1,11 +1,12 @@
+spec: '1.0'
 entities:
   bantay_cli:
     display: page
     props:
       title: Bantay CLI
       description: Write down the rules your system must never break. We enforce them on every PR, every agent session, every change.
-      version: 0.3
-      date: "2026-03-17"
+      version: '0.5'
+      date: '2026-11-06'
   cujs:
     display: table
     parent: bantay_cli
@@ -41,386 +42,96 @@ entities:
     props:
       title: Project Wisdom
       _pattern: flat_list
-  cuj_init:
+  cuj_bantay_init:
     parent: cujs
     props:
-      feature: Developer initializes Bantay in an existing project
+      feature: "Developer initializes Bantay in a project: stack detection, invariants.md, config, slash commands"
       tier: primary
       area: init
-  sc_init_prerequisites:
-    parent: cuj_init
-    props:
-      name: Verify prerequisites before init
-      given: Developer runs bantay init
-      when: Bantay checks the environment
-      then:
-        - Bun runtime availability verified
-        - If Bun not found, clear error with install instructions (link to bun.sh)
-        - No silent fallback to Node
-        - Prerequisite check runs before any file system scanning
-  sc_init_binary:
-    parent: cuj_init
-    props:
-      name: CLI is invocable by name
-      given: Developer has installed Bantay via bun link, bunx, or npm
-      when: Developer types bantay init
-      then:
-        - Command resolves to the CLI entry point
-        - bin field in package.json maps "bantay" to src/cli.ts
-        - bunx @bantay/cli init works without global install
-        - npx @bantay/cli init works for Node users
-  sc_init_detect_stack:
-    parent: cuj_init
-    props:
-      name: Detect project stack
-      given: Developer runs bantay init in a project directory
-      when: Bantay scans the project
-      then:
-        - Framework detected (Next.js, Express, Django, Rails, FastAPI, etc.)
-        - ORM detected (Prisma, Drizzle, SQLAlchemy, ActiveRecord, etc.)
-        - Auth library detected (Clerk, Auth.js, Supabase Auth, Passport, etc.)
-        - Detection results displayed to developer
-        - If confidence is low for any detection, marked [manual] not guessed
-  sc_init_generate_invariants:
-    parent: cuj_init
-    props:
-      name: Generate starter invariants.md
-      given: Stack detection is complete
-      when: Bantay generates the invariants file
-      then:
-        - invariants.md created with stack-appropriate defaults
-        - Next.js + Prisma gets auth-on-routes, timestamps-on-tables, soft-deletes, no-raw-sql
-        - Django + PostgreSQL gets different defaults than Next.js + Prisma
-        - Each invariant has a unique stable ID
-        - Each invariant has a category
-        - Invariants reference built-in checkers by name where available
-        - File is human-readable markdown with enough structure for bantay check to parse
-  sc_init_generate_config:
-    parent: cuj_init
-    props:
-      name: Generate bantay.config.yml
-      given: Stack detection is complete
-      when: Bantay generates the config
-      then:
-        - bantay.config.yml created with paths to source dirs, schema files, route definitions
-        - Config references detected locations, not hardcoded paths
-        - Developer can edit config to correct any misdetection
-  sc_init_no_project:
-    parent: cuj_init
-    props:
-      name: Init in empty directory
-      given: Developer runs bantay init in a directory with no recognizable project
-      when: Bantay scans and finds nothing
-      then:
-        - Warning displayed that no framework was detected
-        - Minimal invariants.md generated with universal defaults only
-        - Config generated with placeholder paths
-        - Developer guided to edit both files
-  sc_init_already_initialized:
-    parent: cuj_init
-    props:
-      name: Init when invariants.md already exists
-      given: Developer runs bantay init in a project that already has invariants.md
-      when: Bantay detects existing file
-      then:
-        - Existing invariants.md is NOT overwritten
-        - Developer warned that init was already run
-        - Option to regenerate config only
-  sc_init_speed:
-    parent: cuj_init
-    props:
-      name: Init completes quickly
-      given: Project has up to 10,000 files
-      when: Bantay scans
-      then:
-        - Init completes in under 10 seconds
-        - Scanning uses file system metadata and pattern matching, not full AST parsing
-  cuj_check:
+  cuj_bantay_check:
     parent: cujs
     props:
-      feature: Developer checks invariants against their codebase
+      feature: Developer checks invariants against the codebase with built-in, community and project checkers
       tier: primary
       area: check
-  sc_check_full:
-    parent: cuj_check
-    props:
-      name: Full invariant check
-      given: invariants.md and bantay.config.yml exist
-      when: Developer runs bantay check
-      then:
-        - Every invariant in invariants.md is evaluated against the codebase
-        - Checker resolved for each invariant (built-in, community, or project)
-        - Each invariant reports PASS or FAIL
-        - Failed invariants include file path and line number of violation
-        - Summary shows total passed, total failed, total skipped
-        - Exit code 0 if all pass, non-zero if any fail
-  sc_check_diff:
-    parent: cuj_check
-    props:
-      name: Diff-aware check
-      given: Developer has uncommitted or recent changes
-      when: Developer runs bantay check --diff HEAD~1
-      then:
-        - Only invariants that could be affected by the diff are checked
-        - Changed a route file — auth invariants run
-        - Changed a migration — schema invariants run
-        - Changed a log statement — PII invariants run
-        - Results are a strict subset of full check
-        - Any invariant that would fail on full check and is affected by the diff also fails here
-  sc_check_single:
-    parent: cuj_check
-    props:
-      name: Check single invariant
-      given: Developer wants to verify one specific invariant
-      when: Developer runs bantay check --id INV-003
-      then:
-        - Only the specified invariant is checked
-        - Result shows PASS or FAIL with details
-  sc_check_no_invariants:
-    parent: cuj_check
-    props:
-      name: Check with no invariants file
-      given: invariants.md does not exist
-      when: Developer runs bantay check
-      then:
-        - Clear error message suggesting bantay init
-        - Exit code non-zero
-  sc_check_unparseable_invariant:
-    parent: cuj_check
-    props:
-      name: Invariant with no checker available
-      given: An invariant in invariants.md references no checker or a checker that isn't installed
-      when: bantay check runs
-      then:
-        - Invariant reported as SKIPPED, not PASS
-        - Warning displayed that no checker was found
-        - Skipped invariants do not cause non-zero exit code
-  sc_check_speed:
-    parent: cuj_check
-    props:
-      name: Diff check completes quickly
-      given: Diff is 500 lines or fewer, project has 50 invariants
-      when: Developer runs bantay check --diff
-      then:
-        - Check completes in under 5 seconds
-  sc_check_no_execution:
-    parent: cuj_check
-    props:
-      name: Check never executes project code
-      given: Project contains arbitrary code
-      when: bantay check runs
-      then:
-        - No project code is imported, required, or eval'd by bantay core
-        - Built-in checkers use static analysis only
-        - Project checkers run in sandboxed subprocess with no access to bantay internals
-        - A malicious project cannot compromise the developer's machine through bantay check
-  cuj_checkers:
+  cuj_bantay_aide:
     parent: cujs
     props:
-      feature: Developer extends invariant checking with custom or community checkers
-      tier: primary
-      area: checkers
-  sc_checker_builtin:
-    parent: cuj_checkers
-    props:
-      name: Built-in checkers ship with Bantay
-      given: Developer installs @bantay/cli
-      when: bantay check runs against a standard invariant category
-      then:
-        - Built-in checkers available for auth, schema, logging, and other common patterns
-        - No additional install required
-        - Checkers are stack-aware (Next.js auth checker differs from Express auth checker)
-        - invariants.md generated by bantay init references built-in checkers by default
-  sc_checker_community:
-    parent: cuj_checkers
-    props:
-      name: Install community checker from npm
-      given: Developer needs a checker Bantay doesn't ship with
-      when: Developer installs a community checker package
-      then:
-        - bun add -d @bantay/checker-stripe installs the package
-        - Invariant in invariants.md references it by package name
-        - "Format: checker: @bantay/checker-stripe/webhook-signature"
-        - bantay check discovers and runs it automatically
-        - Community checker follows the same interface as built-in checkers
-  sc_checker_project:
-    parent: cuj_checkers
-    props:
-      name: Write a project-specific checker
-      given: Developer has an invariant unique to their codebase
-      when: Developer creates a checker in .bantay/checkers/
-      then:
-        - .bantay/checkers/my-check.ts exports a check() function
-        - "Invariant in invariants.md references it: checker: ./my-check"
-        - bantay check discovers and runs it
-        - Project checker follows the same interface as built-in checkers
-  sc_checker_sandboxed:
-    parent: cuj_checkers
-    props:
-      name: Project checkers run sandboxed
-      given: A project checker exists in .bantay/checkers/
-      when: bantay check executes the checker
-      then:
-        - Checker runs in a sandboxed subprocess
-        - Checker cannot access bantay internals
-        - Checker cannot modify files outside its output
-        - Checker receives config (source paths, schema paths) as read-only input
-        - Checker returns structured result (pass/fail, violations with file paths)
-  sc_checker_interface:
-    parent: cuj_checkers
-    props:
-      name: All checkers follow a common interface
-      given: A checker is built-in, community, or project
-      when: bantay check loads the checker
-      then:
-        - "Checker exports: { name, description, check(config) → CheckResult }"
-        - "CheckResult: { pass: boolean, violations: Array<{file, line, message}> }"
-        - Same interface regardless of where the checker comes from
-        - Checker receives bantay.config.yml paths and invariant statement as input
-  sc_checker_missing:
-    parent: cuj_checkers
-    props:
-      name: Referenced checker not found
-      given: An invariant references a checker that isn't installed or doesn't exist
-      when: bantay check attempts to load the checker
-      then:
-        - Invariant reported as SKIPPED
-        - Warning names the missing checker and suggests install command
-        - "For npm: bun add -d @bantay/checker-foo"
-        - "For project: create .bantay/checkers/foo.ts"
-  cuj_ci:
-    parent: cujs
-    props:
-      feature: Developer adds Bantay as a required check on every PR
-      tier: primary
-      area: ci
-  sc_ci_github:
-    parent: cuj_ci
-    props:
-      name: Generate GitHub Actions workflow
-      given: Developer runs bantay ci --github-actions
-      when: Bantay generates the workflow
-      then:
-        - .github/workflows/bantay.yml created
-        - Workflow runs bantay check on every PR
-        - Workflow installs Bantay via bunx
-        - Workflow installs community checker packages if referenced in invariants.md
-        - Status check reports pass/fail summary
-        - Workflow file is valid YAML that GitHub Actions accepts
-  sc_ci_gitlab:
-    parent: cuj_ci
-    props:
-      name: Generate GitLab CI config
-      given: Developer runs bantay ci --gitlab
-      when: Bantay generates the config
-      then:
-        - .gitlab-ci.yml updated with bantay stage
-        - If file already exists, Bantay stage is appended, existing stages untouched
-  sc_ci_generic:
-    parent: cuj_ci
-    props:
-      name: Generic CI instructions
-      given: Developer runs bantay ci with no flag or unsupported CI
-      when: Bantay cannot generate a specific config
-      then:
-        - Prints the shell commands needed to run bantay check in any CI
-        - Developer copies into their CI config manually
-  sc_ci_existing_workflow:
-    parent: cuj_ci
-    props:
-      name: CI generation when workflow already exists
-      given: .github/workflows/bantay.yml already exists
-      when: Developer runs bantay ci --github-actions
-      then:
-        - Existing file is NOT overwritten
-        - Developer warned and given option to overwrite with --force
-  sc_ci_audit_output:
-    parent: cuj_ci
-    props:
-      name: CI produces audit-ready output
-      given: CI check runs on a PR
-      when: All invariants are evaluated
-      then:
-        - JSON output includes timestamp, commit SHA, invariant IDs checked, pass/fail per invariant
-        - Each result includes which checker was used (built-in, community package name, or project path)
-        - Output is machine-parseable for future dashboard ingestion
-        - This is the seed of the compliance evidence trail
-  cuj_export:
-    parent: cujs
-    props:
-      feature: Developer exports invariants into agent context files
-      tier: primary
-      area: export
-  sc_export_claude:
-    parent: cuj_export
-    props:
-      name: Export to CLAUDE.md
-      given: Developer runs bantay export --target claude
-      when: Bantay writes to CLAUDE.md
-      then:
-        - Invariants section appended/replaced in CLAUDE.md
-        - Section has clear start/end markers
-        - Content outside markers is untouched
-        - Invariants formatted as rules the agent must follow
-        - File is valid markdown
-  sc_export_cursor:
-    parent: cuj_export
-    props:
-      name: Export to .cursorrules
-      given: Developer runs bantay export --target cursor
-      when: Bantay writes to .cursorrules
-      then:
-        - Invariants section appended/replaced in .cursorrules
-        - Follows Cursor's expected format
-        - Existing rules outside markers untouched
-  sc_export_codex:
-    parent: cuj_export
-    props:
-      name: Export to AGENTS.md
-      given: Developer runs bantay export --target codex
-      when: Bantay writes to AGENTS.md
-      then:
-        - Invariants section appended/replaced in AGENTS.md
-        - Works for Codex, Copilot, and any agent that reads AGENTS.md
-  sc_export_idempotent:
-    parent: cuj_export
-    props:
-      name: Export is idempotent
-      given: Developer runs export twice without changing invariants.md
-      when: Second export runs
-      then:
-        - Output file is byte-identical to first export
-        - No spurious git diffs
-  sc_export_no_clobber:
-    parent: cuj_export
-    props:
-      name: Export never destroys user content
-      given: CLAUDE.md has user-written content outside the Bantay section
-      when: bantay export runs
-      then:
-        - All content outside the delimited Bantay section is preserved exactly
-        - If no Bantay section exists, it is appended at the end
-        - If Bantay section exists, only that section is replaced
-  cuj_aide:
-    parent: cujs
-    props:
-      feature: Developer manages project aide structure and tracks changes
+      feature: Developer edits, validates, locks and inspects the .aide file
       tier: secondary
       area: aide
-  sc_aide_diff:
-    parent: cuj_aide
+  cuj_bantay_diff:
+    parent: cujs
     props:
-      name: Compare aide against lock file
-      given: Developer has bantay.aide and bantay.aide.lock files
-      when: Developer runs bantay aide diff
-      then:
-        - Shows entities ADDED (in aide but not lock)
-        - Shows entities REMOVED (in lock but not aide)
-        - Shows entities MODIFIED (hash differs)
-        - Shows relationship changes
-        - Classifies entity types by ID prefix (cuj_, sc_, inv_, con_, found_, wis_)
-        - Exit code 0 if no changes, exit code 1 if changes
-        - Supports --json flag for machine-readable output
+      feature: Developer sees aide changes since the last lock, classified by entity type
+      tier: primary
+      area: diff
+  cuj_bantay_status:
+    parent: cujs
+    props:
+      feature: Developer sees which scenarios are implemented, tested and enforced
+      tier: secondary
+      area: status
+  cuj_bantay_tasks:
+    parent: cujs
+    props:
+      feature: Developer turns aide changes into an ordered implementation task list
+      tier: primary
+      area: tasks
+  cuj_bantay_ci:
+    parent: cujs
+    props:
+      feature: Developer generates a CI workflow that runs bantay check on every PR
+      tier: primary
+      area: ci
+  cuj_bantay_export:
+    parent: cujs
+    props:
+      feature: Developer exports the aide to invariants.md, CLAUDE.md, .cursorrules, AGENTS.md and CSS tokens
+      tier: primary
+      area: export
+  cuj_bantay_visualize:
+    parent: cujs
+    props:
+      feature: Developer renders the aide as an interactive screen map, state graph and walkthrough
+      tier: primary
+      area: visualize
+  cuj_bantay_derive_graph:
+    parent: cujs
+    props:
+      feature: Bantay derives screen states and transitions from plain-English actions
+      tier: primary
+      area: derive_graph
+  cuj_bantay_journeys:
+    parent: cujs
+    props:
+      feature: Bantay clusters the state graph and proposes CUJ boundaries
+      tier: primary
+      area: journeys
+  cuj_bantay_reverse:
+    parent: cujs
+    props:
+      feature: Developer extracts an aide from an existing codebase
+      tier: primary
+      area: reverse
+  cuj_bantay_gate:
+    parent: cujs
+    props:
+      feature: Agent asks the decision oracle whether a proposed change is a declared transition
+      tier: primary
+      area: gate
+  cuj_bantay_orchestrate:
+    parent: cujs
+    props:
+      feature: "Team lead runs the orchestrated build: foundation, plans, gated teammates"
+      tier: primary
+      area: orchestrate
+  cuj_bantay_formalize:
+    parent: cujs
+    props:
+      feature: Developer exports invariants to formal-verification targets and checks proofs
+      tier: secondary
+      area: formalize
   inv_bun_available:
     parent: invariants
     props:
@@ -429,62 +140,6 @@ entities:
       threat_signal: Command fails with cryptic error instead of clear install instructions
       enforced: src/cli.ts
       done: true
-  inv_cli_invocable:
-    parent: invariants
-    props:
-      statement: bantay command resolves to the CLI entry point via bin field in package.json
-      category: prerequisites
-      threat_signal: User must type bun run src/cli.ts instead of bantay
-      done: false
-      checker: ./bin-field
-  inv_no_false_negatives:
-    parent: invariants
-    props:
-      statement: bantay check never reports PASS for a violated invariant
-      category: correctness
-      threat_signal: Violated invariant merged to main without detection
-      done: false
-      test: tests/meta/false-negatives.test.ts
-  inv_exit_code:
-    parent: invariants
-    props:
-      statement: bantay check exits non-zero when any invariant is violated
-      category: correctness
-      threat_signal: CI pipeline passes despite invariant violation
-      done: false
-      checker: ./exit-code
-  inv_diff_subset:
-    parent: invariants
-    props:
-      statement: bantay check --diff results are a strict subset of bantay check full results
-      category: correctness
-      threat_signal: Diff check misses violation that full check catches
-      done: false
-      test: tests/meta/diff-subset.test.ts
-  inv_checker_interface_uniform:
-    parent: invariants
-    props:
-      statement: All checkers — built-in, community, and project — implement the same interface and return the same result shape
-      category: correctness
-      threat_signal: Community or project checker returns unexpected shape causing runtime error in bantay check
-      done: false
-      checker: ./checker-interface
-  inv_export_idempotent:
-    parent: invariants
-    props:
-      statement: Running bantay export twice produces identical output
-      category: integrity
-      threat_signal: Spurious git diffs after export
-      done: false
-      checker: ./export-idempotent
-  inv_no_clobber:
-    parent: invariants
-    props:
-      statement: bantay export never modifies content outside its delimited section
-      category: integrity
-      threat_signal: User content in CLAUDE.md altered after export
-      done: false
-      checker: ./no-clobber
   inv_no_code_execution:
     parent: invariants
     props:
@@ -493,14 +148,6 @@ entities:
       threat_signal: Arbitrary code execution triggered by scanning a project
       done: false
       checker: ./no-eval
-  inv_checker_sandboxed:
-    parent: invariants
-    props:
-      statement: Project and community checkers run in a sandboxed subprocess with no access to bantay internals or the ability to modify files
-      category: security
-      threat_signal: Malicious project checker escapes sandbox and modifies codebase or exfiltrates data
-      done: false
-      checker: ./checker-sandboxed
   inv_no_inline_shell:
     parent: invariants
     props:
@@ -509,22 +156,6 @@ entities:
       threat_signal: "User adds check: rm -rf / to invariants.md and bantay executes it"
       done: false
       checker: ./no-inline-shell
-  inv_no_network:
-    parent: invariants
-    props:
-      statement: Bantay CLI makes zero network requests during init, check, ci, or export
-      category: security
-      threat_signal: DNS or HTTP request observed during offline operation
-      done: false
-      checker: ./no-network
-  inv_no_source_modification:
-    parent: invariants
-    props:
-      statement: Bantay never modifies project source files
-      category: security
-      threat_signal: Project source file changed after bantay check
-      done: false
-      checker: ./no-source-modification
   inv_stable_ids:
     parent: invariants
     props:
@@ -533,22 +164,6 @@ entities:
       threat_signal: Invariant ID changes when text is edited, breaking audit trail continuity
       done: false
       checker: ./stable-ids
-  inv_ci_output_parseable:
-    parent: invariants
-    props:
-      statement: CI check output includes machine-parseable JSON with timestamp, commit SHA, and per-invariant results
-      category: auditability
-      threat_signal: CI output is human-readable only, no structured data for dashboard ingestion
-      done: false
-      test: tests/meta/ci-output.test.ts
-  inv_init_no_overwrite:
-    parent: invariants
-    props:
-      statement: bantay init never overwrites an existing invariants.md
-      category: trust
-      threat_signal: User's hand-edited invariants destroyed by re-running init
-      done: false
-      checker: ./init-no-overwrite
   inv_check_speed:
     parent: invariants
     props:
@@ -563,54 +178,12 @@ entities:
       text: Built with Bun. Published to npm. Consumable via bunx or npx.
       domain: stack
       rationale: Claude Code ships as a Bun executable. Anthropic acquired Bun. The primary user already has Bun on their machine. bun init generates CLAUDE.md. The toolchain is pre-wired. npm distribution ensures Node users aren't excluded.
-  con_bin_field:
-    parent: constraints
-    props:
-      text: package.json bin field maps 'bantay' to src/cli.ts. Bun runs TypeScript directly — no build step.
-      domain: stack
-      rationale: A CLI that can't be invoked by its name isn't a CLI. The bin field is what makes bunx @bantay/cli init, bun link, and npm global install work. Without it the user types bun run src/cli.ts which is not a product.
-  con_three_tier_checkers:
-    parent: constraints
-    props:
-      text: "Checkers exist at three tiers: built-in (ship with @bantay/cli), community (npm packages like @bantay/checker-stripe), and project (.bantay/checkers/*.ts in the repo). All three tiers implement the same interface. Resolution order: project > community > built-in."
-      domain: architecture
-      rationale: Built-in checkers make bantay init useful on day one. Community checkers create a network effect and ecosystem moat. Project checkers let any team enforce rules specific to their codebase without publishing a package. Same interface across all three means bantay check doesn't care where a checker comes from.
-  con_checker_interface:
-    parent: constraints
-    props:
-      text: "Every checker exports { name: string, description: string, check(config: CheckerConfig) → CheckResult }. CheckResult is { pass: boolean, violations: Array<{file: string, line: number, message: string}> }. No exceptions. No extensions to the interface without a version bump."
-      domain: architecture
-      rationale: A uniform interface means bantay check can load any checker without special-casing. It means community authors know exactly what to implement. It means the CI audit output has a consistent shape. The interface is the contract between bantay and the checker ecosystem.
   con_no_inline_shell:
     parent: constraints
     props:
       text: "invariants.md never contains executable code. No check: fields with shell commands. All enforcement goes through checker modules (built-in, community, or project)."
       domain: security
       rationale: Inline shell commands in invariants.md would mean Bantay executes arbitrary user code during bantay check. This violates inv_no_code_execution. A malicious invariants.md could run destructive commands. Checker modules in .bantay/checkers/ are sandboxed and explicit. Shell strings in markdown are neither.
-  con_static_analysis_only:
-    parent: constraints
-    props:
-      text: Built-in checkers use static analysis only — AST parsing, glob, regex, schema inspection. No project code execution.
-      domain: security
-      rationale: Built-in checkers run in the bantay process, not sandboxed. They must be safe by construction. Static analysis means they read files but never execute them. Project and community checkers CAN execute code, but only in a sandboxed subprocess — different trust boundary.
-  con_invariants_md_is_truth:
-    parent: constraints
-    props:
-      text: invariants.md is the single source of truth for all enforcement. No invariant is enforced that isn't in this file.
-      domain: architecture
-      rationale: One file, one place to look, one thing to edit. If enforcement could come from config, from hidden defaults, or from the checker itself, trust breaks. The user must be able to read invariants.md and know exactly what's being enforced.
-  con_section_markers:
-    parent: constraints
-    props:
-      text: "Agent context exports use unambiguous start/end markers that regex can find. Format: <!-- bantay:start --> and <!-- bantay:end -->."
-      domain: export
-      rationale: The export must be able to find and replace its own section without parsing the full markdown document. HTML comments are invisible in rendered markdown and won't collide with user content.
-  con_json_audit_output:
-    parent: constraints
-    props:
-      text: CI check emits structured JSON to stdout. Human-readable summary to stderr. Never mixed.
-      domain: ci
-      rationale: CI systems parse stdout. Humans read stderr. Mixing them breaks piping, breaks parsers, and makes the audit trail unreliable. JSON on stdout is the seed of the compliance evidence trail that the Dashboard will ingest.
   con_checker_registry:
     parent: constraints
     props:
@@ -686,7 +259,7 @@ entities:
   wis_implicit_prerequisites:
     parent: wisdom
     props:
-      text: "\"Built with Bun\" is a constraint. \"Bun must be installed\" is an invariant. The aide captured the architectural decision but missed the prerequisite. Every constraint implies a runtime invariant. Check for this pattern on every new constraint."
+      text: '"Built with Bun" is a constraint. "Bun must be installed" is an invariant. The aide captured the architectural decision but missed the prerequisite. Every constraint implies a runtime invariant. Check for this pattern on every new constraint.'
   wis_cli_binary:
     parent: wisdom
     props:
@@ -715,20 +288,6 @@ entities:
     parent: wisdom
     props:
       text: enforced_by was renamed to protected_by because the original read backwards. A scenario says 'sc_login protected_by inv_auth_check' — the invariant protects the scenario, not enforces it. The new name reads correctly in both directions.
-  sc_aide_init:
-    parent: cuj_aide
-    props:
-      name: Initialize a new aide file
-      given: Developer runs bantay aide init in a project
-      when: No .aide file exists
-      then: <dirname>.aide created with skeleton structure
-  sc_aide_discovery:
-    parent: cuj_aide
-    props:
-      name: Auto-discover aide file
-      given: Developer runs any bantay aide subcommand
-      when: Exactly one .aide file exists in the directory
-      then: That file is used without --aide flag
   wis_aide_naming:
     parent: wisdom
     props:
@@ -743,260 +302,14 @@ entities:
     parent: wisdom
     props:
       text: "The interview prompt must cover all entity types: CUJs, scenarios, invariants with threat signals, constraints with rationale, foundations, wisdom, and all relationship types (protected_by, depends_on, implements). Missing any section produces an incomplete aide."
-  cuj_tasks:
-    parent: cujs
-    props:
-      feature: Developer generates a task list from the aide
-      tier: primary
-      area: tasks
-  sc_tasks_all:
-    parent: cuj_tasks
-    props:
-      name: Generate tasks for full aide
-      given: Developer runs bantay tasks --all
-      when: Bantay reads the full aide
-      then: Task list generated for every CUJ, ordered by depends_on
-  sc_tasks_diff:
-    parent: cuj_tasks
-    props:
-      name: Generate tasks from diff
-      given: Aide has changed since lock
-      when: Developer runs bantay tasks
-      then: Tasks generated only for added or modified entities
-  sc_tasks_phases:
-    parent: cuj_tasks
-    props:
-      name: Tasks ordered into phases by dependencies
-      given: CUJs have depends_on relationships
-      when: bantay tasks generates the list
-      then: CUJs with no dependencies come first, dependent CUJs come after
-  sc_tasks_output:
-    parent: cuj_tasks
-    props:
-      name: Tasks written to tasks.md
-      given: Task generation completes
-      when: bantay tasks finishes
-      then: tasks.md created with phases, scenarios as acceptance criteria, and checklist format
-  cuj_orchestrate:
-    parent: cujs
-    props:
-      feature: Developer orchestrates multi-agent builds from aide
-      tier: primary
-      area: orchestrate
-  sc_orchestrate_spawn:
-    parent: cuj_orchestrate
-    props:
-      name: Spawn teammates for CUJ phases
-      given: Developer runs /bantay-orchestrate
-      when: Bantay orchestrates the build
-      then: Maximum 2 teammates spawned at a time. Each teammate monitors context usage after every scenario — compact at 50%, request restart at 80%.
   wis_agent_team_limits:
     parent: wisdom
     props:
       text: Limit Agent Teams to 1 lead + 2 teammates max. Rate limits on Max 100 are real. 3 concurrent agents hit the ceiling in under an hour. 2 is sustainable for a full build session.
-  sc_orchestrate_plan:
-    parent: cuj_orchestrate
-    props:
-      name: Write plan before spawning teammates
-      given: Lead is about to spawn teammates for a CUJ
-      when: Lead prepares the CUJ work assignment
-      then: Lead writes .bantay/plans/<cuj_id>.md with ordered implementation steps, then validates plan against aide, codebase, interfaces, dependencies, and invariants before committing
-  sc_orchestrate_validate_plan:
-    parent: cuj_orchestrate
-    props:
-      name: Validate plan before committing
-      given: Lead has written a plan for a CUJ
-      when: Lead runs the 5-point validation checklist
-      then: Plan is verified against aide scenarios, file references, interface contracts, dependency order, and invariant coverage. Only committed after all checks pass.
-  inv_plan_validated:
-    parent: invariants
-    props:
-      statement: "No plan is committed without passing all 5 validation checks: aide coverage, file references, interface contracts, dependency check, invariant coverage"
-      category: orchestration
-      threat_signal: Lead hallucinates file paths or API signatures in plan, teammate builds against nonexistent code, entire CUJ wasted
   wis_plan_danger:
     parent: wisdom
     props:
       text: Plans are the most dangerous artifact because nothing checks them before a teammate burns a full context window executing them. Validate every file reference, every interface, every dependency against the actual filesystem and aide before committing the plan.
-  sc_diff_classified:
-    parent: cuj_check
-    props:
-      name: bantay diff classifies aide changes by entity type
-      given: Aide has changed since lock
-      when: Developer runs bantay diff
-      then: Each change from aide diff is tagged with entity type and implied corrective action
-  sc_tasks_entity_level:
-    parent: cuj_tasks
-    props:
-      name: Tasks generated for individual entity changes not just CUJ changes
-      given: bantay diff reports a new or modified scenario under an existing CUJ
-      when: bantay tasks reads the diff
-      then: Task generated for the individual scenario even if the parent CUJ is unchanged
-  sc_diff_design_token:
-    parent: cuj_check
-    props:
-      name: bantay diff classifies design token changes
-      given: A design_system child entity changed since lock
-      when: Developer runs bantay diff
-      then: "Change classified as type: design_token with corrective action: screenshot diff + human review"
-  sc_tasks_design_token:
-    parent: cuj_tasks
-    props:
-      name: bantay tasks routes design token changes to visual review
-      given: bantay diff reports a design_token change
-      when: bantay tasks generates the work plan
-      then: "Task generated: apply token change to components, run screenshot diff against baselines, flag for human review"
-  sc_tasks_all_entity_types:
-    parent: cuj_tasks
-    props:
-      name: Tasks generated for all entity types not just scenarios
-      given: bantay diff reports any entity change (constraint, foundation, invariant, design_token, wisdom, relationship)
-      when: bantay tasks reads the diff
-      then: "Corrective action generated per entity type: design_token → apply tokens to code, constraint → enforce in codebase, foundation → apply to project, invariant → write checker, wisdom → update exports"
-  cuj_visualize_map:
-    parent: cujs
-    props:
-      feature: Developer views the full screen map with draggable screens, transition arrows, and zoom/pan controls
-      tier: primary
-      area: visualize
-  cuj_visualize_walkthrough:
-    parent: cujs
-    props:
-      feature: Developer steps through a CUJ scenario by scenario with screen preview and given/when/then details
-      tier: primary
-      area: visualize
-  cuj_visualize_generate:
-    parent: cujs
-    props:
-      feature: Developer runs bantay visualize to generate an HTML screen map from any aide
-      tier: primary
-      area: visualize
-  sc_visualize_with_screens:
-    parent: cuj_visualize_generate
-    props:
-      name: Generate visualizer from aide with screen entities
-      given: Aide file has screen and component entities
-      when: Developer runs bantay visualize
-      then: HTML file generated with screen wireframes composed from components and design tokens
-  sc_visualize_without_screens:
-    parent: cuj_visualize_generate
-    props:
-      name: Generate visualizer from aide without screen entities
-      given: Aide file has CUJs and scenarios but no screen entities
-      when: Developer runs bantay visualize
-      then: Screens inferred from scenario given/then states, rendered as placeholder cards
-  sc_visualize_output_file:
-    parent: cuj_visualize_generate
-    props:
-      name: Output is a single self-contained HTML file
-      given: Developer runs bantay visualize
-      when: Generation completes
-      then: Single HTML file with zero external dependencies written to project root
-  sc_map_view_screens:
-    parent: cuj_visualize_map
-    props:
-      name: View all screens on canvas
-      given: Developer opens the visualizer
-      when: Map mode loads
-      then: All screens rendered as cards on a pannable canvas with transition arrows between them
-  sc_map_drag_screen:
-    parent: cuj_visualize_map
-    props:
-      name: Drag screen to reposition
-      given: Developer viewing the map
-      when: Developer drags a screen card
-      then: Screen snaps to 20px grid, all connected arrows update live
-  sc_map_zoom:
-    parent: cuj_visualize_map
-    props:
-      name: Zoom in and out
-      given: Developer viewing the map
-      when: Developer uses scroll wheel or toolbar buttons
-      then: Canvas zooms with percentage displayed, fit-all and reset buttons available
-  sc_map_pan:
-    parent: cuj_visualize_map
-    props:
-      name: Pan the canvas
-      given: Developer viewing the map
-      when: Developer clicks and drags on empty canvas
-      then: Canvas pans, screens and arrows move together
-  sc_map_arrows_component_level:
-    parent: cuj_visualize_map
-    props:
-      name: Arrows connect to specific components
-      given: A scenario transitions between screens via a specific component
-      when: Map renders the transition
-      then: Arrow starts from the specific component element, not the screen card edge
-  sc_map_self_loops:
-    parent: cuj_visualize_map
-    props:
-      name: Same-screen actions shown as self-loops
-      given: Multiple scenarios stay on the same screen
-      when: Map renders transitions
-      then: Self-loop arc above the screen with action label
-  sc_map_external_labels:
-    parent: cuj_visualize_map
-    props:
-      name: Screen IDs and invariants shown as external labels
-      given: Screen has an ID and linked invariants
-      when: Map renders the screen
-      then: Screen ID floats above the card, invariant IDs float below
-  sc_walk_pick_cuj:
-    parent: cuj_visualize_walkthrough
-    props:
-      name: Pick a CUJ to walk through
-      given: Developer switches to walkthrough mode
-      when: Developer selects a CUJ from the picker
-      then: First scenario displayed with screen preview and given/when/then
-  sc_walk_step_forward:
-    parent: cuj_visualize_walkthrough
-    props:
-      name: Step forward through scenarios
-      given: Developer viewing a scenario
-      when: Developer clicks Next or presses arrow right
-      then: Next scenario displayed, screen transitions if screen changes
-  sc_walk_step_back:
-    parent: cuj_visualize_walkthrough
-    props:
-      name: Step backward through scenarios
-      given: Developer past the first scenario
-      when: Developer clicks Back or presses arrow left
-      then: Previous scenario displayed
-  sc_walk_progress_dots:
-    parent: cuj_visualize_walkthrough
-    props:
-      name: Progress dots show position in journey
-      given: Developer walking through a CUJ
-      when: Each step renders
-      then: Dots show completed, current, and remaining steps
-  sc_walk_screen_transition:
-    parent: cuj_visualize_walkthrough
-    props:
-      name: Screen transitions animate on navigation change
-      given: Current scenario is on screen A
-      when: Next scenario is on screen B
-      then: Screen preview animates from A to B with slide transition
-  sc_walk_invariants_shown:
-    parent: cuj_visualize_walkthrough
-    props:
-      name: Invariants displayed for each scenario
-      given: Scenario has protected_by relationships
-      when: Scenario step renders
-      then: Linked invariants shown in the detail panel
-  inv_visualize_self_contained:
-    parent: invariants
-    props:
-      statement: Generated visualizer HTML must be a single file with zero external dependencies
-      category: portability
-      threat_signal: External CSS, JS, or font imports that fail offline
-      test: tests/visualize-command.test.ts
-  inv_visualize_aide_agnostic:
-    parent: invariants
-    props:
-      statement: The visualizer engine must render any valid aide, not just spout or bantay
-      category: integrity
-      threat_signal: Hardcoded screen names, CUJ IDs, or product-specific content in the engine
-      test: tests/visualize-command.test.ts
   inv_m3_component_types:
     parent: invariants
     props:
@@ -1009,640 +322,153 @@ entities:
     props:
       text: "Visualizer has two modes toggled via a bar at the top: Map and Walkthrough. Map is the default view."
       domain: visualize
-  sc_tasks_metadata_only:
-    parent: cuj_tasks
-    props:
-      name: Metadata-only changes do not trigger implementation tasks
-      given: A scenario was modified but only non-behavioral props changed (e.g. screen prop added)
-      when: bantay tasks reads the classified diff
-      then: No implementation task generated for that scenario, only metadata update tasks if applicable
-  cuj_export_css:
-    parent: cujs
-    props:
-      feature: Bantay exports CSS variables from structured design token entities in the aide
-      tier: primary
-      area: export
-  sc_export_css_from_tokens:
-    parent: cuj_export_css
-    props:
-      name: Generate CSS variables from design token entities
-      given: Aide has entities under design_system with typed token props (colors, spacing, typography)
-      when: Developer runs bantay export css
-      then: CSS file generated with :root variables matching token names and values
-  sc_export_css_idempotent:
-    parent: cuj_export_css
-    props:
-      name: CSS export is idempotent
-      given: CSS file already exists
-      when: Developer runs bantay export css again
-      then: Output is byte-identical if tokens haven't changed
-  sc_visualize_injects_tokens:
-    parent: cuj_visualize_generate
-    props:
-      name: Visualizer injects CSS variables into generated HTML
-      given: Aide has design token entities
-      when: bantay visualize generates the HTML
-      then: CSS variables from tokens are embedded in a style block so wireframes can reference them
-  sc_visualize_renders_wireframes:
-    parent: cuj_visualize_generate
-    props:
-      name: Visualizer renders wireframe HTML files inside component boxes
-      given: wireframes/<comp_id>.html exists for a component
-      when: bantay visualize renders a screen containing that component
-      then: Wireframe HTML injected into the component box instead of description text
-  sc_visualize_fallback:
-    parent: cuj_visualize_generate
-    props:
-      name: Visualizer falls back to description when no wireframe file exists
-      given: No wireframes/<comp_id>.html exists for a component
-      when: bantay visualize renders a screen containing that component
-      then: Component box shows comp name and description text (current behavior)
-  inv_wireframe_per_component:
+  inv_oracle_fails_closed:
     parent: invariants
     props:
-      statement: Every component entity in the aide must have a corresponding wireframe file at wireframes/<comp_id>.html
-      category: design_integrity
-      threat_signal: Component added to aide without wireframe file, visualizer falls back to text description instead of rendering actual wireframe
-  sc_check_wireframe_exists:
-    parent: cuj_check
+      statement: A decision-oracle error or missing answer yields skipped (check) or escalate (gate), never pass or allow
+      category: governance
+      threat_signal: Oracle outage or malformed response silently green-lights a change
+      test: tests/check-oracle.test.ts
+  con_decision_model_interface:
+    parent: constraints
     props:
-      name: Checker verifies wireframe file exists for each component
-      given: Aide has component entities (comp_*)
-      when: bantay check runs
-      then: Each component entity checked for wireframes/<comp_id>.html, missing files reported as failures
-  sc_visualize_wireframe_variants:
-    parent: cuj_visualize_generate
-    props:
-      name: Visualizer renders component wireframe variants based on scenario state
-      given: "A scenario has component state props (e.g. comp_timer: idle)"
-      when: bantay visualize renders the walkthrough step for that scenario
-      then: Engine looks up wireframes/comp_timer--idle.html. If found, renders it. If not, falls back to wireframes/comp_timer.html
-  sc_visualize_map_default_variants:
-    parent: cuj_visualize_map
-    props:
-      name: Map view uses default wireframe variants
-      given: Map view renders all screens
-      when: No scenario context is available
-      then: Map view uses the default wireframe (no variant suffix) for all components
-  inv_wireframe_variant_fallback:
-    parent: invariants
-    props:
-      statement: If a scenario references a component variant that has no wireframe file, the engine falls back to the default wireframe without error
-      category: design_integrity
-      threat_signal: Missing variant file causes blank component or render error
-  sc_walk_scenario_list:
-    parent: cuj_visualize_walkthrough
-    props:
-      name: Walkthrough shows all CUJs and scenarios as navigable list
-      given: Developer opens walkthrough mode
-      when: Walkthrough renders
-      then: Left sidebar shows all CUJs grouped by area with scenarios listed under each. Current scenario highlighted. Clicking any scenario jumps to that step.
-  sc_walk_direct_jump:
-    parent: cuj_visualize_walkthrough
-    props:
-      name: Click any scenario to jump directly to it
-      given: Developer viewing the scenario list
-      when: Developer clicks a scenario in the sidebar
-      then: Walkthrough jumps to that CUJ and scenario step, screen preview updates
-  sc_map_sidebar_list:
-    parent: cuj_visualize_map
-    props:
-      name: Persistent sidebar shared between map and walkthrough
-      given: Developer opens the visualizer
-      when: Any view renders
-      then: Left sidebar with CUJ/scenario list is always visible and is the same DOM element in both map and walkthrough views. Selecting a scenario in the sidebar updates whichever view is active.
-  sc_map_click_scenario_highlights:
-    parent: cuj_visualize_map
-    props:
-      name: Clicking a scenario auto-selects its CUJ and highlights the card
-      given: Developer clicks any scenario in the sidebar
-      when: The scenario belongs to a CUJ
-      then: The CUJ's storyboard renders automatically, the clicked scenario's card is highlighted and auto-panned to center
-  sc_map_linear_layout:
-    parent: cuj_visualize_map
-    props:
-      name: Storyboard shows unique screen states, not one card per scenario
-      given: Developer selects a CUJ in the map sidebar
-      when: Storyboard renders
-      then: One card per unique (screen + component state) combination. Scenarios that share the same screen and state map to the same card. Cards ordered by first scenario appearance. Transition arrows only between cards with different states.
-  sc_map_default_all_screens:
-    parent: cuj_visualize_map
-    props:
-      name: Default view shows one screen per screen entity
-      given: Developer opens map with no CUJ selected
-      when: Map renders
-      then: Deduplicated screens shown (one per screen entity) with all transition arrows
-  sc_map_screen_min_height:
-    parent: cuj_visualize_map
-    props:
-      name: Map screens use mobile portrait aspect ratio
-      given: Map renders screen cards
-      when: Screens are sized
-      then: Each screen card has min-height 476px (iPhone portrait ratio at 220px width)
-  sc_map_resizable_panels:
-    parent: cuj_visualize_map
-    props:
-      name: Map sidebar width is adjustable
-      given: Developer viewing the map
-      when: Developer drags the divider between sidebar and canvas
-      then: Sidebar width adjusts, canvas reflows, preference persists during session
-  sc_walk_resizable_panels:
-    parent: cuj_visualize_walkthrough
-    props:
-      name: Walkthrough panel widths are adjustable
-      given: Developer viewing walkthrough
-      when: Developer drags panel dividers
-      then: Panel widths adjust, screen preview recenters
-  sc_view_switch_preserves_selection:
-    parent: cuj_visualize_map
-    props:
-      name: Switching views preserves selected scenario
-      given: Developer has a scenario highlighted in map view
-      when: Developer switches to walkthrough
-      then: Same CUJ and scenario are selected in walkthrough, and vice versa
-  sc_panels_full_height:
-    parent: cuj_visualize_map
-    props:
-      name: Panels extend full window height
-      given: Developer opens the visualizer
-      when: Page renders
-      then: Sidebar and canvas fill the full viewport height minus the mode bar
-  sc_sidebar_independent_scroll:
-    parent: cuj_visualize_map
-    props:
-      name: Sidebar scrolls independently from canvas
-      given: Developer hovers over the sidebar
-      when: Developer scrolls with mouse wheel
-      then: Only the sidebar scrolls. Canvas does not zoom or pan.
-  sc_mode_toggle_in_canvas:
-    parent: cuj_visualize_map
-    props:
-      name: Map/Walkthrough toggle lives inside the canvas panel
-      given: Developer opens the visualizer
-      when: Page renders
-      then: Mode toggle (Map/Walkthrough) is positioned inside the right canvas panel, not in a top-level bar. The sidebar is visually higher in hierarchy than the toggle.
-  sc_map_labels_hidden_default:
-    parent: cuj_visualize_map
-    props:
-      name: Screen and component IDs hidden by default
-      given: Developer opens the visualizer
-      when: Map or walkthrough renders
-      then: Screen IDs (s-tag), component IDs (comp-label), and variant names are not visible
-  sc_map_debug_overlay:
-    parent: cuj_visualize_map
-    props:
-      name: Debug overlay toggle shows IDs and bounding boxes
-      given: Developer wants to see screen and component IDs
-      when: Developer clicks the debug overlay toggle button
-      then: Semi-transparent overlay appears on all screens showing screen ID at top, dashed bounding box around each component with component ID and variant name. Overlay is slightly opaque so wireframe content is still visible underneath.
-  sc_single_screen_instance:
-    parent: cuj_visualize_generate
-    props:
-      name: Map and walkthrough share a single screen DOM element
-      given: A scenario is selected
-      when: The screen preview renders
-      then: The same DOM element is used in both map and walkthrough views. Switching modes reparents the element, not recreates it.
-  sc_map_keyboard_nav:
-    parent: cuj_visualize_map
-    props:
-      name: Arrow keys navigate between scenarios within the current CUJ in map mode
-      given: Developer has a scenario highlighted in map storyboard
-      when: Developer presses left or right arrow key
-      then: Highlight moves to the previous or next scenario within the same CUJ. Does not wrap around or jump to a different CUJ. No-ops at the first and last scenario.
-  cuj_visualize_graph:
-    parent: cujs
-    props:
-      feature: Visualizer renders a state-transition graph from screen states and transitions in the aide
-      tier: primary
-      area: visualize
-  sc_graph_nodes_from_states:
-    parent: cuj_visualize_graph
-    props:
-      name: Graph nodes from screen state entities
-      given: Aide has st_* entities with screen and component variant props
-      when: bantay visualize generates the graph view
-      then: Each st_* entity renders as a node showing the screen wireframe with component variants applied
-  sc_graph_edges_from_transitions:
-    parent: cuj_visualize_graph
-    props:
-      name: Graph edges from transition entities
-      given: Aide has tr_* entities with from, to, and action props
-      when: bantay visualize generates the graph view
-      then: Each tr_* entity renders as a directed edge between its from and to screen states with the action as a label
-  sc_graph_highlight_scenario_path:
-    parent: cuj_visualize_graph
-    props:
-      name: Selecting a scenario highlights its path through the graph
-      given: A scenario has a path prop listing transition IDs
-      when: Developer clicks the scenario in the sidebar
-      then: The transitions in the path and their connected screen states are highlighted. All other nodes dim to 0.2 opacity.
-  sc_storyboard_from_path:
-    parent: cuj_visualize_graph
-    props:
-      name: Storyboard renders scenario path as horizontal strip
-      given: A scenario has a path prop listing transition IDs
-      when: Developer views the storyboard for that scenario
-      then: Screen states are rendered left to right in path order with transition arrows between them. Each screen shows the wireframe with variant state.
-  sc_graph_trigger_prop:
-    parent: cuj_visualize_graph
-    props:
-      name: Transition trigger identifies which UI element is tapped
-      given: A transition has a trigger prop referencing a component or action
-      when: The transition edge is rendered
-      then: The label on the edge shows the action text. In debug mode the trigger element is highlighted on the source screen.
-  sc_graph_default_view:
-    parent: cuj_visualize_graph
-    props: {}
-  sc_visualize_exclude_containers:
-    parent: cuj_visualize_generate
-    props: {}
-  cuj_derive_graph:
-    parent: cujs
-    props:
-      feature: Bantay derives screen states and transitions from plain-English actions in the aide
-      tier: primary
-      area: graph
-  sc_derive_states:
-    parent: cuj_derive_graph
-    props:
-      name: Derive screen states from actions
-      given: Aide has actions described as what the user sees and does
-      when: Developer runs bantay derive-graph
-      then: Unique screen states (st_*) are generated by identifying distinct combinations of screen + component variants mentioned in actions
-  sc_derive_transitions:
-    parent: cuj_derive_graph
-    props:
-      name: Derive transitions from actions
-      given: Aide has actions with trigger and outcome
-      when: Developer runs bantay derive-graph
-      then: Transitions (tr_*) are generated from each action, connecting the before-state to the after-state with the action as label and trigger component identified
-  sc_derive_preview:
-    parent: cuj_derive_graph
-    props:
-      name: Preview derived graph before writing
-      given: Developer runs bantay derive-graph
-      when: Derivation completes
-      then: "Summary shown: N states, M transitions. Full list printed. Nothing written to aide until developer approves."
-  sc_derive_diff:
-    parent: cuj_derive_graph
-    props:
-      name: Show diff against existing graph
-      given: Aide already has st_* and tr_* entities
-      when: Developer runs bantay derive-graph
-      then: Shows what would be added, removed, or changed compared to existing graph entities. Developer approves before applying.
-  sc_derive_idempotent:
-    parent: cuj_derive_graph
-    props:
-      name: Derivation is idempotent
-      given: Graph was already derived and actions haven't changed
-      when: Developer runs bantay derive-graph again
-      then: No changes proposed
-  cuj_journeys:
-    parent: cujs
-    props:
-      feature: Bantay clusters the state-transition graph and proposes CUJ boundaries
-      tier: primary
-      area: graph
-  sc_journeys_cluster:
-    parent: cuj_journeys
-    props:
-      name: Cluster states by screen identity
-      given: Aide has st_* entities with screen props
-      when: Developer runs bantay journeys
-      then: States grouped by their screen prop into clusters. Each cluster named after the screen.
-  sc_journeys_handoffs:
-    parent: cuj_journeys
-    props:
-      name: Identify handoff transitions between clusters
-      given: Graph has transitions between states in different clusters
-      when: Developer runs bantay journeys
-      then: Handoff transitions listed with from-cluster and to-cluster. These are the natural CUJ boundaries.
-  sc_journeys_entry_goal:
-    parent: cuj_journeys
-    props:
-      name: Find entry points and goal states
-      given: Graph has transitions from st_external
-      when: Developer runs bantay journeys
-      then: Entry states (reachable from external) and goal states (where users rest or accomplish something) identified
-  sc_journeys_propose:
-    parent: cuj_journeys
-    props:
-      name: Propose journeys as paths through clusters
-      given: Clusters, handoffs, entries, and goals identified
-      when: Developer runs bantay journeys
-      then: Candidate journeys proposed as named paths from entry to goal through handoff edges. Developer approves, renames, or adjusts.
-  sc_journeys_mece:
-    parent: cuj_journeys
-    props:
-      name: MECE check on proposed journeys
-      given: Journeys proposed
-      when: Developer reviews
-      then: Every transition in the graph belongs to at least one journey. No journey is a subset of another. Gaps and overlaps reported.
-  sc_journeys_scenarios:
-    parent: cuj_journeys
-    props:
-      name: Generate scenarios as path permutations
-      given: Journeys approved
-      when: Developer runs bantay journeys --scenarios
-      then: For each journey, enumerate distinct paths through the graph (different entry points, branches). Each path becomes a scenario with a given and a path prop.
-  sc_journeys_prompt:
-    parent: cuj_journeys
-    props:
-      name: Generate prompt for LLM journey analysis
-      given: Aide has screen states and transitions
-      when: Developer runs bantay journeys --prompt
-      then: Formatted prompt output with all states, transitions, and instructions for the LLM to propose journeys
-  sc_journeys_apply:
-    parent: cuj_journeys
-    props:
-      name: Apply journey proposals from JSON file
-      given: Developer has a journeys.json from LLM output
-      when: Developer runs bantay journeys --apply journeys.json
-      then: Diffs proposed journeys against existing CUJs. Shows matches, new, merged, and orphaned. Asks for confirmation before writing.
-  sc_journeys_apply_match:
-    parent: cuj_journeys
-    props:
-      name: Match proposed journeys to existing CUJs by transition overlap
-      given: Aide has existing CUJs with scenario paths
-      when: bantay journeys --apply runs
-      then: Each proposed journey matched to existing CUJ if 80%+ of core transitions overlap. Unmatched journeys are new. Unmatched CUJs are orphaned.
-  sc_journeys_apply_no_duplicates:
-    parent: cuj_journeys
-    props:
-      name: Apply never creates duplicate CUJs
-      given: A proposed journey matches an existing CUJ
-      when: Developer approves the update
-      then: Existing CUJ is updated in place, not duplicated. Scenarios are merged or replaced.
-  cuj_reverse:
-    parent: cujs
-    props:
-      feature: Bantay extracts or reconciles an aide from existing code
-      tier: primary
-      area: reverse
-  sc_reverse_fresh:
-    parent: cuj_reverse
-    props:
-      name: Extract aide from code with no existing aide
-      given: A codebase with no .aide file
-      when: Developer runs bantay reverse --prompt
-      then: Structured prompt output with codebase summary for the LLM to propose a complete aide
-  sc_reverse_reconcile:
-    parent: cuj_reverse
-    props:
-      name: Reconcile code changes against existing aide
-      given: A codebase with an existing .aide file where code has drifted
-      when: Developer runs bantay reverse --prompt
-      then: Prompt includes both codebase summary and current aide contents. LLM proposes aide updates for new, changed, and missing entities.
-  sc_reverse_apply:
-    parent: cuj_reverse
-    props:
-      name: Apply reverse proposals from JSON
-      given: Developer has proposals from LLM output
-      when: Developer runs bantay reverse --apply proposals.json --confirm
-      then: Diffs proposals against existing aide. Applies new, updated, and removes orphaned entities.
-  sc_reverse_focus:
-    parent: cuj_reverse
-    props:
-      name: Focus scan on specific part of codebase
-      given: Large codebase
-      when: Developer runs bantay reverse --prompt --focus=frontend
-      then: Only frontend code scanned and included in prompt
-  sc_reverse_data_model:
-    parent: cuj_reverse
-    props:
-      name: Extract product data model from code
-      given: Codebase has database schema, API models, or state management
-      when: bantay reverse --prompt scans the code
-      then: "Prompt asks the LLM to extract data entities: what the user creates, owns, and interacts with. Not database tables — product objects with their fields, ownership, and relationships."
-  sc_reverse_formal_spec:
-    parent: cuj_reverse
-    props:
-      name: Extract formal properties from code
-      given: Codebase has pure functions, state machines, or invariant checks
-      when: bantay reverse --prompt scans the code
-      then: "Prompt asks the LLM to identify properties expressible as Lean 4 theorems: purity, determinism, ordering invariants, isolation properties"
-  cuj_formalize:
-    parent: cujs
-    props:
-      feature: Bantay generates Lean 4 theorem statements from aide invariants
-      tier: secondary
-      area: verification
-  sc_formalize_invariant:
-    parent: cuj_formalize
-    props:
-      name: Generate Lean 4 theorem from invariant
-      given: Aide has an invariant with a formal prop
-      when: Developer runs bantay formalize
-      then: Lean 4 file generated with theorem statement, type definitions, and sorry placeholder for proof
-  sc_formalize_check:
-    parent: cuj_formalize
-    props:
-      name: Verify Lean proofs compile
-      given: Lean 4 files with completed proofs
-      when: Developer runs bantay formalize --check
-      then: Runs lean compiler on all proof files, reports pass/fail
+      text: Every model judgment goes through the DecisionModel interface (noul / choice / score with probabilities and confidence). No command calls a model API directly.
+      domain: architecture
+      rationale: vibez.pub failed on generative-LLM orchestration — token cost too high, loops too fragile. A typed decision oracle is one cheap call per proposed transition with calibrated confidence, and plain code decides. Jev (TypeSafe) is the default provider; the interface stays provider-neutral so an open-weight decision model or a generative fallback (Ollama, Anthropic) is a config change, not a code change.
 relationships:
-  - from: sc_init_prerequisites
-    to: inv_bun_available
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_init_binary
-    to: inv_cli_invocable
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_check_full
-    to: inv_no_false_negatives
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_check_full
-    to: inv_exit_code
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_check_diff
-    to: inv_diff_subset
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_check_diff
-    to: inv_check_speed
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_check_no_execution
-    to: inv_no_code_execution
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_checker_sandboxed
-    to: inv_checker_sandboxed
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_checker_interface
-    to: inv_checker_interface_uniform
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_export_idempotent
-    to: inv_export_idempotent
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_export_no_clobber
-    to: inv_no_clobber
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_init_already_initialized
-    to: inv_init_no_overwrite
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_ci_audit_output
-    to: inv_ci_output_parseable
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_init_detect_stack
-    to: inv_no_network
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_check_full
-    to: inv_no_source_modification
-    type: protected_by
-    cardinality: many_to_many
-  - from: cuj_check
-    to: cuj_init
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_check
-    to: cuj_checkers
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_ci
-    to: cuj_check
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_export
-    to: cuj_init
-    type: depends_on
-    cardinality: many_to_many
-  - from: con_bun_runtime
-    to: inv_bun_available
-    type: implements
-    cardinality: many_to_one
-  - from: con_bin_field
-    to: inv_cli_invocable
-    type: implements
-    cardinality: many_to_one
-  - from: con_static_analysis_only
-    to: inv_no_code_execution
-    type: implements
-    cardinality: many_to_one
-  - from: con_three_tier_checkers
-    to: inv_checker_sandboxed
-    type: implements
-    cardinality: many_to_one
-  - from: con_checker_interface
-    to: inv_checker_interface_uniform
-    type: implements
-    cardinality: many_to_one
-  - from: con_no_inline_shell
-    to: inv_no_inline_shell
-    type: implements
-    cardinality: many_to_one
-  - from: con_no_inline_shell
-    to: inv_no_code_execution
-    type: implements
-    cardinality: many_to_one
-  - from: con_invariants_md_is_truth
-    to: inv_no_false_negatives
-    type: implements
-    cardinality: many_to_one
-  - from: con_section_markers
-    to: inv_no_clobber
-    type: implements
-    cardinality: many_to_one
-  - from: con_section_markers
-    to: inv_export_idempotent
-    type: implements
-    cardinality: many_to_one
-  - from: con_json_audit_output
-    to: inv_ci_output_parseable
-    type: implements
-    cardinality: many_to_one
-  - from: con_bun_runtime
-    to: inv_check_speed
-    type: implements
-    cardinality: many_to_one
-  - from: cuj_tasks
-    to: cuj_aide
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_orchestrate
-    to: cuj_tasks
-    type: depends_on
-    cardinality: many_to_many
-  - from: sc_orchestrate_validate_plan
-    to: inv_plan_validated
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_orchestrate_plan
-    to: inv_plan_validated
-    type: protected_by
-    cardinality: many_to_many
-  - from: cuj_visualize_generate
-    to: cuj_aide
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_visualize_map
-    to: cuj_visualize_generate
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_visualize_walkthrough
-    to: cuj_visualize_generate
-    type: depends_on
-    cardinality: many_to_many
-  - from: sc_visualize_output_file
-    to: inv_visualize_self_contained
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_visualize_with_screens
-    to: inv_visualize_aide_agnostic
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_visualize_without_screens
-    to: inv_visualize_aide_agnostic
-    type: protected_by
-    cardinality: many_to_many
-  - from: cuj_export_css
-    to: cuj_aide
-    type: depends_on
-    cardinality: many_to_many
-  - from: sc_visualize_injects_tokens
-    to: cuj_export_css
-    type: depends_on
-    cardinality: many_to_many
-  - from: sc_check_wireframe_exists
-    to: inv_wireframe_per_component
-    type: protected_by
-    cardinality: many_to_many
-  - from: sc_visualize_wireframe_variants
-    to: inv_wireframe_variant_fallback
-    type: protected_by
-    cardinality: many_to_many
-  - from: cuj_visualize_graph
-    to: cuj_visualize_generate
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_derive_graph
-    to: cuj_aide
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_journeys
-    to: cuj_derive_graph
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_visualize_graph
-    to: cuj_journeys
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_reverse
-    to: cuj_aide
-    type: depends_on
-    cardinality: many_to_many
-  - from: cuj_formalize
-    to: cuj_aide
-    type: depends_on
-    cardinality: many_to_many
+- from: cuj_bantay_init
+  to: bantay.init
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_check
+  to: bantay.check
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_aide
+  to: bantay.aide
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_diff
+  to: bantay.diff
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_status
+  to: bantay.status
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_tasks
+  to: bantay.tasks
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_ci
+  to: bantay.ci
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_export
+  to: bantay.export
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_visualize
+  to: bantay.visualize
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_derive_graph
+  to: bantay.derive_graph
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_journeys
+  to: bantay.journeys
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_reverse
+  to: bantay.reverse
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_gate
+  to: bantay.gate
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_orchestrate
+  to: bantay.orchestrate
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_formalize
+  to: bantay.formalize
+  type: delegates_to
+  cardinality: one_to_one
+- from: cuj_bantay_check
+  to: cuj_bantay_init
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_ci
+  to: cuj_bantay_check
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_export
+  to: cuj_bantay_init
+  type: depends_on
+  cardinality: many_to_many
+- from: con_bun_runtime
+  to: inv_bun_available
+  type: implements
+  cardinality: many_to_one
+- from: con_no_inline_shell
+  to: inv_no_inline_shell
+  type: implements
+  cardinality: many_to_one
+- from: con_no_inline_shell
+  to: inv_no_code_execution
+  type: implements
+  cardinality: many_to_one
+- from: con_bun_runtime
+  to: inv_check_speed
+  type: implements
+  cardinality: many_to_one
+- from: cuj_bantay_tasks
+  to: cuj_bantay_aide
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_orchestrate
+  to: cuj_bantay_tasks
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_visualize
+  to: cuj_bantay_aide
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_export
+  to: cuj_bantay_aide
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_visualize
+  to: cuj_bantay_export
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_derive_graph
+  to: cuj_bantay_aide
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_journeys
+  to: cuj_bantay_derive_graph
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_visualize
+  to: cuj_bantay_journeys
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_reverse
+  to: cuj_bantay_aide
+  type: depends_on
+  cardinality: many_to_many
+- from: cuj_bantay_formalize
+  to: cuj_bantay_aide
+  type: depends_on
+  cardinality: many_to_many
+- from: con_decision_model_interface
+  to: inv_oracle_fails_closed
+  type: implements
+  cardinality: many_to_one
+- from: cuj_bantay_gate
+  to: cuj_bantay_aide
+  type: depends_on
+  cardinality: many_to_many
