@@ -1,0 +1,110 @@
+spec: '1.0'
+entities:
+  ci:
+    display: page
+    props:
+      title: bantay ci
+      description: Developer generates a CI workflow that runs bantay check on every PR
+  cujs:
+    display: table
+    parent: ci
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  invariants:
+    display: checklist
+    parent: ci
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  constraints:
+    display: list
+    parent: ci
+    props:
+      title: Architectural Constraints
+      _pattern: flat_list
+      _group_by: domain
+  cuj_ci:
+    parent: cujs
+    props:
+      feature: Developer adds Bantay as a required check on every PR
+      tier: primary
+      area: ci
+  sc_ci_github:
+    parent: cuj_ci
+    props:
+      name: Generate GitHub Actions workflow
+      given: Developer runs bantay ci --github-actions
+      when: Bantay generates the workflow
+      then:
+      - .github/workflows/bantay.yml created
+      - Workflow runs bantay check on every PR
+      - Workflow installs Bantay via bunx
+      - Workflow installs community checker packages if referenced in invariants.md
+      - Status check reports pass/fail summary
+      - Workflow file is valid YAML that GitHub Actions accepts
+  sc_ci_gitlab:
+    parent: cuj_ci
+    props:
+      name: Generate GitLab CI config
+      given: Developer runs bantay ci --gitlab
+      when: Bantay generates the config
+      then:
+      - .gitlab-ci.yml updated with bantay stage
+      - If file already exists, Bantay stage is appended, existing stages untouched
+  sc_ci_generic:
+    parent: cuj_ci
+    props:
+      name: Generic CI instructions
+      given: Developer runs bantay ci with no flag or unsupported CI
+      when: Bantay cannot generate a specific config
+      then:
+      - Prints the shell commands needed to run bantay check in any CI
+      - Developer copies into their CI config manually
+  sc_ci_existing_workflow:
+    parent: cuj_ci
+    props:
+      name: CI generation when workflow already exists
+      given: .github/workflows/bantay.yml already exists
+      when: Developer runs bantay ci --github-actions
+      then:
+      - Existing file is NOT overwritten
+      - Developer warned and given option to overwrite with --force
+  sc_ci_audit_output:
+    parent: cuj_ci
+    props:
+      name: CI produces audit-ready output
+      given: CI check runs on a PR
+      when: All invariants are evaluated
+      then:
+      - JSON output includes timestamp, commit SHA, invariant IDs checked, pass/fail per invariant
+      - Each result includes which checker was used (built-in, community package name, or project path)
+      - Output is machine-parseable for future dashboard ingestion
+      - This is the seed of the compliance evidence trail
+  inv_ci_output_parseable:
+    parent: invariants
+    props:
+      statement: CI check output includes machine-parseable JSON with timestamp, commit SHA, and per-invariant results
+      category: auditability
+      threat_signal: CI output is human-readable only, no structured data for dashboard ingestion
+      done: false
+      test: tests/meta/ci-output.test.ts
+  con_json_audit_output:
+    parent: constraints
+    props:
+      text: CI check emits structured JSON to stdout. Human-readable summary to stderr. Never mixed.
+      domain: ci
+      rationale: CI systems parse stdout. Humans read stderr. Mixing them breaks piping, breaks parsers, and makes the audit trail unreliable. JSON on stdout is the seed of the compliance evidence trail that the Dashboard will ingest.
+relationships:
+- from: sc_ci_audit_output
+  to: inv_ci_output_parseable
+  type: protected_by
+  cardinality: many_to_many
+- from: con_json_audit_output
+  to: inv_ci_output_parseable
+  type: implements
+  cardinality: many_to_one

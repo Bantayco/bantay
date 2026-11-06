@@ -1,0 +1,65 @@
+spec: '1.0'
+entities:
+  orchestrate:
+    display: page
+    props:
+      title: /bantay-orchestrate
+      description: "Team lead runs the orchestrated build: foundation, plans, gated teammates"
+  cujs:
+    display: table
+    parent: orchestrate
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  invariants:
+    display: checklist
+    parent: orchestrate
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  cuj_orchestrate:
+    parent: cujs
+    props:
+      feature: Developer orchestrates multi-agent builds from aide
+      tier: primary
+      area: orchestrate
+  sc_orchestrate_spawn:
+    parent: cuj_orchestrate
+    props:
+      name: Spawn teammates for CUJ phases
+      given: Developer runs /bantay-orchestrate
+      when: Bantay orchestrates the build
+      then: Maximum 2 teammates spawned at a time. Each teammate monitors context usage after every scenario — compact at 50%, request restart at 80%.
+  sc_orchestrate_plan:
+    parent: cuj_orchestrate
+    props:
+      name: Write plan before spawning teammates
+      given: Lead is about to spawn teammates for a CUJ
+      when: Lead prepares the CUJ work assignment
+      then: Lead writes .bantay/plans/<cuj_id>.md with ordered implementation steps, then validates plan against aide, codebase, interfaces, dependencies, and invariants before committing
+  sc_orchestrate_validate_plan:
+    parent: cuj_orchestrate
+    props:
+      name: Validate plan before committing
+      given: Lead has written a plan for a CUJ
+      when: Lead runs the 5-point validation checklist
+      then: Plan is verified against aide scenarios, file references, interface contracts, dependency order, and invariant coverage. Only committed after all checks pass.
+  inv_plan_validated:
+    parent: invariants
+    props:
+      statement: "No plan is committed without passing all 5 validation checks: aide coverage, file references, interface contracts, dependency check, invariant coverage"
+      category: orchestration
+      threat_signal: Lead hallucinates file paths or API signatures in plan, teammate builds against nonexistent code, entire CUJ wasted
+relationships:
+- from: sc_orchestrate_validate_plan
+  to: inv_plan_validated
+  type: protected_by
+  cardinality: many_to_many
+- from: sc_orchestrate_plan
+  to: inv_plan_validated
+  type: protected_by
+  cardinality: many_to_many

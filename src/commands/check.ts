@@ -7,7 +7,7 @@ import { createDecisionModel, DecisionError, type DecisionModel, type NoulQuesti
 import { loadConfig } from "../config";
 import { getGitDiff, getGitDiffText, shouldCheckInvariant } from "../diff";
 import type { CheckResult, CheckerContext, StructuralCheckResult } from "../checkers/types";
-import { read as readAide, tryResolveAidePath } from "@bantay/aide/node";
+import { readMerged as readAide, tryResolveAidePath } from "@bantay/aide/node";
 
 export interface CheckOptions {
   /** Inject a decision model (tests). Overrides config. */

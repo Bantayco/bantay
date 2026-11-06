@@ -93,6 +93,24 @@ Each invariant has a stable ID, category, and statement. `bantay check` evaluate
 
 All tiers implement the same interface. Resolution order: project > community > built-in.
 
+## Sub-aides
+
+A product bigger than a toy splits into a root aide plus one child aide per
+subsystem — this repo is `bantay.aide` plus `bantay.<command>.aide` for every
+subcommand. A root CUJ `delegates_to` the child (`cuj_bantay_visualize →
+bantay.visualize`); the child specifies the journey. Children inherit the
+root's invariants and constraints and may reference them by id.
+
+```bash
+bantay aide validate                           # lints the whole project (root + children)
+bantay aide validate --aide bantay.gate.aide   # one child, ancestors' ids visible
+bantay export invariants                       # merged view: every aide's invariants
+```
+
+`check`, `status`, `tasks`, `gate` and the exports read the merged project;
+`aide add/link/lock/diff` edit one document. Format rules: SPEC §8 in
+`@bantay/aide`.
+
 ## The .aide spec
 
 Bantay uses a `.aide` file as its source of truth. `invariants.md`, `CLAUDE.md`, and `.cursorrules` are generated exports.

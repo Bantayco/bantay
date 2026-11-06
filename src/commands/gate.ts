@@ -14,7 +14,7 @@
  * Exit codes: allow 0, reject 1, escalate 2.
  */
 
-import { read, tryResolveAidePath, type AideTree } from "@bantay/aide/node";
+import { readMerged as read, tryResolveAidePath, type AideTree } from "@bantay/aide/node";
 import { loadConfig } from "../config";
 import {
   createDecisionModel,

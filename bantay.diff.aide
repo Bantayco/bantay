@@ -1,0 +1,112 @@
+spec: "1.0"
+entities:
+  diff:
+    display: page
+    props:
+      title: bantay diff
+      description: Developer sees aide changes since the last lock, classified by entity type
+  cujs:
+    display: table
+    parent: diff
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  invariants:
+    display: checklist
+    parent: diff
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  cuj_diff_classify:
+    parent: cujs
+    props:
+      feature: Developer runs bantay diff and sees every aide change since the last lock, classified by entity type with a corrective action
+      tier: primary
+      area: diff
+  sc_diff_no_changes:
+    parent: cuj_diff_classify
+    props:
+      name: No changes since lock
+      given: bantay.aide matches bantay.aide.lock
+      when: Developer runs bantay diff
+      then:
+        - Output says "No changes"
+        - Exit code 0
+  sc_diff_added_modified_removed:
+    parent: cuj_diff_classify
+    props:
+      name: Added, modified and removed entities
+      given: Entities were added, changed or deleted since the lock
+      when: Developer runs bantay diff
+      then:
+        - Each change is listed as ADDED, MODIFIED or REMOVED with its entity id
+        - Exit code 1 when any change exists
+  sc_diff_type_by_parent_chain:
+    parent: cuj_diff_classify
+    props:
+      name: Entity type is classified by parent chain
+      given: An entity whose ancestor is cujs, invariants, constraints, foundations, wisdom or design_system
+      when: bantay diff classifies the change
+      then:
+        - Type is scenario, invariant, constraint, foundation, wisdom or design_token respectively
+        - An entity with no known ancestor defaults to type entity
+  sc_diff_relationship_changes:
+    parent: cuj_diff_classify
+    props:
+      name: Relationship changes are reported
+      given: A relationship was added or removed since the lock
+      when: Developer runs bantay diff
+      then:
+        - "Change is listed as ADDED relationship <from> → <to>, or REMOVED"
+        - JSON output carries type relationship and relationship_type
+  sc_diff_behavioral_change_flag:
+    parent: cuj_diff_classify
+    props:
+      name: Modified scenarios carry a behavioral_change flag
+      given: A scenario was modified since the lock
+      when: bantay diff compares its behavioral props (given, when, then) to the lock
+      then:
+        - behavioral_change is true when a behavioral prop changed
+        - behavioral_change is false when only metadata (e.g. screen) changed
+  sc_diff_json:
+    parent: cuj_diff_classify
+    props:
+      name: JSON output for agents
+      given: Developer passes --json
+      when: Developer runs bantay diff --json
+      then:
+        - Output is a JSON object with type, action, entity_id, parent and corrective_action per change
+        - Nothing but JSON is printed to stdout
+  sc_diff_lock_missing:
+    parent: cuj_diff_classify
+    props:
+      name: Lock file missing
+      given: No bantay.aide.lock exists
+      when: Developer runs bantay diff
+      then:
+        - Error tells the developer to run bantay aide lock first
+        - Exit code 1
+  inv_diff_classifies_every_change:
+    parent: invariants
+    props:
+      statement: Every entity or relationship change since the lock appears in the diff exactly once with a type and corrective action
+      category: correctness
+      threat_signal: A changed entity is absent from the diff, so no task is generated for it and the change ships unreviewed
+      test: tests/diff.test.ts
+relationships:
+  - from: sc_diff_added_modified_removed
+    to: inv_diff_classifies_every_change
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_diff_relationship_changes
+    to: inv_diff_classifies_every_change
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_diff_type_by_parent_chain
+    to: inv_diff_classifies_every_change
+    type: protected_by
+    cardinality: many_to_many

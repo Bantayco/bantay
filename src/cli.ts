@@ -34,7 +34,7 @@ import {
   type JourneyProposal,
   type ExistingCUJ,
 } from "./commands/journeys-llm";
-import { read, write, addEntity, removeEntity, tryResolveAidePath, type AideTree } from "@bantay/aide/node";
+import { read, readMerged, write, addEntity, removeEntity, tryResolveAidePath, type AideTree } from "@bantay/aide/node";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -552,7 +552,7 @@ async function handleJourneys(args: string[]) {
         throw new Error("Could not find aide file");
       }
 
-      const aide = await read(resolved.path);
+      const aide = await readMerged(resolved.path);
       const context = collectJourneyContext({ entities: aide.entities });
       const prompt = generateJourneyPrompt(context);
 
@@ -574,7 +574,7 @@ async function handleJourneys(args: string[]) {
       }
 
       // Read aide and collect existing CUJs
-      const aide = await read(resolved.path);
+      const aide = await readMerged(resolved.path);
       const context = collectJourneyContext({ entities: aide.entities });
 
       // Convert existing CUJs to ExistingCUJ format with paths

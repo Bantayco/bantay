@@ -11,6 +11,8 @@ Rules this project must never break. Generated from bantay.aide.
 
 ## Correctness
 
+- [ ] **inv_export_all_success**: bantay export all generates every output file without error
+  - Threat: Export silently skips a file, stale exports persist
 - [ ] **inv_no_false_negatives**: bantay check never reports PASS for a violated invariant
   - Threat: Violated invariant merged to main without detection
 - [ ] **inv_exit_code**: bantay check exits non-zero when any invariant is violated
@@ -19,8 +21,10 @@ Rules this project must never break. Generated from bantay.aide.
   - Threat: Diff check misses violation that full check catches
 - [ ] **inv_checker_interface_uniform**: All checkers — built-in, community, and project — implement the same interface and return the same result shape
   - Threat: Community or project checker returns unexpected shape causing runtime error in bantay check
-- [ ] **inv_export_all_success**: bantay export all generates every output file without error
-  - Threat: Export silently skips a file, stale exports persist
+- [ ] **inv_diff_classifies_every_change**: Every entity or relationship change since the lock appears in the diff exactly once with a type and corrective action
+  - Threat: A changed entity is absent from the diff, so no task is generated for it and the change ships unreviewed
+- [ ] **inv_status_no_false_implemented**: A scenario is marked implemented only when a test references its id or name
+  - Threat: Fuzzy matching marks untested scenarios implemented, hiding missing coverage
 
 ## Design Integrity
 
@@ -28,6 +32,13 @@ Rules this project must never break. Generated from bantay.aide.
   - Threat: Component added to aide without wireframe file, visualizer falls back to text description instead of rendering actual wireframe
 - [ ] **inv_wireframe_variant_fallback**: If a scenario references a component variant that has no wireframe file, the engine falls back to the default wireframe without error
   - Threat: Missing variant file causes blank component or render error
+
+## Governance
+
+- [ ] **inv_oracle_fails_closed**: A decision-oracle error or missing answer yields skipped (check) or escalate (gate), never pass or allow
+  - Threat: Oracle outage or malformed response silently green-lights a change
+- [ ] **inv_transition_vocabulary_closed**: The gate only ever allows a change that maps to exactly one declared tr_* transition
+  - Threat: Agent applies a state change the aide never declared
 
 ## Integrity
 
@@ -47,6 +58,8 @@ Rules this project must never break. Generated from bantay.aide.
 
 - [ ] **inv_check_speed**: bantay check --diff completes in under 5 seconds for diffs under 500 lines with 50 invariants
   - Threat: Developers skip bantay check because it's slower than their linter
+- [ ] **inv_status_fast**: bantay status completes in under one second on a simple project
+  - Threat: Status scans every file byte-by-byte and stalls on large repos
 
 ## Portability
 
@@ -64,12 +77,12 @@ Rules this project must never break. Generated from bantay.aide.
 
 - [ ] **inv_no_code_execution**: bantay core never imports, requires, or evals project code. Built-in checkers use static analysis only.
   - Threat: Arbitrary code execution triggered by scanning a project
-- [ ] **inv_checker_sandboxed**: Project and community checkers run in a sandboxed subprocess with no access to bantay internals or the ability to modify files
-  - Threat: Malicious project checker escapes sandbox and modifies codebase or exfiltrates data
 - [ ] **inv_no_inline_shell**: invariants.md never contains executable shell commands. Enforcement is through checker modules only.
   - Threat: User adds check: rm -rf / to invariants.md and bantay executes it
 - [ ] **inv_no_network**: Bantay CLI makes zero network requests during init, check, ci, or export
   - Threat: DNS or HTTP request observed during offline operation
+- [ ] **inv_checker_sandboxed**: Project and community checkers run in a sandboxed subprocess with no access to bantay internals or the ability to modify files
+  - Threat: Malicious project checker escapes sandbox and modifies codebase or exfiltrates data
 - [ ] **inv_no_source_modification**: Bantay never modifies project source files
   - Threat: Project source file changed after bantay check
 

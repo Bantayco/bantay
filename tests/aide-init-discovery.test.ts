@@ -190,7 +190,7 @@ relationships: []
     const { stderr, exitCode } = await runCli(["aide", "show"]);
 
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("Multiple .aide files found");
+    expect(stderr).toContain("Multiple root .aide files found");
     expect(stderr).toContain("--aide");
   });
 

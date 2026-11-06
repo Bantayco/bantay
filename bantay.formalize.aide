@@ -1,0 +1,37 @@
+spec: '1.0'
+entities:
+  formalize:
+    display: page
+    props:
+      title: bantay formalize
+      description: Developer exports invariants to formal-verification targets and checks proofs
+  cujs:
+    display: table
+    parent: formalize
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  cuj_formalize:
+    parent: cujs
+    props:
+      feature: Bantay generates Lean 4 theorem statements from aide invariants
+      tier: secondary
+      area: verification
+  sc_formalize_invariant:
+    parent: cuj_formalize
+    props:
+      name: Generate Lean 4 theorem from invariant
+      given: Aide has an invariant with a formal prop
+      when: Developer runs bantay formalize
+      then: Lean 4 file generated with theorem statement, type definitions, and sorry placeholder for proof
+  sc_formalize_check:
+    parent: cuj_formalize
+    props:
+      name: Verify Lean proofs compile
+      given: Lean 4 files with completed proofs
+      when: Developer runs bantay formalize --check
+      then: Runs lean compiler on all proof files, reports pass/fail
+relationships: []

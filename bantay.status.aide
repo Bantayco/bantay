@@ -1,0 +1,99 @@
+spec: "1.0"
+entities:
+  status:
+    display: page
+    props:
+      title: bantay status
+      description: Developer sees which scenarios are implemented, tested and enforced
+  cujs:
+    display: table
+    parent: status
+    props:
+      title: Critical User Journeys
+      _pattern: roster
+      _group_by: area
+      _sort_by: tier
+      _sort_order: asc
+  invariants:
+    display: checklist
+    parent: status
+    props:
+      title: Invariants
+      _pattern: roster
+      _group_by: category
+  cuj_status_scenarios:
+    parent: cujs
+    props:
+      feature: Developer runs bantay status and sees, per CUJ, which scenarios have a matching test and which are missing
+      tier: secondary
+      area: status
+  sc_status_extract_scenarios:
+    parent: cuj_status_scenarios
+    props:
+      name: Scenarios are extracted and grouped by CUJ
+      given: An aide with sc_* entities under cuj_* parents
+      when: Developer runs bantay status
+      then:
+        - Every sc_* entity is listed with its name
+        - Scenarios are grouped under their CUJ with the CUJ's feature
+  sc_status_match_tests:
+    parent: cuj_status_scenarios
+    props:
+      name: Scenario matched to a test
+      given: A test file names the scenario by id in its filename, a describe block, or a test name substring
+      when: bantay status scans tests/, src/__tests__/ and *.test.{ts,tsx,js,jsx}
+      then:
+        - Scenario is marked implemented
+        - The matching file and line number are reported
+  sc_status_missing:
+    parent: cuj_status_scenarios
+    props:
+      name: Scenario with no test
+      given: No test references the scenario
+      when: Developer runs bantay status
+      then:
+        - Scenario is marked missing
+        - Summary counts implemented vs missing
+  sc_status_json:
+    parent: cuj_status_scenarios
+    props:
+      name: JSON output
+      given: Developer passes --json
+      when: Developer runs bantay status --json
+      then:
+        - Structured JSON with per-scenario status and summary counts
+  sc_status_edge_cases:
+    parent: cuj_status_scenarios
+    props:
+      name: Missing or malformed inputs
+      given: No aide file, an empty tests directory, or malformed aide YAML
+      when: Developer runs bantay status
+      then:
+        - A clear error or an empty report, never a crash
+  inv_status_fast:
+    parent: invariants
+    props:
+      statement: bantay status completes in under one second on a simple project
+      category: performance
+      threat_signal: Status scans every file byte-by-byte and stalls on large repos
+      test: tests/status-command.test.ts
+  inv_status_no_false_implemented:
+    parent: invariants
+    props:
+      statement: A scenario is marked implemented only when a test references its id or name
+      category: correctness
+      threat_signal: Fuzzy matching marks untested scenarios implemented, hiding missing coverage
+      test: tests/status-command.test.ts
+relationships:
+  - from: sc_status_match_tests
+    to: inv_status_no_false_implemented
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_status_missing
+    to: inv_status_no_false_implemented
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_status_extract_scenarios
+    to: inv_status_fast
+    type: protected_by
+    cardinality: many_to_many
