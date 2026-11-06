@@ -110,6 +110,34 @@ export async function getGitDiff(
   }
 }
 
+/**
+ * Full unified diff text for `ref` (falls back to staged + unstaged).
+ * Returns "" when not a git repo or nothing changed.
+ */
+export async function getGitDiffText(
+  projectPath: string,
+  ref: string = "HEAD",
+  maxBytes = 200_000
+): Promise<string> {
+  const run = async (args: string[]): Promise<{ out: string; code: number }> => {
+    const proc = Bun.spawn(["git", ...args], { cwd: projectPath, stdout: "pipe", stderr: "pipe" });
+    const out = await new Response(proc.stdout).text();
+    const code = await proc.exited;
+    return { out, code };
+  };
+  try {
+    let { out, code } = await run(["diff", ref]);
+    if (code !== 0) {
+      const staged = await run(["diff", "--cached"]);
+      const unstaged = await run(["diff"]);
+      out = staged.out + unstaged.out;
+    }
+    return out.length > maxBytes ? out.slice(0, maxBytes) + "\n[diff truncated]" : out;
+  } catch {
+    return "";
+  }
+}
+
 export function shouldCheckInvariant(
   invariantCategory: string,
   affectedCategories: Set<string>

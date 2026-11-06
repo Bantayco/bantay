@@ -70,6 +70,15 @@ export function configToYaml(config: BantayConfig): string {
     }
   }
 
+  // Decision oracle section (commented example; see README "Decision oracle")
+  lines.push("");
+  lines.push("# Decision oracle for `bantay check --diff` and `bantay gate`.");
+  lines.push("# Uncomment and set TYPESAFE_API_KEY. Providers: jev | systemone | ollama | anthropic | mock | none");
+  lines.push("# decision:");
+  lines.push("#   provider: jev");
+  lines.push("#   model: jev-latest");
+  lines.push("#   threshold: 0.8");
+
   // Schema section
   if (config.schema) {
     lines.push("");

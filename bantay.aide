@@ -1252,10 +1252,22 @@ entities:
       then: The label on the edge shows the action text. In debug mode the trigger element is highlighted on the source screen.
   sc_graph_default_view:
     parent: cuj_visualize_graph
-    props: {}
+    props:
+      name: Graph is the default view when the aide declares states and transitions
+      given: Aide contains st_* and tr_* entities
+      when: Developer opens the generated visualization
+      then:
+        - State-transition graph is shown first
+        - Screen map remains available as a secondary view
   sc_visualize_exclude_containers:
     parent: cuj_visualize_generate
-    props: {}
+    props:
+      name: Section containers are excluded from the screen map
+      given: Aide has section entities (cujs, invariants, constraints, foundations, wisdom) alongside screens
+      when: Developer runs bantay visualize
+      then:
+        - Only screen_* and comp_* entities render as nodes
+        - Section containers never appear as screens
   cuj_derive_graph:
     parent: cujs
     props:
@@ -1441,6 +1453,94 @@ entities:
       given: Lean 4 files with completed proofs
       when: Developer runs bantay formalize --check
       then: Runs lean compiler on all proof files, reports pass/fail
+  cuj_gate:
+    parent: cujs
+    props:
+      feature: Agent asks the decision oracle whether a proposed change is a declared transition before applying it
+      tier: primary
+      area: governance
+  sc_gate_allow:
+    parent: cuj_gate
+    props:
+      name: Proposal matches one declared transition
+      given: Aide declares tr_* transitions and a decision provider is configured
+      when: Agent runs bantay gate "<proposal>"
+      then:
+        - Oracle answers one choice question over the closed set of tr_* ids plus out_of_vocabulary
+        - Oracle answers one noul question per invariant (would the proposal violate it)
+        - Confidence >= threshold and no invariant at risk → ALLOW, exit 0, transition id reported
+  sc_gate_out_of_vocabulary:
+    parent: cuj_gate
+    props:
+      name: Proposal is not a declared transition
+      given: Proposal adds new behavior, combines transitions, or edits the spec
+      when: Oracle confidently picks out_of_vocabulary
+      then:
+        - REJECT, exit 1
+        - Agent is told to add a tr_* to the aide or ask the organizer
+  sc_gate_escalate:
+    parent: cuj_gate
+    props:
+      name: Oracle is not confident
+      given: Choice confidence below threshold, or an invariant in the uncertain band
+      when: Agent runs bantay gate
+      then:
+        - ESCALATE, exit 2
+        - Organizer decides; the agent does not apply the change
+  sc_gate_invariant_risk:
+    parent: cuj_gate
+    props:
+      name: Proposal would violate an invariant
+      given: Transition matches but P(violated) >= threshold for some invariant
+      when: Agent runs bantay gate
+      then:
+        - REJECT, exit 1
+        - Reason names the invariant and its probability
+  sc_gate_from_state:
+    parent: cuj_gate
+    props:
+      name: Gate from a known current state
+      given: Agent passes --from st_x
+      when: Agent runs bantay gate
+      then:
+        - Choice vocabulary is narrowed to transitions leaving st_x
+        - A matched transition that does not start at st_x is rejected
+  sc_check_oracle:
+    parent: cuj_check
+    props:
+      name: Decision oracle judges unenforced invariants against the diff
+      given: bantay check --diff with a decision provider configured
+      when: An invariant has no checker, test, enforced prop, or built-in checker
+      then:
+        - One batched request with a noul question per invariant and the diff as state
+        - P(violated) >= threshold → FAIL; <= 1 - threshold → PASS; otherwise REVIEW
+        - REVIEW results are counted separately and never block as pass
+  inv_oracle_fails_closed:
+    parent: invariants
+    props:
+      statement: A decision-oracle error or missing answer yields skipped (check) or escalate (gate), never pass or allow
+      category: governance
+      threat_signal: Oracle outage or malformed response silently green-lights a change
+      test: tests/check-oracle.test.ts
+  inv_transition_vocabulary_closed:
+    parent: invariants
+    props:
+      statement: The gate only ever allows a change that maps to exactly one declared tr_* transition
+      category: governance
+      threat_signal: Agent applies a state change the aide never declared
+      test: tests/gate.test.ts
+  con_decision_model_interface:
+    parent: constraints
+    props:
+      text: Every model judgment goes through the DecisionModel interface (noul / choice / score with probabilities and confidence). No command calls a model API directly.
+      domain: architecture
+      rationale: vibez.pub failed on generative-LLM orchestration — token cost too high, loops too fragile. A typed decision oracle is one cheap call per proposed transition with calibrated confidence, and plain code decides. Jev (TypeSafe) is the default provider; the interface stays provider-neutral so an open-weight decision model or a generative fallback (Ollama, Anthropic) is a config change, not a code change.
+  con_confidence_threshold_escalates:
+    parent: constraints
+    props:
+      text: Decisions below the configured confidence threshold escalate to the organizer instead of defaulting to allow or reject.
+      domain: architecture
+      rationale: Calibrated probabilities are the whole point of a decision model. Collapsing the uncertain band into a binary answer throws that information away and either blocks good changes or lets bad ones through.
 relationships:
   - from: sc_init_prerequisites
     to: inv_bun_available
@@ -1610,7 +1710,7 @@ relationships:
     to: cuj_aide
     type: depends_on
     cardinality: many_to_many
-  - from: sc_visualize_injects_tokens
+  - from: cuj_visualize_generate
     to: cuj_export_css
     type: depends_on
     cardinality: many_to_many
@@ -1643,6 +1743,34 @@ relationships:
     type: depends_on
     cardinality: many_to_many
   - from: cuj_formalize
+    to: cuj_aide
+    type: depends_on
+    cardinality: many_to_many
+  - from: sc_gate_allow
+    to: inv_transition_vocabulary_closed
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_gate_out_of_vocabulary
+    to: inv_transition_vocabulary_closed
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_gate_escalate
+    to: inv_oracle_fails_closed
+    type: protected_by
+    cardinality: many_to_many
+  - from: sc_check_oracle
+    to: inv_oracle_fails_closed
+    type: protected_by
+    cardinality: many_to_many
+  - from: con_decision_model_interface
+    to: inv_oracle_fails_closed
+    type: implements
+    cardinality: many_to_one
+  - from: con_confidence_threshold_escalates
+    to: inv_transition_vocabulary_closed
+    type: implements
+    cardinality: many_to_one
+  - from: cuj_gate
     to: cuj_aide
     type: depends_on
     cardinality: many_to_many

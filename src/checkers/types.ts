@@ -1,4 +1,5 @@
 import type { Invariant } from "../generators/invariants";
+import type { DecisionConfig } from "../decision/types";
 
 export interface CheckViolation {
   filePath: string;
@@ -8,9 +9,25 @@ export interface CheckViolation {
 
 export interface CheckResult {
   invariant: Invariant;
-  status: "pass" | "fail" | "skipped" | "tested" | "enforced";
+  status: CheckStatus;
   violations: CheckViolation[];
   message?: string;
+  /** Present when the result came from the decision oracle. */
+  oracle?: OracleVerdict;
+}
+
+/**
+ * - review: the decision oracle was not confident enough to decide; a human
+ *   (the organizer) must look.
+ */
+export type CheckStatus = "pass" | "fail" | "skipped" | "tested" | "enforced" | "review";
+
+export interface OracleVerdict {
+  provider: string;
+  model: string;
+  /** P(violated) for this invariant, from a noul question. */
+  violationProbability: number;
+  threshold: number;
 }
 
 export interface CheckerContext {
@@ -22,6 +39,7 @@ export interface BantayConfig {
   sourceDirectories: string[];
   routeDirectories?: string[];
   schemaPath?: string;
+  decision?: DecisionConfig;
 }
 
 export interface Checker {

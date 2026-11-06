@@ -9,3 +9,9 @@ source:
     - dist/**
     - .next/**
     - build/**
+
+# Decision oracle for `bantay check --diff` and `bantay gate` (needs TYPESAFE_API_KEY)
+decision:
+  provider: jev
+  model: jev-latest
+  threshold: 0.8

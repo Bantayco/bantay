@@ -23,6 +23,7 @@ import { runVisualize } from "./commands/visualize";
 import { runDeriveGraph, formatDeriveGraphResult } from "./commands/derive-graph";
 import { runJourneys, formatJourneysResult } from "./commands/journeys";
 import { runReverse, formatReverseResult } from "./commands/reverse";
+import { runGate, formatGateResult, exitCodeFor } from "./commands/gate";
 import {
   collectJourneyContext,
   generateJourneyPrompt,
@@ -71,6 +72,8 @@ async function main() {
     await handleJourneys(args.slice(1));
   } else if (command === "reverse") {
     await handleReverse(args.slice(1));
+  } else if (command === "gate") {
+    await handleGate(args.slice(1));
   } else {
     console.error(`Unknown command: ${command}`);
     console.error('Run "bantay help" for usage information.');
@@ -113,6 +116,7 @@ Commands:
   derive-graph  Derive screen states and transitions from aide actions
   journeys      Cluster graph and propose CUJ boundaries
   reverse       Extract aide from existing codebase
+  gate          Ask the decision oracle whether a proposed change is a declared transition
 
 Options:
   -h, --help    Show this help message
@@ -121,7 +125,9 @@ Examples:
   bantay init                Initialize in current directory
   bantay init --force        Regenerate slash commands
   bantay check               Run full invariant check
-  bantay check --diff HEAD~1 Check only affected invariants
+  bantay check --diff HEAD~1 Check only affected invariants (+ decision oracle if configured)
+  bantay gate "Tap Save on the editor"            Classify a proposal against tr_* (exit 0 allow / 1 reject / 2 escalate)
+  bantay gate "..." --from st_editor_dirty --json  Gate from a known state, JSON for agents
   bantay diff                Show classified aide changes
   bantay diff --json         Output changes as JSON
   bantay aide show           Show the aide entity tree
@@ -848,3 +854,36 @@ main().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);
 });
+
+async function handleGate(args: string[]) {
+  const jsonOutput = args.includes("--json");
+  const fromIndex = args.indexOf("--from");
+  const from = fromIndex !== -1 ? args[fromIndex + 1] : undefined;
+  const aideIndex = args.indexOf("--aide");
+  const aide = aideIndex !== -1 ? args[aideIndex + 1] : undefined;
+  const thresholdIndex = args.indexOf("--threshold");
+  const threshold = thresholdIndex !== -1 ? Number(args[thresholdIndex + 1]) : undefined;
+
+  // Proposal: first positional arg, or stdin when "-" / nothing is given.
+  const skip = new Set<number>();
+  for (const flag of [fromIndex, aideIndex, thresholdIndex]) {
+    if (flag !== -1) { skip.add(flag); skip.add(flag + 1); }
+  }
+  let proposal = args.find((a, i) => !skip.has(i) && !a.startsWith("--")) ?? "";
+  if (!proposal || proposal === "-") {
+    proposal = (await Bun.stdin.text()).trim();
+  }
+  if (!proposal) {
+    console.error('Usage: bantay gate "<proposal>" [--from st_id] [--aide path] [--threshold 0.8] [--json]');
+    process.exit(1);
+  }
+
+  try {
+    const result = await runGate(process.cwd(), { proposal, from, aide, json: jsonOutput, threshold });
+    console.log(jsonOutput ? JSON.stringify(result, null, 2) : formatGateResult(result));
+    process.exit(exitCodeFor(result.decision));
+  } catch (error) {
+    console.error(`Error: ${error instanceof Error ? error.message : error}`);
+    process.exit(1);
+  }
+}
