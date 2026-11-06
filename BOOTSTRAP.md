@@ -4,6 +4,9 @@ This is the prompt for building the Bantay CLI from its aide alone, with no
 Bantay installed. It is the one ungoverned build. Everything after it is
 governed by the CLI it produces (see "Handoff" at the end).
 
+It is the second of three prompts: `AUTHOR.md` writes the aides; this builds
+from them once; the CLI's own `/bantay-orchestrate` governs every build after.
+
 Give an agent an empty directory containing only `bantay.aide`, the
 `bantay.<command>.aide` children, and `SPEC.md` from `@bantay/aide`, then
 paste the prompt below.
