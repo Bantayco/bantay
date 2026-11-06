@@ -12,10 +12,12 @@ an agent, before any Bantay CLI exists. It is the first of three prompts:
 Once the CLI exists, `/bantay-interview` is this same conversation with
 tooling (`bantay aide add`, `validate`); use that instead.
 
-Give an agent an empty directory containing only `SPEC.md` from
-`@bantay/aide` (and `how-to-create-an-aide.md` if you have it), then paste
-the prompt below. Expect a long conversation; the agent should ask more than
-it writes until the jobs are clear.
+Give an agent an empty directory containing `SPEC.md` from `@bantay/aide`
+and, if you have one, a **seed** — `<name>.seed.md`, the organizer's answers
+written down ahead of time (see `bantay.seed.md` for the shape: intent, jobs
+with tiers, foundations, constraints with rationale, invariants, wisdom,
+split plan, open questions). With a seed the interview collapses to
+confirming and filling gaps; without one, expect a long conversation.
 
 ---
 
@@ -29,7 +31,12 @@ and write the files yourself. There is no tooling; you are the validator.
 - `SPEC.md` — the format. Read §3–§8 before asking anything. You must
   produce documents that satisfy every W-rule in §9.1 and carry no S-rule
   warning you cannot justify.
-- The organizer's answers.
+- `<name>.seed.md`, if present — the organizer's answers to the interview
+  below, written ahead of time. Treat every line as a stated answer. Do not
+  re-ask what it answers; do ask where it is silent, vague, or contradicts
+  itself, and list what you asked in `AUTHOR-NOTES.md`. Anything marked
+  *open* stays out of the aide and goes in the notes.
+- The organizer's answers to whatever is left.
 
 ## What you are producing
 
@@ -50,7 +57,9 @@ updated as the interview proceeds. Do not wait until the end to write files.
 ## The interview
 
 Work through these layers in order. Finish each before the next. Propose;
-do not just ask. The organizer corrects faster than they invent.
+do not just ask. The organizer corrects faster than they invent. With a
+seed, each layer is: read the seed's answer, draft the entities, show them,
+ask only about gaps.
 
 **1. Intent.** "What is this for, in one sentence?" That sentence is the
 root's `description`. If you cannot get it to one sentence, you do not yet
